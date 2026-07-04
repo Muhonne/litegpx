@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrailLite GPX Builder</title>
+    <link rel="stylesheet" href="./vendor/maplibre-gl/maplibre-gl.css" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Route controls">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">TrailLite</p>
+            <h1>GPX Builder</h1>
+          </div>
+          <p id="modeBadge" class="mode-badge">View</p>
+        </header>
+
+        <section class="control-section" aria-label="Primary controls">
+          <button id="newRouteButton" type="button">New route</button>
+          <button id="editButton" type="button">Start route</button>
+          <button id="doneButton" type="button" disabled>Done editing</button>
+          <button id="undoButton" type="button" disabled>Undo</button>
+          <button id="clearButton" type="button" disabled>Clear</button>
+          <label class="file-button">
+            Import GPX
+            <input id="gpxInput" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" />
+          </label>
+          <button id="exportButton" type="button" disabled>Download GPX</button>
+        </section>
+
+        <section class="map-tools-section" aria-label="Map tools">
+          <form id="searchForm" class="search-form">
+            <label class="field-label" for="searchInput">Search map</label>
+            <div class="search-row">
+              <input id="searchInput" type="search" placeholder="Helsinki" autocomplete="off" />
+              <button id="searchButton" type="submit">Find</button>
+            </div>
+          </form>
+
+          <fieldset class="layer-settings">
+            <legend>Map layers</legend>
+            <label>
+              <input id="streetNamesToggle" type="checkbox" checked />
+              <span>Street names</span>
+            </label>
+            <label>
+              <input id="poisToggle" type="checkbox" checked />
+              <span>POIs</span>
+            </label>
+            <label>
+              <input id="buildingsToggle" type="checkbox" />
+              <span>Buildings</span>
+            </label>
+            <label>
+              <input id="minorPathsToggle" type="checkbox" checked />
+              <span>Paths and tracks</span>
+            </label>
+          </fieldset>
+        </section>
+
+        <section class="route-section" aria-label="Route details">
+          <label class="field-label" for="routeName">Route name</label>
+          <input id="routeName" type="text" value="Untitled route" />
+          <dl class="stats-grid">
+            <div>
+              <dt>Distance</dt>
+              <dd id="distanceValue">0 m</dd>
+            </div>
+            <div>
+              <dt>Points</dt>
+              <dd id="pointCountValue">0</dd>
+            </div>
+          </dl>
+          <p id="statusText" class="status-text">Map view ready.</p>
+        </section>
+
+        <section class="points-section" aria-label="Route points">
+          <h2>Points</h2>
+          <ol id="pointsList" class="points-list"></ol>
+        </section>
+      </aside>
+
+      <section class="map-shell" aria-label="Route map">
+        <div id="map"></div>
+      </section>
+    </main>
+
+    <script src="./vendor/maplibre-gl/maplibre-gl.js"></script>
+    <script src="./vendor/pmtiles/pmtiles.js"></script>
+    <script src="./src/app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailLite Test" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Simple Test Route</name>
+  </metadata>
+  <trk>
+    <name>Simple Test Route</name>
+    <trkseg>
+      <trkpt lat="60.169900" lon="24.938400" />
+      <trkpt lat="60.170500" lon="24.939200" />
+      <trkpt lat="60.171200" lon="24.940200" />
+    </trkseg>
+  </trk>
+</gpx>

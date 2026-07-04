@@ -1,0 +1,642 @@
+[
+  {
+    "id": "hartola-vuorenkyla-hartola-rengasreitti",
+    "title": "Hartola-Vuorenkylä-Hartola rengasreitti.",
+    "lengthKm": 57,
+    "durationText": "--",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11852,
+    "matchedTitle": "Hartola-Vuorenkylä-Hartola rengasreitti.",
+    "detailUrl": "https://www.bikeland.fi/hartola-vuorenkyla-hartola-rengasreitti/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11852&lang=fi",
+    "gpxAsset": "routes/hartola-vuorenkyla-hartola-rengasreitti.gpx",
+    "bounds": {
+      "minLon": 25.85793874635,
+      "minLat": 61.573485316316,
+      "maxLon": 26.020517472564,
+      "maxLat": 61.750056805099
+    },
+    "trackPointCount": 427
+  },
+  {
+    "id": "hame-by-cycle-evon-vihrean-kullan-kierros",
+    "title": "Häme by Cycle: Evon vihreän kullan kierros",
+    "lengthKm": 35,
+    "durationText": "3.5 - 5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11021,
+    "matchedTitle": "Häme by Cycle: Evon vihreän kullan kierros",
+    "detailUrl": "https://www.bikeland.fi/hame-by-cycle-evon-vihrean-kullan-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11021&lang=fi",
+    "gpxAsset": "routes/hame-by-cycle-evon-vihrean-kullan-kierros.gpx",
+    "bounds": {
+      "minLon": 24.989768440726,
+      "minLat": 61.19222,
+      "maxLon": 25.14945,
+      "maxLat": 61.24552
+    },
+    "trackPointCount": 521
+  },
+  {
+    "id": "hameen-harkatie",
+    "title": "Hämeen Härkätie",
+    "lengthKm": 70,
+    "durationText": "13 - tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11206,
+    "matchedTitle": "Hämeen Härkätie",
+    "detailUrl": "https://www.bikeland.fi/hameen-harkatie/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11206&lang=fi",
+    "gpxAsset": "routes/hameen-harkatie.gpx",
+    "bounds": {
+      "minLon": 23.722194,
+      "minLat": 60.699044,
+      "maxLon": 24.460304,
+      "maxLat": 61.010186
+    },
+    "trackPointCount": 631
+  },
+  {
+    "id": "hameen-ilvesreitti-hattula-maastopyorailyreitti-18km",
+    "title": "Hämeen Ilvesreitti Hattula maastopyöräilyreitti 18km",
+    "lengthKm": 18,
+    "durationText": "2 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 4327,
+    "matchedTitle": "Hämeen Ilvesreitti Hattula maastopyöräilyreitti 18km",
+    "detailUrl": "https://www.bikeland.fi/hameen-ilvesreitti-hattula-maastopyorailyreitti-18km/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=4327&lang=fi",
+    "gpxAsset": "routes/hameen-ilvesreitti-hattula-maastopyorailyreitti-18km.gpx",
+    "bounds": {
+      "minLon": 24.281573,
+      "minLat": 61.015606,
+      "maxLon": 24.386229,
+      "maxLat": 61.115658
+    },
+    "trackPointCount": 322
+  },
+  {
+    "id": "haahninmaen-maastopyorailyreitti",
+    "title": "Häähninmäen maastopyöräilyreitti",
+    "lengthKm": 33,
+    "durationText": "2.5 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11621,
+    "matchedTitle": "Häähninmäen maastopyöräilyreitti",
+    "detailUrl": "https://www.bikeland.fi/haahninmaen-maastopyorailyreitti/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11621&lang=fi",
+    "gpxAsset": "routes/haahninmaen-maastopyorailyreitti.gpx",
+    "bounds": {
+      "minLon": 26.386897,
+      "minLat": 62.486678,
+      "maxLon": 26.460732,
+      "maxLat": 62.513381
+    },
+    "trackPointCount": 1102
+  },
+  {
+    "id": "ilomantsijarven-sorakierros",
+    "title": "Ilomantsijärven sorakierros",
+    "lengthKm": 54,
+    "durationText": "3 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12831,
+    "matchedTitle": "Ilomantsijärven sorakierros",
+    "detailUrl": "https://www.bikeland.fi/ilomantsijarven-sorakierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12831&lang=fi",
+    "gpxAsset": "routes/ilomantsijarven-sorakierros.gpx",
+    "bounds": {
+      "minLon": 30.75113,
+      "minLat": 62.59928,
+      "maxLon": 30.95036,
+      "maxLat": 62.72524
+    },
+    "trackPointCount": 582
+  },
+  {
+    "id": "jokimaisemat-hedelmalliset-tasangot-ja-ruisviski",
+    "title": "Jokimaisemat, hedelmälliset tasangot ja ruisviski",
+    "lengthKm": 99,
+    "durationText": "5 - 8 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11204,
+    "matchedTitle": "Jokimaisemat, hedelmälliset tasangot ja ruisviski",
+    "detailUrl": "https://www.bikeland.fi/jokimaisemat-hedelmalliset-tasangot-ja-ruisviski-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11204&lang=fi",
+    "gpxAsset": "routes/jokimaisemat-hedelmalliset-tasangot-ja-ruisviski.gpx",
+    "bounds": {
+      "minLon": 21.612331,
+      "minLat": 62.982997,
+      "maxLon": 22.353976,
+      "maxLat": 63.095724
+    },
+    "trackPointCount": 912
+  },
+  {
+    "id": "kalvolan-kirkkopolku",
+    "title": "Kalvolan Kirkkopolku",
+    "lengthKm": 51,
+    "durationText": "4 - 7 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 9175,
+    "matchedTitle": "Kalvolan Kirkkopolku",
+    "detailUrl": "https://www.bikeland.fi/kalvolan-kirkkopolku-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=9175&lang=fi",
+    "gpxAsset": "routes/kalvolan-kirkkopolku.gpx",
+    "bounds": {
+      "minLon": 23.761747,
+      "minLat": 60.808084,
+      "maxLon": 24.123091,
+      "maxLat": 61.095525
+    },
+    "trackPointCount": 233
+  },
+  {
+    "id": "kolin-kansallispuistolenkki",
+    "title": "Kolin Kansallispuistolenkki",
+    "lengthKm": 19,
+    "durationText": "1 - 1.5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11636,
+    "matchedTitle": "Kolin Kansallispuistolenkki",
+    "detailUrl": "https://www.bikeland.fi/kolin-kansallispuistolenkki/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11636&lang=fi",
+    "gpxAsset": "routes/kolin-kansallispuistolenkki.gpx",
+    "bounds": {
+      "minLon": 29.777481,
+      "minLat": 63.064647,
+      "maxLon": 29.868661,
+      "maxLat": 63.119514
+    },
+    "trackPointCount": 277
+  },
+  {
+    "id": "kolkin-kartanon-soratielenkki",
+    "title": "Kolkin kartanon soratielenkki",
+    "lengthKm": 27,
+    "durationText": "60 - 150 minuuttia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 13859,
+    "matchedTitle": "Kolkin kartanon soratielenkki",
+    "detailUrl": "https://www.bikeland.fi/kolkin-kartanon-soratielenkki/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=13859&lang=fi",
+    "gpxAsset": "routes/kolkin-kartanon-soratielenkki.gpx",
+    "bounds": {
+      "minLon": 21.88474,
+      "minLat": 63.06505,
+      "maxLon": 22.02035,
+      "maxLat": 63.13727
+    },
+    "trackPointCount": 340
+  },
+  {
+    "id": "kuopion-pohjoinen-pyorareitti",
+    "title": "Kuopion pohjoinen pyöräreitti",
+    "lengthKm": 20,
+    "durationText": "1 - 1.5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 4917,
+    "matchedTitle": "Kuopion pohjoinen pyöräreitti",
+    "detailUrl": "https://www.bikeland.fi/kuopion-pohjoinen-pyorareitti-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=4917&lang=fi",
+    "gpxAsset": "routes/kuopion-pohjoinen-pyorareitti.gpx",
+    "bounds": {
+      "minLon": 27.624376,
+      "minLat": 62.878488,
+      "maxLon": 27.730985,
+      "maxLat": 62.938976
+    },
+    "trackPointCount": 371
+  },
+  {
+    "id": "lintusyrjanharjun-luontopolku-mtb",
+    "title": "Lintusyrjänharjun luontopolku mtb",
+    "lengthKm": 5,
+    "durationText": "15 - 20 minuuttia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 9668,
+    "matchedTitle": "Lintusyrjänharjun luontopolku mtb",
+    "detailUrl": "https://www.bikeland.fi/lintusyrjanharjun-luontopolku-mtb/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=9668&lang=fi",
+    "gpxAsset": "routes/lintusyrjanharjun-luontopolku-mtb.gpx",
+    "bounds": {
+      "minLon": 24.77629233572,
+      "minLat": 62.173175905254,
+      "maxLon": 24.791045539776,
+      "maxLat": 62.192931421319
+    },
+    "trackPointCount": 51
+  },
+  {
+    "id": "loimaalaista-maalaismaisemaa",
+    "title": "Loimaalaista maalaismaisemaa",
+    "lengthKm": 41,
+    "durationText": "--",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 6409,
+    "matchedTitle": "Loimaalaista maalaismaisemaa",
+    "detailUrl": "https://www.bikeland.fi/loimaalaista-maalaismaisemaa/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=6409&lang=fi",
+    "gpxAsset": "routes/loimaalaista-maalaismaisemaa.gpx",
+    "bounds": {
+      "minLon": 22.997755,
+      "minLat": 60.825354,
+      "maxLon": 23.21998,
+      "maxLat": 60.942999
+    },
+    "trackPointCount": 384
+  },
+  {
+    "id": "loimaalla-alpo-jaakolan-jaljilla",
+    "title": "Loimaalla Alpo Jaakolan jäljillä",
+    "lengthKm": 37,
+    "durationText": "--",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 4915,
+    "matchedTitle": "Loimaalla Alpo Jaakolan jäljillä",
+    "detailUrl": "https://www.bikeland.fi/loimaalla-alpo-jaakolan-jaljilla/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=4915&lang=fi",
+    "gpxAsset": "routes/loimaalla-alpo-jaakolan-jaljilla.gpx",
+    "bounds": {
+      "minLon": 22.870601,
+      "minLat": 60.808986,
+      "maxLon": 23.082271,
+      "maxLat": 60.875394
+    },
+    "trackPointCount": 371
+  },
+  {
+    "id": "loimaan-jokivarsikierros",
+    "title": "Loimaan Jokivarsikierros",
+    "lengthKm": 37,
+    "durationText": "--",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 7094,
+    "matchedTitle": "Loimaan Jokivarsikierros",
+    "detailUrl": "https://www.bikeland.fi/loimaan-jokivarsikierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=7094&lang=fi",
+    "gpxAsset": "routes/loimaan-jokivarsikierros.gpx",
+    "bounds": {
+      "minLon": 22.863245,
+      "minLat": 60.867844238617,
+      "maxLon": 23.091920158644,
+      "maxLat": 60.95538
+    },
+    "trackPointCount": 419
+  },
+  {
+    "id": "luonnonlaheinen-lenkki-aktiviteetit-ja-nahtavyydet",
+    "title": "Luonnonläheinen lenkki, aktiviteetit ja nähtävyydet",
+    "lengthKm": 15,
+    "durationText": "1 - 2 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11205,
+    "matchedTitle": "Luonnonläheinen lenkki, aktiviteetit ja nähtävyydet",
+    "detailUrl": "https://www.bikeland.fi/luonnonlaheinen-lenkki-aktiviteetit-ja-nahtavyydet/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11205&lang=fi",
+    "gpxAsset": "routes/luonnonlaheinen-lenkki-aktiviteetit-ja-nahtavyydet.gpx",
+    "bounds": {
+      "minLon": 21.60386,
+      "minLat": 63.09644,
+      "maxLon": 21.67202,
+      "maxLat": 63.12878
+    },
+    "trackPointCount": 269
+  },
+  {
+    "id": "lahdekorven-mtb-lenkki",
+    "title": "Lähdekorven MTB-lenkki",
+    "lengthKm": 10,
+    "durationText": "--",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 9001,
+    "matchedTitle": "Lähdekorven MTB-lenkki",
+    "detailUrl": "https://www.bikeland.fi/lahdekorven-mtb-lenkki/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=9001&lang=fi",
+    "gpxAsset": "routes/lahdekorven-mtb-lenkki.gpx",
+    "bounds": {
+      "minLon": 25.89175,
+      "minLat": 62.43448,
+      "maxLon": 25.91908,
+      "maxLat": 62.45893
+    },
+    "trackPointCount": 247
+  },
+  {
+    "id": "meteoriittikraatteri-ja-maaseutu",
+    "title": "Meteoriittikraatteri ja maaseutu",
+    "lengthKm": 47,
+    "durationText": "2.5 - 5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11202,
+    "matchedTitle": "Meteoriittikraatteri ja maaseutu",
+    "detailUrl": "https://www.bikeland.fi/meteoriittikraatteri-ja-maaseutu-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11202&lang=fi",
+    "gpxAsset": "routes/meteoriittikraatteri-ja-maaseutu.gpx",
+    "bounds": {
+      "minLon": 21.545825,
+      "minLat": 62.983799,
+      "maxLon": 21.648885,
+      "maxLat": 63.100303
+    },
+    "trackPointCount": 555
+  },
+  {
+    "id": "nuha-pokela-maastopyorareitti",
+    "title": "Nuha - Pokela maastopyöräreitti",
+    "lengthKm": 32,
+    "durationText": "3 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11226,
+    "matchedTitle": "Nuha – Pokela maastopyöräreitti",
+    "detailUrl": "https://www.bikeland.fi/nuha-pokela-maastopyorareitti/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11226&lang=fi",
+    "gpxAsset": "routes/nuha-pokela-maastopyorareitti.gpx",
+    "bounds": {
+      "minLon": 24.742996770906,
+      "minLat": 64.206921091442,
+      "maxLon": 24.94009,
+      "maxLat": 64.26971
+    },
+    "trackPointCount": 529
+  },
+  {
+    "id": "saimaa-by-cycle-gravel-hummon-hurautus",
+    "title": "Saimaa by Cycle Gravel: Hummon hurautus",
+    "lengthKm": 74,
+    "durationText": "4 - 6 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 16278,
+    "matchedTitle": "Saimaa by Cycle Gravel: Hummon hurautus",
+    "detailUrl": "https://www.bikeland.fi/saimaa-by-cycle-gravel-hummon-hurautus/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=16278&lang=fi",
+    "gpxAsset": "routes/saimaa-by-cycle-gravel-hummon-hurautus.gpx",
+    "bounds": {
+      "minLon": 29.53189,
+      "minLat": 62.02685,
+      "maxLon": 29.93485,
+      "maxLat": 62.13162
+    },
+    "trackPointCount": 952
+  },
+  {
+    "id": "saimaa-by-cycle-gravel-luostarien-kierros",
+    "title": "Saimaa by Cycle Gravel: Luostarien kierros",
+    "lengthKm": 31,
+    "durationText": "3 - 5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 14768,
+    "matchedTitle": "Saimaa by Cycle Gravel: Luostarien kierros",
+    "detailUrl": "https://www.bikeland.fi/saimaa-by-cycle-gravel-luostarien-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=14768&lang=fi",
+    "gpxAsset": "routes/saimaa-by-cycle-gravel-luostarien-kierros.gpx",
+    "bounds": {
+      "minLon": 28.57589,
+      "minLat": 62.53774,
+      "maxLon": 28.79346,
+      "maxLat": 62.57373
+    },
+    "trackPointCount": 378
+  },
+  {
+    "id": "savo-gravel-karkkaalan-kierros",
+    "title": "Savo Gravel: Kärkkäälän kierros",
+    "lengthKm": 46,
+    "durationText": "2 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12011,
+    "matchedTitle": "Savo Gravel: Kärkkäälän kierros",
+    "detailUrl": "https://www.bikeland.fi/savo-gravel-karkkaalan-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12011&lang=fi",
+    "gpxAsset": "routes/savo-gravel-karkkaalan-kierros.gpx",
+    "bounds": {
+      "minLon": 26.993664,
+      "minLat": 62.626831,
+      "maxLon": 27.209184,
+      "maxLat": 62.731819
+    },
+    "trackPointCount": 486
+  },
+  {
+    "id": "savo-gravel-myhinkosken-kierros",
+    "title": "Savo Gravel: Myhinkosken kierros",
+    "lengthKm": 43,
+    "durationText": "2 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12012,
+    "matchedTitle": "Savo Gravel: Myhinkosken kierros",
+    "detailUrl": "https://www.bikeland.fi/savo-gravel-myhinkosken-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12012&lang=fi",
+    "gpxAsset": "routes/savo-gravel-myhinkosken-kierros.gpx",
+    "bounds": {
+      "minLon": 26.705584,
+      "minLat": 62.519489,
+      "maxLon": 26.893274,
+      "maxLat": 62.628537
+    },
+    "trackPointCount": 415
+  },
+  {
+    "id": "savo-gravel-oinaskylan-kierros",
+    "title": "Savo Gravel: Oinaskylän kierros",
+    "lengthKm": 42,
+    "durationText": "2 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12134,
+    "matchedTitle": "Savo Gravel: Oinaskylän kierros",
+    "detailUrl": "https://www.bikeland.fi/savo-gravel-oinaskylan-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12134&lang=fi",
+    "gpxAsset": "routes/savo-gravel-oinaskylan-kierros.gpx",
+    "bounds": {
+      "minLon": 26.246522,
+      "minLat": 62.927992,
+      "maxLon": 26.474879,
+      "maxLat": 63.022811
+    },
+    "trackPointCount": 457
+  },
+  {
+    "id": "savo-gravel-pielaveden-pohjoinen-kierros",
+    "title": "Savo Gravel: Pielaveden pohjoinen kierros",
+    "lengthKm": 55,
+    "durationText": "2 - 5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12182,
+    "matchedTitle": "Savo Gravel: Pielaveden pohjoinen kierros",
+    "detailUrl": "https://www.bikeland.fi/savo-gravel-pielaveden-pohjoinen-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12182&lang=fi",
+    "gpxAsset": "routes/savo-gravel-pielaveden-pohjoinen-kierros.gpx",
+    "bounds": {
+      "minLon": 26.749542,
+      "minLat": 63.221691,
+      "maxLon": 26.975811,
+      "maxLat": 63.342784
+    },
+    "trackPointCount": 444
+  },
+  {
+    "id": "savo-gravel-savian-kierros",
+    "title": "Savo Gravel: Säviän kierros",
+    "lengthKm": 46,
+    "durationText": "2 - 5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12172,
+    "matchedTitle": "Savo Gravel: Säviän kierros",
+    "detailUrl": "https://www.bikeland.fi/savo-gravel-savian-kierros/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12172&lang=fi",
+    "gpxAsset": "routes/savo-gravel-savian-kierros.gpx",
+    "bounds": {
+      "minLon": 26.341877,
+      "minLat": 63.185496,
+      "maxLon": 26.50844,
+      "maxLat": 63.293061
+    },
+    "trackPointCount": 359
+  },
+  {
+    "id": "savo-gravel-vesantojarven-ympari",
+    "title": "Savo Gravel: Vesantojärven ympäri",
+    "lengthKm": 47,
+    "durationText": "2 - 5 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 12121,
+    "matchedTitle": "Savo Gravel: Vesantojärven ympäri",
+    "detailUrl": "https://www.bikeland.fi/savo-gravel-vesantojarven-ympari/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=12121&lang=fi",
+    "gpxAsset": "routes/savo-gravel-vesantojarven-ympari.gpx",
+    "bounds": {
+      "minLon": 26.367831,
+      "minLat": 62.84371,
+      "maxLon": 26.620788,
+      "maxLat": 62.946687
+    },
+    "trackPointCount": 383
+  },
+  {
+    "id": "sorapolkaisu-puu-juukaan",
+    "title": "Sorapolkaisu Puu-Juukaan",
+    "lengthKm": 103,
+    "durationText": "5 - 10 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11287,
+    "matchedTitle": "Sorapolkaisu Puu-Juukaan",
+    "detailUrl": "https://www.bikeland.fi/sorapolkaisu-puu-juukaan/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11287&lang=fi",
+    "gpxAsset": "routes/sorapolkaisu-puu-juukaan.gpx",
+    "bounds": {
+      "minLon": 29.2327,
+      "minLat": 63.028,
+      "maxLon": 29.8021,
+      "maxLat": 63.24706
+    },
+    "trackPointCount": 1213
+  },
+  {
+    "id": "stromso-on-totta-ja-loytyy-vaasasta",
+    "title": "Strömsö on totta - ja löytyy Vaasasta!",
+    "lengthKm": 25,
+    "durationText": "1.5 - 3 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11194,
+    "matchedTitle": "Strömsö on totta – ja löytyy Vaasasta!",
+    "detailUrl": "https://www.bikeland.fi/stromso-on-totta-ja-loytyy-vaasasta-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11194&lang=fi",
+    "gpxAsset": "routes/stromso-on-totta-ja-loytyy-vaasasta.gpx",
+    "bounds": {
+      "minLon": 21.544443,
+      "minLat": 63.091977,
+      "maxLon": 21.618323,
+      "maxLat": 63.148905
+    },
+    "trackPointCount": 375
+  },
+  {
+    "id": "uniikki-maailmanperintoluonto-merenkurkun-saaristossa",
+    "title": "Uniikki maailmanperintöluonto Merenkurkun saaristossa",
+    "lengthKm": 89,
+    "durationText": "4 - 7 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11195,
+    "matchedTitle": "Uniikki maailmanperintöluonto Merenkurkun saaristossa",
+    "detailUrl": "https://www.bikeland.fi/uniikki-maailmanperintoluonto-merenkurkun-saaristossa/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11195&lang=fi",
+    "gpxAsset": "routes/uniikki-maailmanperintoluonto-merenkurkun-saaristossa.gpx",
+    "bounds": {
+      "minLon": 21.300135,
+      "minLat": 63.095284,
+      "maxLon": 21.660213,
+      "maxLat": 63.360107
+    },
+    "trackPointCount": 404
+  },
+  {
+    "id": "vaasan-historia-ja-lahiluonto",
+    "title": "Vaasan historia ja lähiluonto",
+    "lengthKm": 28,
+    "durationText": "1.5 - 3 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11203,
+    "matchedTitle": "Vaasan historia ja lähiluonto",
+    "detailUrl": "https://www.bikeland.fi/vaasan-historia-ja-lahiluonto-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11203&lang=fi",
+    "gpxAsset": "routes/vaasan-historia-ja-lahiluonto.gpx",
+    "bounds": {
+      "minLon": 21.613151,
+      "minLat": 63.070403,
+      "maxLon": 21.791869,
+      "maxLat": 63.106797
+    },
+    "trackPointCount": 340
+  },
+  {
+    "id": "vaasan-historia-ja-tulevaisuus",
+    "title": "Vaasan historia ja tulevaisuus",
+    "lengthKm": 41,
+    "durationText": "2 - 4 tuntia",
+    "source": "Bikeland",
+    "matchScore": 1.0,
+    "bikelandId": 11196,
+    "matchedTitle": "Vaasan historia ja tulevaisuus",
+    "detailUrl": "https://www.bikeland.fi/vaasan-historia-ja-tulevaisuus-2/",
+    "gpxDownloadUrl": "https://www.bikeland.fi/wp-admin/admin-ajax.php?action=loadGPXFile&id=11196&lang=fi",
+    "gpxAsset": "routes/vaasan-historia-ja-tulevaisuus.gpx",
+    "bounds": {
+      "minLon": 21.6003,
+      "minLat": 63.05471,
+      "maxLon": 21.88729,
+      "maxLat": 63.10036
+    },
+    "trackPointCount": 486
+  }
+]

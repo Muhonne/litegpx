@@ -1,0 +1,8 @@
+.gradle/
+build/
+local.properties
+**/build/
+*.iml
+.idea/
+web/tests/manual/*.png
+shared/maps/*.pmtiles

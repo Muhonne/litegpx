@@ -1,0 +1,14 @@
+{
+  "version": 8,
+  "name": "TrailLite Empty",
+  "sources": {},
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#EEF2F3"
+      }
+    }
+  ]
+}

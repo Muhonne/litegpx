@@ -1,0 +1,7 @@
+Open Sans Regular glyph PBF assets
+
+Source: https://github.com/kylebarron/openmaptiles-fonts
+Original font source: OpenMapTiles fonts project, https://github.com/openmaptiles/fonts
+
+The Open Sans font is licensed under the Apache License 2.0. The packaged
+glyph PBF files are bundled so TrailLite can render map labels offline.

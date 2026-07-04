@@ -1,0 +1,17 @@
+{
+  "name": "traillite-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:vendor": "node scripts/prepare-vendor.mjs",
+    "serve": "npm run prepare:vendor && node scripts/serve.mjs",
+    "build": "npm run prepare:vendor && node scripts/build.mjs",
+    "test": "./tests/manual/run-all.sh"
+  },
+  "dependencies": {
+    "@mapbox/togeojson": "^0.16.2",
+    "maplibre-gl": "^5.13.0",
+    "pmtiles": "^4.3.0"
+  }
+}
