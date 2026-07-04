@@ -71,7 +71,7 @@ input {
 .map-tools-section,
 .route-section {
   flex: 0 0 auto;
-  padding: 14px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -99,10 +99,21 @@ h2 {
 }
 
 h2 {
-  padding: 12px 16px 8px;
   font-size: 13px;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.section-title {
+  grid-column: 1 / -1;
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.points-section > h2 {
+  padding: 12px 16px 8px;
 }
 
 .mode-badge {
@@ -122,14 +133,37 @@ h2 {
 
 button,
 .file-button {
-  min-height: 34px;
-  padding: 7px 10px;
+  position: relative;
+  min-height: 30px;
+  padding: 5px 9px;
   border: 1px solid var(--button-border);
   border-radius: 6px;
   background: var(--button);
   color: var(--text);
   cursor: pointer;
   text-align: center;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button[data-shortcut] {
+  padding-right: 45px;
+}
+
+button[data-shortcut]::after {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  padding: 1px 4px;
+  transform: translateY(-50%);
+  border: 1px solid color-mix(in srgb, var(--button-border), transparent 15%);
+  border-radius: 4px;
+  color: var(--muted);
+  content: attr(data-shortcut);
+  font-size: 9px;
+  line-height: 1.2;
 }
 
 button:hover:not(:disabled),
@@ -155,7 +189,7 @@ button:disabled {
 
 .map-tools-section {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .search-form {
@@ -170,8 +204,8 @@ button:disabled {
 
 #searchInput {
   width: 100%;
-  min-height: 34px;
-  padding: 7px 9px;
+  min-height: 30px;
+  padding: 5px 8px;
   border: 1px solid var(--button-border);
   border-radius: 6px;
   background: var(--panel);
@@ -181,7 +215,7 @@ button:disabled {
 .layer-settings {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
+  gap: 5px 12px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -217,6 +251,104 @@ button:disabled {
   white-space: nowrap;
 }
 
+.area-tools {
+  display: grid;
+  gap: 7px;
+}
+
+.area-tool-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dataset-panel,
+.shortcut-panel {
+  display: grid;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.shortcut-list {
+  margin: 0;
+}
+
+.dataset-total,
+.dataset-breakdown {
+  margin: 0;
+}
+
+.dataset-total {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.dataset-breakdown {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.shortcut-panel summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  list-style-position: inside;
+  text-transform: uppercase;
+}
+
+.shortcut-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+  padding-top: 6px;
+}
+
+.shortcut-list div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.shortcut-list dt,
+.shortcut-list dd {
+  margin: 0;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 5px;
+  border: 1px solid var(--button-border);
+  border-radius: 4px;
+  background: var(--button);
+  color: var(--text);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.shortcut-list dd {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.small-info {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .field-label {
   display: block;
   margin-bottom: 6px;
@@ -226,8 +358,8 @@ button:disabled {
 
 #routeName {
   width: 100%;
-  min-height: 34px;
-  padding: 7px 9px;
+  min-height: 30px;
+  padding: 5px 8px;
   border: 1px solid var(--button-border);
   border-radius: 6px;
   background: var(--panel);
@@ -238,11 +370,11 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin: 12px 0 0;
+  margin: 8px 0 0;
 }
 
 .stats-grid div {
-  padding: 8px;
+  padding: 6px;
   border: 1px solid var(--panel-border);
   border-radius: 6px;
 }
@@ -259,7 +391,7 @@ button:disabled {
 
 .status-text {
   min-height: 18px;
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
 }

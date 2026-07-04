@@ -19,24 +19,42 @@
         </header>
 
         <section class="control-section" aria-label="Primary controls">
-          <button id="newRouteButton" type="button">New route</button>
-          <button id="editButton" type="button">Start route</button>
-          <button id="doneButton" type="button" disabled>Done editing</button>
-          <button id="undoButton" type="button" disabled>Undo</button>
+          <h2 class="section-title">Route actions</h2>
+          <button id="newRouteButton" type="button">Reset route</button>
+          <button id="editButton" type="button" data-shortcut="E">Draw route</button>
+          <button id="doneButton" type="button" data-shortcut="Esc" disabled>Done editing</button>
+          <button id="undoButton" type="button" data-shortcut="Ctrl+Z" disabled>Undo</button>
           <button id="clearButton" type="button" disabled>Clear</button>
-          <label class="file-button">
+          <label id="importButton" class="file-button">
             Import GPX
             <input id="gpxInput" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" />
           </label>
-          <button id="exportButton" type="button" disabled>Download GPX</button>
+          <button id="exportButton" type="button" data-shortcut="D" disabled>Save route</button>
+        </section>
+
+        <section class="route-section" aria-label="Route details">
+          <label class="field-label" for="routeName">Route name</label>
+          <input id="routeName" type="text" value="Untitled route" />
+          <dl class="stats-grid">
+            <div>
+              <dt>Distance</dt>
+              <dd id="distanceValue">0 m</dd>
+            </div>
+            <div>
+              <dt>Points</dt>
+              <dd id="pointCountValue">0</dd>
+            </div>
+          </dl>
+          <p id="statusText" class="status-text">Map view ready.</p>
         </section>
 
         <section class="map-tools-section" aria-label="Map tools">
+          <h2 class="section-title">Map tools</h2>
           <form id="searchForm" class="search-form">
             <label class="field-label" for="searchInput">Search map</label>
             <div class="search-row">
               <input id="searchInput" type="search" placeholder="Helsinki" autocomplete="off" />
-              <button id="searchButton" type="submit">Find</button>
+              <button id="searchButton" type="submit" data-shortcut="F">Find</button>
             </div>
           </form>
 
@@ -59,22 +77,38 @@
               <span>Paths and tracks</span>
             </label>
           </fieldset>
-        </section>
 
-        <section class="route-section" aria-label="Route details">
-          <label class="field-label" for="routeName">Route name</label>
-          <input id="routeName" type="text" value="Untitled route" />
-          <dl class="stats-grid">
-            <div>
-              <dt>Distance</dt>
-              <dd id="distanceValue">0 m</dd>
+          <div class="area-tools" aria-label="Detailed map area">
+            <div class="area-tool-row">
+              <button id="selectAreaButton" type="button" data-shortcut="A">Draw map area</button>
+              <button id="downloadAreaButton" type="button" disabled>Download area map</button>
             </div>
-            <div>
-              <dt>Points</dt>
-              <dd id="pointCountValue">0</dd>
-            </div>
-          </dl>
-          <p id="statusText" class="status-text">Map view ready.</p>
+            <p id="areaBboxText" class="small-info">No area selected.</p>
+          </div>
+
+          <section class="dataset-panel" aria-label="Map datasets">
+            <h2 class="section-title">Map data</h2>
+            <p class="dataset-total"><span id="totalDatasetSize">Loading</span></p>
+            <p class="dataset-breakdown">
+              Base <span id="baseDatasetSize">Loading</span>
+              · Detail <span id="detailDatasetSize">0 B</span>
+              · <span id="detailDatasetCount">0</span> areas
+            </p>
+          </section>
+
+          <details class="shortcut-panel" aria-label="Keyboard shortcuts">
+            <summary id="shortcutSummary">Route shortcuts</summary>
+            <dl class="shortcut-list">
+              <div data-shortcut-context="view"><dt><kbd>E</kbd></dt><dd>Draw or edit route</dd></div>
+              <div data-shortcut-context="edit area"><dt><kbd>Esc</kbd></dt><dd>Finish or cancel</dd></div>
+              <div data-shortcut-context="edit"><dt><kbd>Ctrl+Z</kbd></dt><dd>Undo edit</dd></div>
+              <div data-shortcut-context="view"><dt><kbd>A</kbd></dt><dd>Draw map area</dd></div>
+              <div data-shortcut-context="edit"><dt><kbd>Drag</kbd></dt><dd>Draw route</dd></div>
+              <div data-shortcut-context="view"><dt><kbd>F</kbd></dt><dd>Search</dd></div>
+              <div data-shortcut-context="route edit"><dt><kbd>D</kbd></dt><dd>Save route</dd></div>
+              <div data-shortcut-context="edit"><dt><kbd>Shift</kbd></dt><dd>Pan while editing</dd></div>
+            </dl>
+          </details>
         </section>
 
         <section class="points-section" aria-label="Route points">

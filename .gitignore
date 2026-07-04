@@ -4,5 +4,7 @@ local.properties
 **/build/
 *.iml
 .idea/
+.DS_Store
 web/tests/manual/*.png
 shared/maps/*.pmtiles
+mapdataservice/output/

@@ -21,6 +21,21 @@ window.__trailLiteTest.insertPoint(2, 24.9405, 60.1715);
 state = window.__trailLiteTest.getState();
 if (state.points.length !== 5) throw new Error(`Expected 5 points after insert, got ${state.points.length}`);
 '
+agent-browser eval '
+window.__trailLiteTest.beginRouteDraw(24.942, 60.172);
+window.__trailLiteTest.appendDrawPoint(24.943, 60.173);
+window.__trailLiteTest.appendDrawPoint(24.944, 60.174);
+window.__trailLiteTest.finishRouteDraw();
+let state = window.__trailLiteTest.getState();
+if (state.drawingRoute) throw new Error("Route draw did not finish");
+if (state.points.length < 7) throw new Error(`Expected drag drawing to add points, got ${state.points.length}`);
+if (state.status !== "Route segment drawn.") throw new Error(`Unexpected draw status: ${state.status}`);
+'
+agent-browser click "#undoButton"
+agent-browser eval '
+let state = window.__trailLiteTest.getState();
+if (state.points.length !== 5) throw new Error(`Expected undo to remove drawn segment, got ${state.points.length}`);
+'
 agent-browser click "#undoButton"
 agent-browser eval '
 let state = window.__trailLiteTest.getState();

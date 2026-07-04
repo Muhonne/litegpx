@@ -40,7 +40,7 @@
       "id": "buildings",
       "type": "fill",
       "source": "osm",
-      "source-layer": "building",
+      "source-layer": "buildings",
       "minzoom": 13,
       "layout": {
         "visibility": "none"
@@ -54,7 +54,7 @@
       "id": "waterway",
       "type": "line",
       "source": "osm",
-      "source-layer": "waterway",
+      "source-layer": "water",
       "paint": {
         "line-color": "#76B7D8",
         "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.4, 14, 1.6]
@@ -64,8 +64,8 @@
       "id": "roads-minor",
       "type": "line",
       "source": "osm",
-      "source-layer": "transportation",
-      "filter": ["in", "class", "minor", "service", "track", "path"],
+      "source-layer": "roads",
+      "filter": ["in", ["get", "kind"], ["literal", ["minor_road", "other"]]],
       "paint": {
         "line-color": "#FFFFFF",
         "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.4, 15, 2.4]
@@ -75,8 +75,8 @@
       "id": "paths-highlight",
       "type": "line",
       "source": "osm",
-      "source-layer": "transportation",
-      "filter": ["in", "class", "track", "path"],
+      "source-layer": "roads",
+      "filter": ["in", ["get", "kind_detail"], ["literal", ["path", "track", "cycleway", "footway", "bridleway"]]],
       "paint": {
         "line-color": "#7B8F54",
         "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 15, 2.8],
@@ -87,8 +87,8 @@
       "id": "roads-major",
       "type": "line",
       "source": "osm",
-      "source-layer": "transportation",
-      "filter": ["in", "class", "primary", "secondary", "tertiary", "trunk", "motorway"],
+      "source-layer": "roads",
+      "filter": ["in", ["get", "kind"], ["literal", ["highway", "major_road", "medium_road"]]],
       "paint": {
         "line-color": "#E7D4A5",
         "line-width": ["interpolate", ["linear"], ["zoom"], 7, 0.8, 15, 4.2]
@@ -98,7 +98,7 @@
       "id": "street-names",
       "type": "symbol",
       "source": "osm",
-      "source-layer": "transportation_name",
+      "source-layer": "roads",
       "minzoom": 12,
       "layout": {
         "symbol-placement": "line",
@@ -119,7 +119,7 @@
       "id": "poi-dots",
       "type": "circle",
       "source": "osm",
-      "source-layer": "poi",
+      "source-layer": "pois",
       "minzoom": 14,
       "paint": {
         "circle-color": "#265C68",
@@ -133,7 +133,7 @@
       "id": "poi-names",
       "type": "symbol",
       "source": "osm",
-      "source-layer": "poi",
+      "source-layer": "pois",
       "minzoom": 15,
       "layout": {
         "text-field": ["coalesce", ["get", "name:fi"], ["get", "name"]],
