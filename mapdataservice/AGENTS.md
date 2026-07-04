@@ -95,6 +95,8 @@ The service listens on `http://localhost:5174` and exposes `POST /api/extract-bb
 
 It also exposes `GET /api/datasets`, which lists all `.pmtiles` packages in `mapdataservice/output/`. The web app uses this endpoint on startup so every stored detail dataset is loaded as a map overlay.
 
+It also exposes `POST /api/save-mobile-route` for the web app's "Save to mobile app" action. That endpoint writes the submitted GPX to `mobile/app/src/main/assets/routes/`, updates `routes.json`, extracts a 1000 m corridor map package, and copies the resulting PMTiles to `shared/maps/finland.pmtiles` so Android bundles it through the shared asset source set.
+
 The dry run prints:
 
 - parsed GPX point count

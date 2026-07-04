@@ -46,14 +46,13 @@ true;
 
 agent-browser eval '
 document.querySelector(".shortcut-panel").open = true;
-let required = ["E", "A", "F"];
+let required = ["E", "F"];
 const visible = Array.from(document.querySelectorAll(".shortcut-list div:not([hidden]) kbd")).map((element) => element.textContent.trim());
 for (const key of required) {
   if (!visible.includes(key)) throw new Error(`Missing shortcut: ${key}`);
 }
 if (visible.includes("Drag")) throw new Error("Edit-only drag shortcut should not show in route context");
 if (document.querySelector("#editButton").dataset.shortcut !== "E") throw new Error("Edit shortcut badge missing");
-if (document.querySelector("#selectAreaButton").dataset.shortcut !== "A") throw new Error("Area shortcut badge missing");
 true;
 '
 
@@ -87,13 +86,5 @@ true;
 agent-browser eval '
 window.dispatchEvent(new KeyboardEvent("keydown", { key: "f", bubbles: true }));
 if (document.activeElement?.id !== "searchInput") throw new Error("F did not focus search");
-document.activeElement.blur();
-window.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
-let state = window.__trailLiteTest.getState();
-if (!state.areaSelection.active) throw new Error("A did not activate area selection");
-if (state.cursor !== "crosshair") throw new Error(`Area cursor should be crosshair: ${state.cursor}`);
-window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-state = window.__trailLiteTest.getState();
-if (state.areaSelection.active) throw new Error("Escape did not cancel area selection");
 true;
 '

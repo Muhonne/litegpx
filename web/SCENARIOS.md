@@ -2,21 +2,22 @@
 
 These scenarios describe the desktop web app that creates and edits GPX routes for the TrailLite Android app.
 
-## Existing Flows
+## Current Flows
 
 Feature: Create a route from an empty map
 
-Scenario: Start editing a blank route
+Scenario: Draw a blank route
   Given I have opened the GPX Builder
   And no route points exist
-  When I press "Start route"
+  When I press "Draw route"
   Then the app enters edit mode
-  And I can draw route points on the map by dragging
+  And I can draw route points on the map by dragging the mouse
+  And the app stores the route as GPX track points in browser memory
   And I can finish editing with "Done editing"
 
-Scenario: Clear the current route
+Scenario: Reset the current route
   Given I have route points on the map
-  When I press "New route" or "Clear"
+  When I press "Reset route" or "Clear"
   Then the route points are removed
   And the route name returns to "Untitled route"
 
@@ -40,18 +41,19 @@ Scenario: Save an exportable route
   Given I have a route with at least two points
   And the route has a name
   When I press "Save route"
-  Then a GPX file is downloaded
+  Then the browser downloads a GPX file using the route name as the filename
   And the GPX uses the format expected by TrailLite Android
+  And the route is not saved into the repository or a server-side project file
 
-Feature: Map data
-
-Scenario: Download detailed map data for an area
-  Given I need detail for part of Finland
-  When I draw a map area rectangle
-  And I press "Download area map"
-  Then the app asks the local map data service to create a dataset
-  And the downloaded dataset remains available for later sessions
-  And the rectangle is cleared after the download completes
+Scenario: Save a route into the mobile app workspace
+  Given I have a route with at least two points
+  And the route has a name
+  And the local map data service is running
+  When I press "Save to mobile app"
+  Then the service writes the GPX under mobile/app/src/main/assets/routes
+  And the service updates mobile/app/src/main/assets/routes/routes.json
+  And the service extracts a 1000 m corridor PMTiles package for the route
+  And the service copies that PMTiles package to shared/maps/finland.pmtiles for Android bundling
 
 ## UX Review
 
@@ -59,8 +61,8 @@ Scenario: Download detailed map data for an area
 - The primary empty-state action should be "Draw route". It starts route creation and does not imply data loss.
 - "New route" should not be shown before a route exists. Once a route exists, the destructive action should be named "Reset route".
 - Route editing controls should be contextual. In edit mode, show finish, undo, clear, and save. In view mode, show draw or edit, import, reset when relevant, and save when relevant.
-- Map data tools should stay available, but they should not compete with the route editing task.
-- Keyboard shortcuts should describe the current mode: route shortcuts in view mode, edit shortcuts in edit mode, and area shortcuts while selecting a map area.
+- Map data details should stay informational in this app. Rectangle drawing competes with route drawing and should not be part of the main GPX creation surface.
+- Keyboard shortcuts should describe the current mode: route shortcuts in view mode and edit shortcuts in edit mode.
 
 ## Revised Flows
 
@@ -102,7 +104,17 @@ Scenario: Save from view or edit mode
   Given I have at least two route points
   And the route has a name
   When I press "Save route"
-  Then the app downloads a GPX file
+  Then the browser downloads a GPX file
+  And I remain in the current mode
+  And I choose the final file location through the browser's normal download behavior
+
+Scenario: Install into the local mobile app
+  Given I have at least two route points
+  And the route has a name
+  And the local map data service is running
+  When I press "Save to mobile app"
+  Then the route appears in the bundled mobile route catalog
+  And the bundled Android map asset is replaced by the generated route corridor map package
   And I remain in the current mode
 
 Feature: Import a GPX route
@@ -118,13 +130,9 @@ Scenario: Reject a broken GPX file
   Then the app shows a simple alert
   And the current route remains unchanged
 
-Feature: Download map data
+Feature: Use available map data
 
-Scenario: Select and download a detailed map area
-  Given I am viewing the map
-  When I press "Draw map area"
-  And I draw a rectangle
-  And I press "Download area map"
-  Then the app stores the dataset for future use
-  And all stored datasets are used by the map
-  And the selected rectangle disappears
+Scenario: View stored map data status
+  Given the app has base and detail map datasets available
+  Then the sidebar shows the total map data size
+  And the map uses every stored dataset when rendering visible map detail

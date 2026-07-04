@@ -117,6 +117,21 @@ GET /api/datasets
 
 That endpoint lists every `.pmtiles` package already stored under `mapdataservice/output/` with URL, size, bbox, and cache metadata where available. On startup the web app uses this list so previously downloaded rectangle/corridor datasets are added back to the map as detail overlays.
 
+The web app can also save the current route directly into the local Android workspace:
+
+```text
+POST /api/save-mobile-route
+```
+
+The request body contains a route name and GPX text. The service then:
+
+- writes the GPX to `mobile/app/src/main/assets/routes/<route>.gpx`
+- upserts the route in `mobile/app/src/main/assets/routes/routes.json`
+- extracts a corridor map package with `--coverage corridor --buffer-meters 1000 --maxzoom 15`
+- copies the generated PMTiles to `shared/maps/finland.pmtiles`, which the Android Gradle asset source set bundles as `maps/finland.pmtiles`
+
+This endpoint mutates local workspace files. It is for local development, not a public web deployment.
+
 ## Dry Run
 
 Use `--dry-run` to inspect the route bounds and generated command without creating a PMTiles file:

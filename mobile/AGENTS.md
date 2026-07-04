@@ -6,7 +6,7 @@ This directory is the Android Gradle project root for TrailLite.
 
 - `settings.gradle.kts` includes the Android application module `:app`.
 - `app/` is the Android application module.
-- `app/src/main/assets/maps/finland.pmtiles` is the bundled offline vector map package.
+- `../shared/maps/finland.pmtiles` is bundled through the Android shared asset source set as `maps/finland.pmtiles`.
 - `app/src/main/assets/routes/` contains bundled GPX files and `routes.json`.
 - `app/src/main/assets/glyphs/` contains offline glyph PBF files used by map label layers.
 - `docs/iteration-log.md` records product/UI/development iteration notes.

@@ -5,11 +5,13 @@ const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
 const MAX_VISIBLE_ROUTE_POINTS = 300;
+const SNAP_TOLERANCE_PIXELS = 16;
 const DEFAULT_MAP_URL = `${window.location.origin}/shared/maps/finland.pmtiles`;
-const MAP_DATA_SERVICE_URL = "http://localhost:5174/api/extract-bbox";
 const MAP_DATASETS_URL = "http://localhost:5174/api/datasets";
+const MOBILE_SAVE_URL = "http://localhost:5174/api/save-mobile-route";
 const BASE_MAP_SOURCE_ID = "osm";
 const DETAIL_MAP_STORAGE_KEY = "traillite.detailMaps.v1";
+const SNAP_LINE_LAYER_IDS = ["roads-major", "roads-minor", "paths-highlight"];
 
 const LAYER_GROUPS = {
   streetNames: ["street-names"],
@@ -43,6 +45,7 @@ const elements = {
   undoButton: document.getElementById("undoButton"),
   clearButton: document.getElementById("clearButton"),
   exportButton: document.getElementById("exportButton"),
+  mobileSaveButton: document.getElementById("mobileSaveButton"),
   importButton: document.getElementById("importButton"),
   gpxInput: document.getElementById("gpxInput"),
   searchForm: document.getElementById("searchForm"),
@@ -51,14 +54,13 @@ const elements = {
   poisToggle: document.getElementById("poisToggle"),
   buildingsToggle: document.getElementById("buildingsToggle"),
   minorPathsToggle: document.getElementById("minorPathsToggle"),
-  selectAreaButton: document.getElementById("selectAreaButton"),
-  downloadAreaButton: document.getElementById("downloadAreaButton"),
-  areaBboxText: document.getElementById("areaBboxText"),
   baseDatasetSize: document.getElementById("baseDatasetSize"),
   detailDatasetSize: document.getElementById("detailDatasetSize"),
   totalDatasetSize: document.getElementById("totalDatasetSize"),
   detailDatasetCount: document.getElementById("detailDatasetCount"),
   routeName: document.getElementById("routeName"),
+  snapToLinesOption: document.getElementById("snapToLinesOption"),
+  snapToLinesToggle: document.getElementById("snapToLinesToggle"),
   distanceValue: document.getElementById("distanceValue"),
   pointCountValue: document.getElementById("pointCountValue"),
   statusText: document.getElementById("statusText"),
@@ -83,6 +85,7 @@ const state = {
   drawAddedPointCount: 0,
   hoveredPointId: null,
   skipNextMapClick: false,
+  suppressMapClickUntil: 0,
   lastExportedGpx: "",
   mapSourceUrl: DEFAULT_MAP_URL,
   detailMaps: [],
@@ -92,19 +95,13 @@ const state = {
   },
   shiftKeyDown: false,
   routePointHover: false,
-  areaSelection: {
-    active: false,
-    dragging: false,
-    start: null,
-    bounds: null,
-    loading: false,
-  },
   layerSettings: {
     streetNames: true,
     pois: true,
     buildings: false,
     minorPaths: true,
   },
+  snapToLines: true,
 };
 
 let map;
@@ -147,19 +144,8 @@ async function initMap() {
   });
 
   map.on("mousedown", (event) => {
-    if (!state.areaSelection.active || state.mode === "edit") return;
-    event.preventDefault();
-    state.areaSelection.dragging = true;
-    state.areaSelection.start = [event.lngLat.lng, event.lngLat.lat];
-    state.areaSelection.bounds = boundsFromPoints(state.areaSelection.start, state.areaSelection.start);
-    map.dragPan.disable();
-    updateMapCursor();
-    updateAreaSelection();
-    renderSidebar();
-  });
-
-  map.on("mousedown", (event) => {
-    if (state.mode !== "edit" || state.areaSelection.active || state.shiftKeyDown) return;
+    if (state.mode !== "edit" || state.shiftKeyDown) return;
+    if (shouldSuppressMapClick()) return;
     if (state.routePointHover || state.draggingPointIndex != null) return;
     event.preventDefault();
     state.pendingRouteDraw = true;
@@ -167,12 +153,6 @@ async function initMap() {
   });
 
   map.on("mousemove", (event) => {
-    if (state.areaSelection.dragging && state.areaSelection.start) {
-      state.areaSelection.bounds = boundsFromPoints(state.areaSelection.start, [event.lngLat.lng, event.lngLat.lat]);
-      updateAreaSelection();
-      renderSidebar();
-      return;
-    }
     if (state.pendingRouteDraw && state.pendingDrawPoint) {
       const point = [event.lngLat.lng, event.lngLat.lat];
       if (distanceBetween(state.pendingDrawPoint, point) >= FREEHAND_MIN_DISTANCE_METERS) {
@@ -187,44 +167,16 @@ async function initMap() {
     }
     if (state.draggingPointIndex == null) return;
     const points = clonePoints(state.points);
-    points[state.draggingPointIndex] = [event.lngLat.lng, event.lngLat.lat];
+    points[state.draggingPointIndex] = snapToVisibleLines([event.lngLat.lng, event.lngLat.lat]);
     state.points = points;
     updateMapRoute();
     renderSidebar();
   });
 
-  map.on("mouseup", () => {
-    if (state.areaSelection.dragging) {
-      state.areaSelection.dragging = false;
-      state.areaSelection.active = false;
-      state.areaSelection.start = null;
-      if (state.mode === "edit") map.dragPan.disable();
-      else map.dragPan.enable();
-      setStatus("Map area selected.");
-      updateMapCursor();
-      updateAreaSelection();
-      renderSidebar();
-      return;
-    }
-    if (state.pendingRouteDraw) {
-      state.pendingRouteDraw = false;
-      state.pendingDrawPoint = null;
-      return;
-    }
-    if (state.drawingRoute) {
-      finishRouteDraw();
-      return;
-    }
-    if (state.draggingPointIndex == null) return;
-    pushUndo(state.dragStartPoints);
-    state.draggingPointIndex = null;
-    state.dragStartPoints = null;
-    updateMapCursor();
-    render();
-  });
+  map.on("mouseup", () => finishPointerEdit());
 
   map.on("click", (event) => {
-    if (state.areaSelection.active || state.areaSelection.dragging) return;
+    if (shouldSuppressMapClick()) return;
     if (state.skipNextMapClick) {
       state.skipNextMapClick = false;
       return;
@@ -239,10 +191,10 @@ async function initMap() {
   });
 
   map.on("click", "route-line-hit", (event) => {
-    if (state.areaSelection.active || state.areaSelection.dragging) return;
+    if (shouldSuppressMapClick()) return;
     if (state.mode !== "edit" || state.points.length < 2 || !event.lngLat) return;
     state.skipNextMapClick = true;
-    const point = [event.lngLat.lng, event.lngLat.lat];
+    const point = snapToVisibleLines([event.lngLat.lng, event.lngLat.lat]);
     const index = nearestSegmentIndex(point, state.points);
     insertPoint(index + 1, point);
   });
@@ -261,7 +213,7 @@ async function initMap() {
   });
 
   map.on("mousedown", "route-points", (event) => {
-    if (state.areaSelection.active || state.mode !== "edit") return;
+    if (state.mode !== "edit") return;
     const feature = event.features?.[0];
     if (!feature) return;
     event.preventDefault();
@@ -284,6 +236,8 @@ async function initMap() {
       updateMapCursor();
     }
   });
+  window.addEventListener("mouseup", () => finishPointerEdit());
+  window.addEventListener("blur", () => finishPointerEdit());
 }
 
 async function loadStyle() {
@@ -298,9 +252,7 @@ function syncMapOverlays() {
   if (!map?.isStyleLoaded()) return;
   ensureDetailMapLayers();
   applyLayerSettings();
-  ensureAreaLayers();
   ensureRouteLayers();
-  updateAreaSelection();
   updateMapRoute();
 }
 
@@ -329,8 +281,7 @@ function bindUi() {
     render();
   });
   elements.exportButton.addEventListener("click", () => downloadGpx());
-  elements.selectAreaButton.addEventListener("click", () => toggleAreaSelection());
-  elements.downloadAreaButton.addEventListener("click", () => downloadAreaMap());
+  elements.mobileSaveButton.addEventListener("click", () => saveRouteToMobileApp());
   elements.searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     locateSearchQuery();
@@ -339,6 +290,11 @@ function bindUi() {
   bindLayerToggle(elements.poisToggle, "pois");
   bindLayerToggle(elements.buildingsToggle, "buildings");
   bindLayerToggle(elements.minorPathsToggle, "minorPaths");
+  elements.snapToLinesToggle.addEventListener("change", () => {
+    state.snapToLines = elements.snapToLinesToggle.checked;
+    setStatus(state.snapToLines ? "Route snapping enabled." : "Route snapping disabled.");
+    renderSidebar();
+  });
   elements.routeName.addEventListener("input", () => {
     state.routeName = elements.routeName.value.trim() || "Untitled route";
     renderSidebar();
@@ -386,10 +342,7 @@ function bindKeyboardShortcuts() {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     if (key === "escape") {
-      if (state.areaSelection.active || state.areaSelection.dragging) {
-        event.preventDefault();
-        cancelAreaSelection();
-      } else if (state.mode === "edit") {
+      if (state.mode === "edit") {
         event.preventDefault();
         setMode("view");
       }
@@ -399,11 +352,6 @@ function bindKeyboardShortcuts() {
     if (key === "e") {
       event.preventDefault();
       if (state.mode !== "edit") startEditing();
-      return;
-    }
-    if (key === "a") {
-      event.preventDefault();
-      toggleAreaSelection();
       return;
     }
     if (key === "f") {
@@ -474,110 +422,6 @@ function findPlace(query) {
     const names = [place.name, ...place.aliases].map(normalizeSearchText);
     return names.some((name) => name === normalizedQuery || name.startsWith(normalizedQuery));
   }) || null;
-}
-
-function ensureAreaLayers() {
-  if (!map.getSource("selected-area")) {
-    map.addSource("selected-area", {
-      type: "geojson",
-      data: areaFeatureCollection(),
-    });
-  }
-  if (!map.getLayer("selected-area-fill")) {
-    map.addLayer({
-      id: "selected-area-fill",
-      type: "fill",
-      source: "selected-area",
-      paint: {
-        "fill-color": EDIT_ROUTE_COLOR,
-        "fill-opacity": 0.12,
-      },
-    });
-  }
-  if (!map.getLayer("selected-area-outline")) {
-    map.addLayer({
-      id: "selected-area-outline",
-      type: "line",
-      source: "selected-area",
-      paint: {
-        "line-color": EDIT_ROUTE_COLOR,
-        "line-width": 2,
-        "line-dasharray": [2, 1],
-      },
-    });
-  }
-}
-
-function toggleAreaSelection() {
-  if (state.areaSelection.loading) return;
-  state.areaSelection.active = !state.areaSelection.active;
-  state.areaSelection.dragging = false;
-  state.areaSelection.start = null;
-  if (state.areaSelection.active) {
-    if (state.mode === "edit") setMode("view");
-    map.dragPan.disable();
-    setStatus("Drag a rectangle on the map.");
-  } else {
-    map.dragPan.enable();
-    setStatus("Map area selection cancelled.");
-  }
-  updateMapCursor();
-  renderSidebar();
-}
-
-function cancelAreaSelection() {
-  state.areaSelection.active = false;
-  state.areaSelection.dragging = false;
-  state.areaSelection.start = null;
-  if (state.mode === "edit") map.dragPan.disable();
-  else map.dragPan.enable();
-  updateMapCursor();
-  setStatus("Map area selection cancelled.");
-  renderSidebar();
-}
-
-async function downloadAreaMap() {
-  if (!state.areaSelection.bounds || state.areaSelection.loading) return;
-  state.areaSelection.loading = true;
-  renderSidebar();
-  setStatus("Downloading selected map area.");
-  try {
-    const response = await fetch(MAP_DATA_SERVICE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bbox: bboxArray(state.areaSelection.bounds),
-        name: state.routeName || "web-selected-area",
-        maxzoom: 15,
-      }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || "Map data service failed");
-    finishAreaDownload(payload.url, {
-      cacheKey: payload.cacheKey,
-      name: payload.name || "selected area",
-      sizeBytes: payload.sizeBytes,
-    });
-    setStatus(payload.cached ? "Loaded cached area map." : "Loaded downloaded area map.");
-  } catch (error) {
-    setStatus(`Map data service unavailable: ${error.message}`, true);
-  } finally {
-    state.areaSelection.loading = false;
-    renderSidebar();
-  }
-}
-
-function finishAreaDownload(url, options = {}) {
-  addDetailMap(url, options);
-  state.areaSelection.active = false;
-  state.areaSelection.dragging = false;
-  state.areaSelection.start = null;
-  state.areaSelection.bounds = null;
-  if (state.mode === "edit") map.dragPan.disable();
-  else map.dragPan.enable();
-  updateMapCursor();
-  updateAreaSelection();
-  renderSidebar();
 }
 
 function addDetailMap(url, options = {}) {
@@ -729,7 +573,7 @@ function detailLayerId(sourceId, layerId) {
 }
 
 function firstOverlayLayerId() {
-  return ["selected-area-fill", "route-line-casing", "route-line", "route-line-hit", "route-points"]
+  return ["route-line-casing", "route-line", "route-line-hit", "route-points"]
     .find((layerId) => map.getLayer(layerId));
 }
 
@@ -818,11 +662,6 @@ function setMode(mode) {
   state.pendingRouteDraw = false;
   state.pendingDrawPoint = null;
   state.mode = mode;
-  if (mode === "edit") {
-    state.areaSelection.active = false;
-    state.areaSelection.dragging = false;
-    state.areaSelection.start = null;
-  }
   if (map) {
     if (mode === "edit") map.dragPan.disable();
     else map.dragPan.enable();
@@ -840,10 +679,32 @@ function currentMapCursor() {
   if (state.drawingRoute) return "crosshair";
   if (state.draggingPointIndex != null) return "grabbing";
   if (state.routePointHover && state.mode === "edit") return "grab";
-  if (state.areaSelection.active || state.areaSelection.dragging) return "crosshair";
   if (state.mode === "edit" && state.shiftKeyDown) return "grab";
   if (state.mode === "edit") return "crosshair";
   return "grab";
+}
+
+function hasActivePointerEdit() {
+  return state.pendingRouteDraw || state.drawingRoute || state.draggingPointIndex != null;
+}
+
+function finishPointerEdit() {
+  if (state.pendingRouteDraw) {
+    state.pendingRouteDraw = false;
+    state.pendingDrawPoint = null;
+    return;
+  }
+  if (state.drawingRoute) {
+    finishRouteDraw();
+    return;
+  }
+  if (state.draggingPointIndex == null) return;
+  pushUndo(state.dragStartPoints);
+  suppressMapClicks();
+  state.draggingPointIndex = null;
+  state.dragStartPoints = null;
+  updateMapCursor();
+  render();
 }
 
 function pushUndo(previous = null) {
@@ -851,9 +712,17 @@ function pushUndo(previous = null) {
   if (state.undoStack.length > 100) state.undoStack.shift();
 }
 
+function suppressMapClicks(durationMs = 350) {
+  state.suppressMapClickUntil = performance.now() + durationMs;
+}
+
+function shouldSuppressMapClick() {
+  return performance.now() < state.suppressMapClickUntil;
+}
+
 function addPoint(point) {
   pushUndo();
-  state.points = [...state.points, point];
+  state.points = [...state.points, snapToVisibleLines(point)];
   setStatus("Point added.");
   render();
 }
@@ -861,7 +730,7 @@ function addPoint(point) {
 function insertPoint(index, point) {
   pushUndo();
   const points = clonePoints(state.points);
-  points.splice(index, 0, point);
+  points.splice(index, 0, snapToVisibleLines(point));
   state.points = points;
   setStatus("Point inserted.");
   render();
@@ -879,6 +748,8 @@ function deletePoint(index) {
 
 function beginRouteDraw(point) {
   state.drawingRoute = true;
+  state.pendingRouteDraw = false;
+  state.pendingDrawPoint = null;
   state.drawStartPoints = clonePoints(state.points);
   state.drawAddedPointCount = 0;
   map.dragPan.disable();
@@ -887,9 +758,10 @@ function beginRouteDraw(point) {
 }
 
 function appendDrawPoint(point, force = false) {
+  const snappedPoint = snapToVisibleLines(point);
   const previous = state.points[state.points.length - 1];
-  if (!force && previous && distanceBetween(previous, point) < FREEHAND_MIN_DISTANCE_METERS) return;
-  state.points = [...state.points, point];
+  if (!force && previous && distanceBetween(previous, snappedPoint) < FREEHAND_MIN_DISTANCE_METERS) return;
+  state.points = [...state.points, snappedPoint];
   state.drawAddedPointCount += 1;
   updateMapRoute();
   renderSidebar();
@@ -900,9 +772,11 @@ function finishRouteDraw() {
   state.drawingRoute = false;
   if (state.drawAddedPointCount > 0) {
     pushUndo(state.drawStartPoints || []);
+    suppressMapClicks();
     setStatus(state.drawAddedPointCount === 1 ? "Point added." : "Route segment drawn.");
   }
   state.drawStartPoints = null;
+  state.drawAddedPointCount = 0;
   if (state.mode === "edit" && !state.shiftKeyDown) map.dragPan.disable();
   else map.dragPan.enable();
   updateMapCursor();
@@ -939,6 +813,7 @@ function renderSidebar() {
   elements.undoButton.disabled = state.undoStack.length === 0;
   elements.clearButton.disabled = !hasRoute;
   elements.exportButton.disabled = !exportable;
+  elements.mobileSaveButton.disabled = !exportable;
   elements.newRouteButton.hidden = editing || !hasRoute;
   elements.editButton.hidden = editing;
   elements.importButton.hidden = editing;
@@ -946,17 +821,13 @@ function renderSidebar() {
   elements.undoButton.hidden = !editing;
   elements.clearButton.hidden = !hasRoute;
   elements.exportButton.hidden = !exportable;
+  elements.mobileSaveButton.hidden = !exportable;
   elements.streetNamesToggle.checked = state.layerSettings.streetNames;
   elements.poisToggle.checked = state.layerSettings.pois;
   elements.buildingsToggle.checked = state.layerSettings.buildings;
   elements.minorPathsToggle.checked = state.layerSettings.minorPaths;
-  elements.selectAreaButton.textContent = state.areaSelection.active ? "Cancel area" : "Draw map area";
-  elements.selectAreaButton.disabled = state.areaSelection.loading;
-  elements.downloadAreaButton.disabled = !state.areaSelection.bounds || state.areaSelection.loading;
-  elements.downloadAreaButton.textContent = state.areaSelection.loading ? "Downloading..." : "Download area map";
-  elements.areaBboxText.textContent = state.areaSelection.bounds
-    ? `BBox ${formatBboxText(state.areaSelection.bounds)}`
-    : "No area selected.";
+  elements.snapToLinesToggle.checked = state.snapToLines;
+  elements.snapToLinesOption.hidden = !editing;
   renderDatasetStats();
   renderShortcutContext();
   elements.distanceValue.textContent = formatDistance(totalDistance(state.points));
@@ -1012,7 +883,6 @@ function renderShortcutContext() {
 }
 
 function currentShortcutContext() {
-  if (state.areaSelection.active || state.areaSelection.dragging) return "area";
   if (state.mode === "edit") return "edit";
   return "view";
 }
@@ -1027,14 +897,9 @@ function updateMapRoute() {
   map.getSource("route").setData(routeFeatureCollection());
 }
 
-function updateAreaSelection() {
-  if (!map?.getSource("selected-area")) return;
-  map.getSource("selected-area").setData(areaFeatureCollection());
-}
-
 function routeFeatureCollection() {
   const features = [];
-  if (state.points.length >= 2) {
+  if (state.mode !== "edit" && state.points.length >= 2) {
     features.push({
       type: "Feature",
       properties: { mode: state.mode },
@@ -1065,46 +930,6 @@ function visibleRoutePointIndexes(pointCount) {
   for (let index = 0; index < pointCount; index += step) indexes.push(index);
   if (indexes[indexes.length - 1] !== pointCount - 1) indexes.push(pointCount - 1);
   return indexes;
-}
-
-function areaFeatureCollection() {
-  if (!state.areaSelection.bounds) return { type: "FeatureCollection", features: [] };
-  const bounds = state.areaSelection.bounds;
-  return {
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [bounds.minLon, bounds.minLat],
-          [bounds.maxLon, bounds.minLat],
-          [bounds.maxLon, bounds.maxLat],
-          [bounds.minLon, bounds.maxLat],
-          [bounds.minLon, bounds.minLat],
-        ]],
-      },
-    }],
-  };
-}
-
-function boundsFromPoints(start, end) {
-  return {
-    minLon: Math.min(start[0], end[0]),
-    minLat: Math.min(start[1], end[1]),
-    maxLon: Math.max(start[0], end[0]),
-    maxLat: Math.max(start[1], end[1]),
-  };
-}
-
-function bboxArray(bounds) {
-  return [
-    Number(bounds.minLon.toFixed(6)),
-    Number(bounds.minLat.toFixed(6)),
-    Number(bounds.maxLon.toFixed(6)),
-    Number(bounds.maxLat.toFixed(6)),
-  ];
 }
 
 function setHoveredPoint(id) {
@@ -1171,6 +996,34 @@ function downloadGpx() {
   setStatus("Route saved as GPX.");
 }
 
+async function saveRouteToMobileApp() {
+  if (!canExport()) return;
+  const gpx = exportGpx(state.routeName, state.points);
+  elements.mobileSaveButton.disabled = true;
+  setStatus("Saving route and corridor map to mobile app.");
+  try {
+    const response = await fetch(MOBILE_SAVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        routeName: state.routeName,
+        gpx,
+        bufferMeters: 1000,
+        coverage: "corridor",
+        maxzoom: 15,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Mobile save failed");
+    setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
+    refreshStoredDetailMaps();
+  } catch (error) {
+    setStatus(`Mobile save failed: ${error.message}`, true);
+  } finally {
+    renderSidebar();
+  }
+}
+
 function canExport() {
   return state.points.length >= 2 && state.routeName.trim().length > 0;
 }
@@ -1182,6 +1035,138 @@ function fitRoute() {
     new maplibregl.LngLatBounds(state.points[0], state.points[0]),
   );
   map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 400 });
+}
+
+function snapToVisibleLines(point) {
+  if (!state.snapToLines || !map?.isStyleLoaded()) return point;
+  const layerIds = visibleSnapLayerIds();
+  if (layerIds.length === 0) return point;
+  const screenPoint = map.project(point);
+  let features = [];
+  try {
+    features = map.queryRenderedFeatures([
+      [screenPoint.x - SNAP_TOLERANCE_PIXELS, screenPoint.y - SNAP_TOLERANCE_PIXELS],
+      [screenPoint.x + SNAP_TOLERANCE_PIXELS, screenPoint.y + SNAP_TOLERANCE_PIXELS],
+    ], { layers: layerIds });
+  } catch {
+    return point;
+  }
+  const snappedScreenPoint = nearestRenderedLinePoint(screenPoint, features);
+  if (!snappedScreenPoint || snappedScreenPoint.distance > SNAP_TOLERANCE_PIXELS) return point;
+  const snappedLngLat = map.unproject([snappedScreenPoint.x, snappedScreenPoint.y]);
+  return [snappedLngLat.lng, snappedLngLat.lat];
+}
+
+function visibleSnapLayerIds() {
+  return allSnapLayerIds().filter((layerId) => {
+    if (!map.getLayer(layerId)) return false;
+    return map.getLayoutProperty(layerId, "visibility") !== "none";
+  });
+}
+
+function allSnapLayerIds() {
+  const detailLayerIds = state.detailMaps.flatMap((detailMap) =>
+    SNAP_LINE_LAYER_IDS.map((layerId) => detailLayerId(detailMap.sourceId, layerId)),
+  );
+  return [...SNAP_LINE_LAYER_IDS, ...detailLayerIds];
+}
+
+function nearestRenderedLinePoint(screenPoint, features) {
+  let best = null;
+  features.forEach((feature) => {
+    lineCoordinateSets(feature.geometry).forEach((line) => {
+      for (let index = 0; index < line.length - 1; index++) {
+        const start = line[index];
+        const end = line[index + 1];
+        if (!isCoordinate(start) || !isCoordinate(end)) continue;
+        const candidate = nearestScreenPointOnSegment(
+          screenPoint,
+          map.project(start),
+          map.project(end),
+        );
+        if (!best || candidate.distance < best.distance) best = candidate;
+      }
+    });
+  });
+  return best;
+}
+
+function lineCoordinateSets(geometry) {
+  if (!geometry) return [];
+  if (geometry.type === "LineString") return [geometry.coordinates];
+  if (geometry.type === "MultiLineString") return geometry.coordinates;
+  return [];
+}
+
+function isCoordinate(value) {
+  return Array.isArray(value) &&
+    value.length >= 2 &&
+    Number.isFinite(value[0]) &&
+    Number.isFinite(value[1]);
+}
+
+function nearestScreenPointOnSegment(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  if (dx === 0 && dy === 0) {
+    return {
+      x: start.x,
+      y: start.y,
+      distance: Math.hypot(point.x - start.x, point.y - start.y),
+    };
+  }
+  const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)));
+  const x = start.x + dx * t;
+  const y = start.y + dy * t;
+  return {
+    x,
+    y,
+    distance: Math.hypot(point.x - x, point.y - y),
+  };
+}
+
+function findSnapTestCandidate() {
+  if (!map?.isStyleLoaded()) return null;
+  const layerIds = visibleSnapLayerIds();
+  if (layerIds.length === 0) return null;
+  const canvas = map.getCanvas();
+  const features = map.queryRenderedFeatures(undefined, { layers: layerIds });
+  for (const feature of features) {
+    for (const line of lineCoordinateSets(feature.geometry)) {
+      for (let index = 0; index < line.length - 1; index++) {
+        const startCoordinate = line[index];
+        const endCoordinate = line[index + 1];
+        if (!isCoordinate(startCoordinate) || !isCoordinate(endCoordinate)) continue;
+        const start = map.project(startCoordinate);
+        const end = map.project(endCoordinate);
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.hypot(dx, dy);
+        if (length < 40) continue;
+        const mid = { x: start.x + dx / 2, y: start.y + dy / 2 };
+        const offset = {
+          x: mid.x + (-dy / length) * (SNAP_TOLERANCE_PIXELS / 2),
+          y: mid.y + (dx / length) * (SNAP_TOLERANCE_PIXELS / 2),
+        };
+        if (!isScreenPointInsideCanvas(mid, canvas) || !isScreenPointInsideCanvas(offset, canvas)) continue;
+        const testLngLat = map.unproject([offset.x, offset.y]);
+        const snappedPoint = snapToVisibleLines([testLngLat.lng, testLngLat.lat]);
+        const snappedScreen = map.project(snappedPoint);
+        return {
+          layerId: feature.layer?.id || "",
+          testPoint: [testLngLat.lng, testLngLat.lat],
+          snappedPoint,
+          distanceBeforePixels: Math.hypot(offset.x - mid.x, offset.y - mid.y),
+          distanceAfterPixels: Math.hypot(snappedScreen.x - mid.x, snappedScreen.y - mid.y),
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function isScreenPointInsideCanvas(point, canvas) {
+  return point.x >= 0 && point.y >= 0 && point.x <= canvas.clientWidth && point.y <= canvas.clientHeight;
 }
 
 function nearestSegmentIndex(point, routePoints) {
@@ -1249,10 +1234,6 @@ function formatBytes(bytes) {
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
 }
 
-function formatBboxText(bounds) {
-  return bboxArray(bounds).map((value) => value.toFixed(6)).join(", ");
-}
-
 function slugify(value) {
   return (value || "route")
     .toLowerCase()
@@ -1299,6 +1280,7 @@ function exposeTestApi() {
       importedEditingCopy: state.importedEditingCopy,
       status: elements.statusText.textContent,
       drawingRoute: state.drawingRoute,
+      snapToLines: state.snapToLines,
       layerSettings: { ...state.layerSettings },
       dataset: {
         baseBytes: state.dataset.baseBytes,
@@ -1310,12 +1292,6 @@ function exposeTestApi() {
         detailLoading: state.detailMaps.some((detailMap) => detailMap.sizeLoading),
       },
       cursor: currentMapCursor(),
-      areaSelection: {
-        active: state.areaSelection.active,
-        dragging: state.areaSelection.dragging,
-        bounds: state.areaSelection.bounds ? { ...state.areaSelection.bounds } : null,
-        loading: state.areaSelection.loading,
-      },
       mapSourceUrl: state.mapSourceUrl,
       detailMaps: state.detailMaps.map((detailMap) => ({ ...detailMap })),
       mapCenter: map ? [map.getCenter().lng, map.getCenter().lat] : null,
@@ -1327,6 +1303,12 @@ function exposeTestApi() {
       elements.routeName.value = name;
       render();
     },
+    setSnapToLines: (enabled) => {
+      state.snapToLines = Boolean(enabled);
+      renderSidebar();
+    },
+    snapPoint: (lon, lat) => snapToVisibleLines([lon, lat]),
+    findSnapTestCandidate,
     startEditing,
     addPoint: (lon, lat) => addPoint([lon, lat]),
     beginRouteDraw: (lon, lat) => beginRouteDraw([lon, lat]),
@@ -1345,22 +1327,11 @@ function exposeTestApi() {
       elements.searchInput.value = query;
       locateSearchQuery();
     },
-    setAreaBounds: (bounds) => {
-      state.areaSelection.bounds = {
-        minLon: Number(bounds.minLon),
-        minLat: Number(bounds.minLat),
-        maxLon: Number(bounds.maxLon),
-        maxLat: Number(bounds.maxLat),
-      };
-      updateAreaSelection();
-      renderSidebar();
-    },
-    getAreaBboxText: () => elements.areaBboxText.textContent,
     addDetailMap,
-    finishAreaDownload,
     formatBytes,
     findPlace,
     exportGpx: () => exportGpx(state.routeName, state.points),
+    saveRouteToMobileApp,
     parseGpx,
     getLastExportedGpx: () => state.lastExportedGpx,
   };

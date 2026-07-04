@@ -2,7 +2,7 @@
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,9 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, "..");
 const extractor = resolve(scriptDir, "extract-route-map.mjs");
 const outputDir = resolve(scriptDir, "output");
+const mobileRoutesDir = resolve(process.env.MOBILE_ROUTES_DIR || resolve(workspaceRoot, "mobile/app/src/main/assets/routes"));
+const mobileRouteCatalogPath = resolve(process.env.MOBILE_ROUTE_CATALOG_PATH || resolve(mobileRoutesDir, "routes.json"));
+const bundledMapPath = resolve(process.env.MOBILE_BUNDLED_MAP_PATH || resolve(workspaceRoot, "shared/maps/finland.pmtiles"));
 const port = Number.parseInt(process.env.PORT || "5174", 10);
 const webOrigin = process.env.WEB_ORIGIN || "http://localhost:5173";
 
@@ -35,6 +38,12 @@ createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/api/extract-bbox") {
       const body = await readJson(request);
       const result = await extractBbox(body);
+      sendJson(response, 200, result);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/save-mobile-route") {
+      const body = await readJson(request);
+      const result = await saveMobileRoute(body);
       sendJson(response, 200, result);
       return;
     }
@@ -115,6 +124,75 @@ async function extractBbox(body) {
   };
 }
 
+async function saveMobileRoute(body) {
+  const routeName = cleanName(body.routeName || "Untitled route");
+  const gpx = String(body.gpx || "");
+  const routePoints = parseGpxPoints(gpx);
+  if (routePoints.length < 2) throw new Error("route GPX must contain at least two track points");
+
+  const slug = slugify(routeName);
+  const gpxFile = `${slug}.gpx`;
+  const gpxPath = resolve(mobileRoutesDir, gpxFile);
+  await mkdir(mobileRoutesDir, { recursive: true });
+  await writeFile(gpxPath, gpx, "utf8");
+
+  const routeEntry = buildRouteCatalogEntry({
+    id: slug,
+    title: routeName,
+    gpxAsset: `routes/${gpxFile}`,
+    points: routePoints,
+  });
+  await upsertRouteCatalog(routeEntry);
+
+  const source = body.source || "protomaps";
+  const bufferMeters = String(body.bufferMeters ?? 1000);
+  const coverage = body.coverage || "corridor";
+  const maxzoom = String(body.maxzoom || 15);
+  const baseArgs = [
+    extractor,
+    "--gpx",
+    gpxPath,
+    "--source",
+    source,
+    "--buffer-meters",
+    bufferMeters,
+    "--coverage",
+    coverage,
+    "--maxzoom",
+    maxzoom,
+  ];
+  if (body.minzoom != null) baseArgs.push("--minzoom", String(body.minzoom));
+
+  const dryRun = await runNode([...baseArgs, "--dry-run"]);
+  const metadata = JSON.parse(dryRun.stdout);
+  const run = await runNode(baseArgs);
+  await mkdir(dirname(bundledMapPath), { recursive: true });
+  await copyFile(metadata.output.pmtiles, bundledMapPath);
+
+  return {
+    route: {
+      id: routeEntry.id,
+      title: routeEntry.title,
+      file: relative(workspaceRoot, gpxPath).replaceAll("\\", "/"),
+      catalog: relative(workspaceRoot, mobileRouteCatalogPath).replaceAll("\\", "/"),
+      pointCount: routeEntry.trackPointCount,
+      lengthKm: routeEntry.lengthKm,
+      bounds: routeEntry.bounds,
+    },
+    map: {
+      cached: run.stdout.includes("Using cached"),
+      generatedFile: relative(workspaceRoot, metadata.output.pmtiles).replaceAll("\\", "/"),
+      mobileFile: relative(workspaceRoot, bundledMapPath).replaceAll("\\", "/"),
+      metadata: relative(workspaceRoot, metadata.output.metadata).replaceAll("\\", "/"),
+      bufferMeters: Number(bufferMeters),
+      coverage,
+      maxzoom: Number(maxzoom),
+      sizeBytes: await stat(bundledMapPath).then((info) => info.size),
+    },
+    stdout: run.stdout.trim(),
+  };
+}
+
 function normalizeBbox(value) {
   const bbox = Array.isArray(value) ? value : String(value || "").split(",");
   const parts = bbox.map((part) => Number.parseFloat(String(part).trim()));
@@ -138,6 +216,105 @@ function normalizeBbox(value) {
 
 function cleanName(value) {
   return String(value).trim().slice(0, 80) || "web-selected-area";
+}
+
+function parseGpxPoints(xml) {
+  const points = [];
+  const pointTagPattern = /<(?:trkpt|rtept|wpt)\b([^>]*)>/gi;
+  let tagMatch;
+  while ((tagMatch = pointTagPattern.exec(xml))) {
+    const attrs = parseAttributes(tagMatch[1]);
+    const lat = Number.parseFloat(attrs.lat);
+    const lon = Number.parseFloat(attrs.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+    points.push({ lat, lon });
+  }
+  return points;
+}
+
+function parseAttributes(text) {
+  const attrs = {};
+  const attrPattern = /\b([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*["']([^"']*)["']/g;
+  let match;
+  while ((match = attrPattern.exec(text))) attrs[match[1]] = match[2];
+  return attrs;
+}
+
+function buildRouteCatalogEntry({ id, title, gpxAsset, points }) {
+  const bounds = routeBounds(points);
+  return {
+    id,
+    title,
+    lengthKm: Number((routeDistanceMeters(points) / 1000).toFixed(1)),
+    durationText: "--",
+    source: "TrailLite GPX Builder",
+    matchScore: 1,
+    bikelandId: null,
+    matchedTitle: title,
+    detailUrl: null,
+    gpxDownloadUrl: null,
+    gpxAsset,
+    bounds,
+    trackPointCount: points.length,
+  };
+}
+
+async function upsertRouteCatalog(entry) {
+  let catalog = [];
+  if (existsSync(mobileRouteCatalogPath)) {
+    catalog = JSON.parse(await readFile(mobileRouteCatalogPath, "utf8"));
+  }
+  const withoutExisting = Array.isArray(catalog)
+    ? catalog.filter((item) => item.id !== entry.id)
+    : [];
+  withoutExisting.push(entry);
+  withoutExisting.sort((left, right) => left.title.localeCompare(right.title, "fi"));
+  await writeFile(mobileRouteCatalogPath, `${JSON.stringify(withoutExisting, null, 2)}\n`, "utf8");
+}
+
+function routeBounds(points) {
+  return points.reduce(
+    (bounds, point) => ({
+      minLon: Math.min(bounds.minLon, point.lon),
+      minLat: Math.min(bounds.minLat, point.lat),
+      maxLon: Math.max(bounds.maxLon, point.lon),
+      maxLat: Math.max(bounds.maxLat, point.lat),
+    }),
+    { minLon: Infinity, minLat: Infinity, maxLon: -Infinity, maxLat: -Infinity },
+  );
+}
+
+function routeDistanceMeters(points) {
+  let meters = 0;
+  for (let index = 1; index < points.length; index++) {
+    meters += distanceMeters(points[index - 1], points[index]);
+  }
+  return meters;
+}
+
+function distanceMeters(left, right) {
+  const earthRadiusMeters = 6371000;
+  const lat1 = toRadians(left.lat);
+  const lat2 = toRadians(right.lat);
+  const deltaLat = toRadians(right.lat - left.lat);
+  const deltaLon = toRadians(right.lon - left.lon);
+  const a = Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function slugify(value) {
+  return String(value || "route")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "route";
 }
 
 function runNode(args) {
@@ -164,7 +341,7 @@ function readJson(request) {
     let raw = "";
     request.on("data", (chunk) => {
       raw += chunk;
-      if (raw.length > 100_000) rejectRead(new Error("request body too large"));
+      if (raw.length > 5_000_000) rejectRead(new Error("request body too large"));
     });
     request.on("end", () => {
       try {
