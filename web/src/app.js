@@ -1831,6 +1831,7 @@ async function saveRouteToMobileApp() {
     state.mobileRouteId = payload.route?.id || state.mobileRouteId;
     upsertSavedMobileRoute(payload, gpx);
     state.mobileRouteFilter = "";
+    elements.mobileRouteSelect.value = state.mobileRouteId || "";
     markRouteSavedToMobile();
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();

@@ -14,6 +14,21 @@ window.__trailLiteTest.setRoute([
   [24.9384, 60.1699],
   [24.9392, 60.1705]
 ], "Mobile Save Test");
+window.__trailLiteTest.setMobileRoutesForTest([
+  {
+    id: "older-route",
+    title: "Older Route",
+    lengthKm: 4.2,
+    trackPointCount: 22,
+    gpx: `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>Older Route</name><trkseg>
+    <trkpt lat="60.170000" lon="24.930000" />
+    <trkpt lat="60.171000" lon="24.931000" />
+  </trkseg></trk>
+</gpx>`,
+  },
+]);
 const button = document.querySelector("#mobileSaveButton");
 if (!button) throw new Error("Mobile save button missing");
 if (button.hidden) throw new Error("Mobile save button should be visible for exportable route");
@@ -21,6 +36,9 @@ if (button.disabled) throw new Error("Mobile save button should be enabled for e
 const routeSearch = document.querySelector("#mobileRouteSearch");
 routeSearch.value = "older";
 routeSearch.dispatchEvent(new Event("input", { bubbles: true }));
+if (document.querySelector("#mobileRouteSelect").value !== "older-route") {
+  throw new Error(`Existing route should be selected before save, got ${document.querySelector("#mobileRouteSelect").value}`);
+}
 true;
 '
 
@@ -108,6 +126,9 @@ if (state.mobileRouteId !== "mobile-save-test") throw new Error(`Saved route id 
 const savedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"mobile-save-test\"]");
 if (!savedCard?.classList.contains("loaded")) {
   throw new Error("Saved route should stay visible and marked loaded even if catalog refresh is stale");
+}
+if (!savedCard.classList.contains("selected") || document.querySelector("#mobileRouteSelect").value !== "mobile-save-test") {
+  throw new Error(`Saved route should become selected after save, got ${document.querySelector("#mobileRouteSelect").value}`);
 }
 if (document.querySelector("#mobileRouteSearch").value !== "") {
   throw new Error("Saving a route should clear an excluding mobile route filter so the saved route is visible");

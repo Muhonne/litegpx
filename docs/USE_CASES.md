@@ -146,6 +146,7 @@ Feature: Web GPX import and editing
     And the route list keeps the saved route title after saving a renamed loaded route
     And the save-to-mobile button stays disabled and shows progress while route and map data are being written
     And a newly saved route is immediately visible as the loaded route in the mobile route list
+    And the newly saved route becomes the selected mobile route
     And the saved route stays visible while the route catalog refreshes
     And the route filter is cleared if it would hide the newly saved route
     And the newly saved route remains visible if the catalog refresh is stale

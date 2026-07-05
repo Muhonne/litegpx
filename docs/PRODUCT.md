@@ -913,6 +913,7 @@ Sidebar content model:
 - Saving a renamed loaded route keeps the updated name in the mobile route list even when the save response is minimal.
 - The mobile route filter supports keyboard selection with ArrowUp, ArrowDown, and Enter.
 - Saving a route to mobile updates the route manager immediately, even before a full catalog refresh completes.
+- Saving a route to mobile selects the saved route in the route manager.
 - Saving a route to mobile keeps the route list visible while the catalog refresh runs in the background.
 - Saving a route to mobile clears an active route filter so the saved route remains visible.
 - A stale catalog refresh must not hide a route that was just saved from the web app.
