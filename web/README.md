@@ -88,5 +88,6 @@ bash tests/manual/09-route-draw-mouseup.sh
 `05-map-tools.sh` covers layer toggles, area selection, and the area-download busy button state.
 `07-polish-controls-shortcuts-data.sh` covers compact route controls, edit-mode shortcuts, and 10-step undo/redo history.
 `09-route-draw-mouseup.sh` covers drag-to-draw and verifies editing can be toggled off/on without breaking drawing.
+`10-mobile-save-button.sh` covers save-to-mobile request payloads and busy button feedback while map data is being generated.
 `11-mobile-route-management.sh` covers filtering bundled mobile routes, loading a selected route into the editor, preserving mobile route identity on save, showing saved/unsaved mobile edit state, and cancelling a load that would discard unsaved edits.
 These checks use `agent-browser`, so keep the web server running before running individual scripts.

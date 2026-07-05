@@ -24,22 +24,26 @@ true;
 agent-browser eval '
 const originalFetch = window.fetch.bind(window);
 window.__mobileSaveRequest = null;
+window.__finishMobileSave = null;
 window.fetch = async (url, options = {}) => {
   if (String(url).includes("/api/save-mobile-route")) {
     window.__mobileSaveRequest = {
       url: String(url),
       body: JSON.parse(options.body),
     };
-    return new Response(JSON.stringify({
-      route: {
-        file: "mobile/app/src/main/assets/routes/mobile-save-test.gpx",
-      },
-      map: {
-        mobileFile: "shared/maps/finland.pmtiles",
-      },
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    return new Promise((resolve) => {
+      window.__finishMobileSave = () => resolve(new Response(JSON.stringify({
+        route: {
+          id: "mobile-save-test",
+          file: "mobile/app/src/main/assets/routes/mobile-save-test.gpx",
+        },
+        map: {
+          mobileFile: "shared/maps/finland.pmtiles",
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
     });
   }
   return originalFetch(url, options);
@@ -48,15 +52,29 @@ true;
 '
 
 agent-browser click "#mobileSaveButton"
-agent-browser wait 300
+agent-browser wait 120
 
 agent-browser eval '
 const request = window.__mobileSaveRequest;
 if (!request) throw new Error("Mobile save endpoint was not called");
+const button = document.querySelector("#mobileSaveButton");
+if (!button.disabled) throw new Error("Mobile save button should stay disabled while saving");
+if (button.getAttribute("aria-busy") !== "true") throw new Error("Mobile save button should expose busy state");
+if (!button.textContent.includes("Saving")) throw new Error(`Mobile save button should show progress, got ${button.textContent}`);
 if (request.body.routeName !== "Mobile Save Test") throw new Error(`Bad route name: ${request.body.routeName}`);
 if (!request.body.gpx.includes("<trkpt")) throw new Error("Mobile save request did not include GPX track points");
 if (request.body.bufferMeters !== 1000) throw new Error(`Unexpected buffer: ${request.body.bufferMeters}`);
 if (request.body.coverage !== "corridor") throw new Error(`Unexpected coverage: ${request.body.coverage}`);
+window.__finishMobileSave();
+true;
+'
+
+agent-browser wait 300
+
+agent-browser eval '
+const button = document.querySelector("#mobileSaveButton");
+if (button.getAttribute("aria-busy") !== "false") throw new Error("Mobile save button should clear busy state");
+if (!button.textContent.includes("Save to mobile app")) throw new Error(`Mobile save button label did not restore: ${button.textContent}`);
 const state = window.__trailLiteTest.getState();
 if (!state.status.includes("Saved to mobile app")) throw new Error(`Unexpected status: ${state.status}`);
 true;

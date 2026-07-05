@@ -130,6 +130,7 @@ const state = {
   areaStartPoint: null,
   selectedAreaBbox: null,
   areaDownloadBusy: false,
+  mobileSaveBusy: false,
   drawStartPoints: null,
   drawAddedPointCount: 0,
   hoveredPointId: null,
@@ -1173,7 +1174,7 @@ function renderSidebar() {
   elements.redoButton.disabled = state.redoStack.length === 0;
   elements.clearButton.disabled = !hasRoute;
   elements.exportButton.disabled = !exportable;
-  elements.mobileSaveButton.disabled = !exportable;
+  elements.mobileSaveButton.disabled = !exportable || state.mobileSaveBusy;
   elements.drawAreaButton.disabled = state.areaDownloadBusy || editing;
   elements.downloadAreaButton.disabled = !state.selectedAreaBbox || state.areaDownloadBusy;
   renderDownloadAreaButton();
@@ -1195,6 +1196,7 @@ function renderSidebar() {
   elements.snapToLinesToggle.checked = state.snapToLines;
   elements.snapToLinesOption.hidden = !editing;
   elements.areaStatusText.textContent = areaStatusText();
+  renderMobileSaveButton();
   renderMobileRoutes();
   renderDatasetStats();
   renderShortcutContext();
@@ -1242,6 +1244,18 @@ function renderDownloadAreaButton() {
     return;
   }
   elements.downloadAreaButton.textContent = "Download area map";
+}
+
+function renderMobileSaveButton() {
+  elements.mobileSaveButton.setAttribute("aria-busy", state.mobileSaveBusy ? "true" : "false");
+  if (state.mobileSaveBusy) {
+    elements.mobileSaveButton.replaceChildren(
+      spinnerElement(),
+      document.createTextNode("Saving"),
+    );
+    return;
+  }
+  elements.mobileSaveButton.textContent = "Save to mobile app";
 }
 
 function spinnerElement() {
@@ -1570,9 +1584,10 @@ function downloadGpx() {
 }
 
 async function saveRouteToMobileApp() {
-  if (!canExport()) return;
+  if (!canExport() || state.mobileSaveBusy) return;
   const gpx = exportGpx(state.routeName, state.points);
-  elements.mobileSaveButton.disabled = true;
+  state.mobileSaveBusy = true;
+  renderSidebar();
   setStatus("Saving route and corridor map to mobile app.");
   try {
     const response = await fetch(MOBILE_SAVE_URL, {
@@ -1597,6 +1612,7 @@ async function saveRouteToMobileApp() {
   } catch (error) {
     setStatus(`Mobile save failed: ${error.message}`, true);
   } finally {
+    state.mobileSaveBusy = false;
     renderSidebar();
   }
 }
@@ -1894,6 +1910,7 @@ function exposeTestApi() {
       routeName: state.routeName,
       mobileRouteId: state.mobileRouteId,
       routeSaveState: routeSaveStateText(),
+      mobileSaveBusy: state.mobileSaveBusy,
       points: clonePoints(state.points),
       distanceMeters: totalDistance(state.points),
       canExport: canExport(),
