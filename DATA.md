@@ -115,7 +115,8 @@ Handling:
 
 - `mapdataservice/build-finnish-map.mjs` downloads and normalizes provider data into TrailLite-compatible source layers.
 - `POST /api/extract-bbox` builds a provider overlay for a drawn web rectangle.
-- `POST /api/save-mobile-route` builds a provider overlay for the saved route corridor and copies it to `shared/maps/finland.providers.pmtiles`.
+- `POST /api/save-mobile-route` builds a provider overlay from all bundled mobile routes by default and copies it to `shared/maps/finland.providers.pmtiles`.
+- Route-only mobile map extraction remains available for service/API tests with `mapScope: "route"`, but the normal web save flow uses all bundled routes so one saved route does not shrink the app's offline map coverage.
 - Web renders provider overlays as detail layers.
 - Android loads `finland.providers.pmtiles` beside `finland.pmtiles` when present.
 
@@ -188,7 +189,9 @@ web Save to mobile
   -> Android Gradle asset merge
 ```
 
-This is a local development workflow. It mutates the Android project and shared generated map files so the next APK includes the route and route-corridor map data. The manifest is required because Android copies bundled PMTiles into app storage; when the manifest changes after an app update, `TrailStorage` refreshes those local copies so newly saved routes get the matching corridor detail.
+This is a local development workflow. It mutates the Android project and shared generated map files so the next APK includes the route and all-route corridor map data. The manifest is required because Android copies bundled PMTiles into app storage; when the manifest changes after an app update, `TrailStorage` refreshes those local copies so newly saved routes get the matching corridor detail.
+
+By default, the service first writes the submitted GPX and route catalog entry, then rebuilds the bundled base and provider PMTiles from `mobile/app/src/main/assets/routes/` as a directory. This keeps existing routes covered at close zoom levels after adding a new route. Use `mapScope: "route"` only when intentionally producing a single-route package.
 
 ### Manual CLI Generation
 

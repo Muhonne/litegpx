@@ -65,7 +65,7 @@ class TrailMapController(
     init {
         mapView.setMaximumFps(12)
         map.uiSettings.isCompassEnabled = true
-        map.uiSettings.isRotateGesturesEnabled = false
+        map.uiSettings.isRotateGesturesEnabled = true
         map.addOnCameraMoveStartedListener { reason ->
             if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) {
                 pauseNavigationFollow()
@@ -186,7 +186,7 @@ class TrailMapController(
     private fun updateNavigationCamera(location: Location, latLng: LatLng, force: Boolean = false) {
         if (!trackingActive && !force) return
         if (!force && SystemClock.elapsedRealtime() < followPausedUntilMs) return
-        val bearing = smoothedBearing(routeLookaheadBearing(location) ?: gpsBearing(location) ?: map.cameraPosition.bearing)
+        val bearing = navigationBearing(location)
         val camera = CameraPosition.Builder(map.cameraPosition)
             .target(latLng)
             .bearing(bearing)
@@ -205,6 +205,14 @@ class TrailMapController(
             return lookbehind.bearingTo(projection.point)
         }
         return projection.point.bearingTo(lookahead)
+    }
+
+    private fun navigationBearing(location: Location): Double {
+        if (trackPoints.size < 2) {
+            lastNavigationBearing = NORTH_UP_BEARING
+            return NORTH_UP_BEARING
+        }
+        return smoothedBearing(routeLookaheadBearing(location) ?: gpsBearing(location) ?: map.cameraPosition.bearing)
     }
 
     private fun gpsBearing(location: Location): Double? {
@@ -426,6 +434,7 @@ class TrailMapController(
         const val TRACK_CAMERA_ANIMATION_MS = 650
         const val DEFAULT_TRAIL_ZOOM = 14.0
         const val NAVIGATION_TOP_PADDING_RATIO = 0.2f
+        const val NORTH_UP_BEARING = 0.0
         const val ROUTE_LOOKAHEAD_METERS = 50.0
         const val MIN_BEARING_DISTANCE_METERS = 1.0
         const val FOLLOW_PAUSE_AFTER_GESTURE_MS = 10_000L

@@ -93,6 +93,7 @@ Manual test notes:
 ```text
 tests/manual/01-navigation-camera-emulator.md
 tests/manual/02-navigation-camera-no-scrollby.sh
+tests/manual/03-navigation-bearing-policy.sh
 ```
 
 The script uses `adb emu geo fix`, so run it against an emulator, not a physical device.

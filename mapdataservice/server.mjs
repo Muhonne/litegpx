@@ -175,10 +175,11 @@ async function saveMobileRoute(body) {
   const bufferMeters = String(body.bufferMeters ?? 1000);
   const coverage = body.coverage || "corridor";
   const maxzoom = String(body.maxzoom || 15);
+  const mapGpxInput = mobileMapGpxInput({ body, savedRoutePath: gpxPath, routesDir: mobileRoutesDir });
   const baseArgs = [
     extractor,
     "--gpx",
-    gpxPath,
+    mapGpxInput,
     "--source",
     source,
     "--buffer-meters",
@@ -201,7 +202,7 @@ async function saveMobileRoute(body) {
     source,
     maxzoom,
     minzoom: body.minzoom,
-    gpx: gpxPath,
+    gpx: mapGpxInput,
     bufferMeters,
     coverage,
   });
@@ -235,11 +236,16 @@ async function saveMobileRoute(body) {
       bufferMeters: Number(bufferMeters),
       coverage,
       maxzoom: Number(maxzoom),
+      scope: body.mapScope === "route" ? "route" : "all-routes",
       sizeBytes: await stat(bundledMapPath).then((info) => info.size),
       providerSizeBytes: await stat(bundledProviderMapPath).then((info) => info.size),
     },
     stdout: [run.stdout.trim(), provider.stdout].filter(Boolean).join("\n"),
   };
+}
+
+function mobileMapGpxInput({ body, savedRoutePath, routesDir }) {
+  return body.mapScope === "route" ? savedRoutePath : routesDir;
 }
 
 async function writeBundledMapManifest(path, files) {
@@ -508,4 +514,5 @@ function parseDotEnvValue(value) {
 
 export {
   buildBundledMapManifest,
+  mobileMapGpxInput,
 };

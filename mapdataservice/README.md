@@ -221,6 +221,7 @@ Provider options accepted by `POST /api/extract-bbox` and `POST /api/save-mobile
 ```json
 {
   "providers": "digiroad,nls",
+  "mapScope": "all-routes",
   "nlsGeojsonDir": "mapdataservice/tests/fixtures/nls",
   "nlsApiKey": "optional-api-key"
 }
@@ -246,12 +247,14 @@ The request body contains a route name and GPX text. The service then:
 
 - writes the GPX to `mobile/app/src/main/assets/routes/<route>.gpx`
 - upserts the route in `mobile/app/src/main/assets/routes/routes.json`
-- extracts a corridor map package with `--coverage corridor --buffer-meters 1000 --maxzoom 15`
+- extracts a corridor map package with `--coverage corridor --buffer-meters 1000 --maxzoom 15` from all bundled GPX files by default
 - copies the generated PMTiles to `shared/maps/finland.pmtiles`, which the Android Gradle asset source set bundles as `maps/finland.pmtiles`
-- builds a Finnish provider overlay PMTiles for the same corridor and copies it to `shared/maps/finland.providers.pmtiles`
+- builds a Finnish provider overlay PMTiles for the same all-route corridor set and copies it to `shared/maps/finland.providers.pmtiles`
 - writes `shared/maps/manifest.json` with file sizes and SHA-256 hashes for both bundled PMTiles files
 
 By default the save endpoint builds the provider overlay with Digiroad. If `NLS_API_KEY` is set, it uses `digiroad,nls`. Override with `TRAILLITE_FINNISH_PROVIDERS=digiroad` or `TRAILLITE_FINNISH_PROVIDERS=digiroad,nls`.
+
+The default `mapScope` is `all-routes`, which means the saved route is added first and then the bundled mobile map packages are rebuilt from `mobile/app/src/main/assets/routes/`. This prevents a new saved route from shrinking close-zoom offline map coverage for existing routes. Pass `"mapScope": "route"` only for an intentional single-route extraction.
 
 This endpoint mutates local workspace files. It is for local development, not a public web deployment.
 
