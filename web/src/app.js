@@ -992,7 +992,9 @@ function finishPointerEdit() {
     return;
   }
   if (state.draggingPointIndex == null) return;
-  pushUndo(state.dragStartPoints);
+  if (!sameRoutePoints(state.dragStartPoints || [], state.points)) {
+    pushUndo(state.dragStartPoints);
+  }
   suppressMapClicks();
   state.draggingPointIndex = null;
   state.dragStartPoints = null;
@@ -1045,6 +1047,11 @@ function addPoint(point) {
 function sameRoutePoint(left, right) {
   return left[0].toFixed(6) === right[0].toFixed(6)
     && left[1].toFixed(6) === right[1].toFixed(6);
+}
+
+function sameRoutePoints(leftPoints, rightPoints) {
+  return leftPoints.length === rightPoints.length
+    && leftPoints.every((point, index) => sameRoutePoint(point, rightPoints[index]));
 }
 
 function insertPoint(index, point) {

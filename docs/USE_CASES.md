@@ -93,6 +93,7 @@ Feature: Web GPX route creation
     Then the most recent point edit is reverted
     And the reverted edit can be restored with "Redo"
     And the app keeps the last 10 route edit actions in history
+    And pressing a route point without moving it does not consume undo history
     And duplicate endpoint clicks or adjacent inserts do not add a route point or consume undo history
     And freehand drawing from the current endpoint does not duplicate that endpoint
     And the route distance and point count update

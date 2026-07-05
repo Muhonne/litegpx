@@ -58,13 +58,42 @@ if (latest[0].toFixed(6) === "24.941000" && latest[1].toFixed(6) === "60.172000"
 '
 agent-browser click "#undoButton"
 agent-browser eval '
+(async () => {
 let state = window.__trailLiteTest.getState();
 if (state.points.length !== 4) throw new Error(`Expected 4 points after undoing delete, got ${state.points.length}`);
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
+  [24.931000, 60.171000],
+  [24.932000, 60.172000],
+], "Point press test");
+window.__trailLiteTest.startEditing();
+await new Promise((resolve) => setTimeout(resolve, 80));
+state = window.__trailLiteTest.getState();
+const undoDepthBeforePointPress = state.undoDepth;
+const canvas = document.querySelector(".maplibregl-canvas");
+const rect = canvas.getBoundingClientRect();
+const screenPoint = window.__trailLiteMap.project({ lng: state.points[1][0], lat: state.points[1][1] });
+const eventOptions = {
+  bubbles: true,
+  cancelable: true,
+  clientX: rect.left + screenPoint.x,
+  clientY: rect.top + screenPoint.y,
+  button: 0,
+  buttons: 1,
+};
+canvas.dispatchEvent(new MouseEvent("mousemove", eventOptions));
+canvas.dispatchEvent(new MouseEvent("mousedown", eventOptions));
+window.dispatchEvent(new MouseEvent("mouseup", { ...eventOptions, buttons: 0 }));
+await new Promise((resolve) => setTimeout(resolve, 80));
+state = window.__trailLiteTest.getState();
+if (state.undoDepth !== undoDepthBeforePointPress) {
+  throw new Error(`Pressing a point without moving should not create undo history, got ${state.undoDepth} from ${undoDepthBeforePointPress}`);
+}
 const undoDepthBeforeDuplicate = state.undoDepth;
 const lastPoint = state.points[state.points.length - 1];
 window.__trailLiteTest.addPoint(lastPoint[0], lastPoint[1]);
 state = window.__trailLiteTest.getState();
-if (state.points.length !== 4) throw new Error(`Duplicate endpoint add should not create a point, got ${state.points.length}`);
+if (state.points.length !== 3) throw new Error(`Duplicate endpoint add should not create a point, got ${state.points.length}`);
 if (state.undoDepth !== undoDepthBeforeDuplicate) {
   throw new Error(`Duplicate endpoint add should not create undo history, got ${state.undoDepth} from ${undoDepthBeforeDuplicate}`);
 }
@@ -72,7 +101,7 @@ const undoDepthBeforeDuplicateInsert = state.undoDepth;
 const existingMiddlePoint = state.points[1];
 window.__trailLiteTest.insertPoint(2, existingMiddlePoint[0], existingMiddlePoint[1]);
 state = window.__trailLiteTest.getState();
-if (state.points.length !== 4) throw new Error(`Adjacent duplicate insert should not create a point, got ${state.points.length}`);
+if (state.points.length !== 3) throw new Error(`Adjacent duplicate insert should not create a point, got ${state.points.length}`);
 if (state.undoDepth !== undoDepthBeforeDuplicateInsert) {
   throw new Error(`Adjacent duplicate insert should not create undo history, got ${state.undoDepth} from ${undoDepthBeforeDuplicateInsert}`);
 }
@@ -81,6 +110,7 @@ window.confirm = () => {
   window.__clearConfirmCalls += 1;
   return true;
 };
+})()
 '
 agent-browser click "#clearButton"
 agent-browser eval '
