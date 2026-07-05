@@ -94,6 +94,13 @@ Feature: Web GPX route creation
     And the reverted edit can be restored with "Redo"
     And the app keeps the last 10 route edit actions in history
     And the route distance and point count update
+
+  Scenario: Simplify a dense drawn route
+    Given the user is editing a route with many freehand points
+    When the user presses "Simplify"
+    Then unnecessary intermediate points are removed
+    And the route start and end points are preserved
+    And the simplification can be undone
 ```
 
 ```gherkin

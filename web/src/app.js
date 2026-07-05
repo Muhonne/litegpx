@@ -4,6 +4,7 @@ const EDIT_ROUTE_COLOR = "#1D73D4";
 const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
+const SIMPLIFY_TOLERANCE_METERS = 15;
 const MAX_VISIBLE_ROUTE_POINTS = 300;
 const SNAP_TOLERANCE_PIXELS = 16;
 const FULL_BASE_MAP_URL = "https://build.protomaps.com/20260703.pmtiles";
@@ -76,6 +77,7 @@ const elements = {
   doneButton: document.getElementById("doneButton"),
   undoButton: document.getElementById("undoButton"),
   redoButton: document.getElementById("redoButton"),
+  simplifyButton: document.getElementById("simplifyButton"),
   clearButton: document.getElementById("clearButton"),
   exportButton: document.getElementById("exportButton"),
   mobileSaveButton: document.getElementById("mobileSaveButton"),
@@ -361,6 +363,7 @@ function bindUi() {
   elements.doneButton.addEventListener("click", () => setMode("view"));
   elements.undoButton.addEventListener("click", () => undoPointEdit());
   elements.redoButton.addEventListener("click", () => redoPointEdit());
+  elements.simplifyButton.addEventListener("click", () => simplifyRoute());
   elements.clearButton.addEventListener("click", () => {
     if (!confirmDiscardUnsavedRoute()) return;
     state.points = [];
@@ -1039,6 +1042,58 @@ function deletePoint(index) {
   render();
 }
 
+function simplifyRoute() {
+  if (state.points.length < 3) return;
+  const simplified = simplifyPoints(state.points, SIMPLIFY_TOLERANCE_METERS);
+  if (simplified.length === state.points.length) {
+    setStatus("Route already simple.");
+    renderSidebar();
+    return;
+  }
+  pushUndo();
+  const removed = state.points.length - simplified.length;
+  state.points = simplified;
+  setStatus(`Simplified route, removed ${removed} point${removed === 1 ? "" : "s"}.`);
+  render();
+}
+
+function simplifyPoints(points, toleranceMeters) {
+  if (points.length <= 2) return clonePoints(points);
+  const keep = Array(points.length).fill(false);
+  keep[0] = true;
+  keep[points.length - 1] = true;
+  const stack = [[0, points.length - 1]];
+
+  while (stack.length > 0) {
+    const [startIndex, endIndex] = stack.pop();
+    let maxDistance = 0;
+    let maxIndex = -1;
+    for (let index = startIndex + 1; index < endIndex; index += 1) {
+      const distance = pointToSegmentDistanceMeters(points[index], points[startIndex], points[endIndex]);
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        maxIndex = index;
+      }
+    }
+    if (maxIndex !== -1 && maxDistance > toleranceMeters) {
+      keep[maxIndex] = true;
+      stack.push([startIndex, maxIndex], [maxIndex, endIndex]);
+    }
+  }
+
+  return points.filter((_, index) => keep[index]).map((point) => [...point]);
+}
+
+function pointToSegmentDistanceMeters(point, start, end) {
+  const origin = start;
+  const meanLat = toRadians((point[1] + start[1] + end[1]) / 3);
+  const project = ([lon, lat]) => [
+    toRadians(lon - origin[0]) * EARTH_RADIUS_METERS * Math.cos(meanLat),
+    toRadians(lat - origin[1]) * EARTH_RADIUS_METERS,
+  ];
+  return pointToSegmentDistance(project(point), project(start), project(end));
+}
+
 function beginRouteDraw(point) {
   state.drawingRoute = true;
   state.pendingRouteDraw = false;
@@ -1181,6 +1236,7 @@ function renderSidebar() {
   elements.doneButton.disabled = !editing;
   elements.undoButton.disabled = state.undoStack.length === 0;
   elements.redoButton.disabled = state.redoStack.length === 0;
+  elements.simplifyButton.disabled = !editing || state.points.length < 3;
   elements.clearButton.disabled = !hasRoute;
   elements.exportButton.disabled = !exportable;
   elements.mobileSaveButton.disabled = !exportable || state.mobileSaveBusy;
@@ -1195,6 +1251,7 @@ function renderSidebar() {
   elements.doneButton.hidden = !editing;
   elements.undoButton.hidden = !editing;
   elements.redoButton.hidden = !editing;
+  elements.simplifyButton.hidden = !editing || state.points.length < 3;
   elements.clearButton.hidden = !hasRoute;
   elements.exportButton.hidden = !exportable;
   elements.mobileSaveButton.hidden = !exportable;
@@ -1974,6 +2031,7 @@ function exposeTestApi() {
     finishRouteDraw,
     undoPointEdit,
     redoPointEdit,
+    simplifyRoute,
     applyMobileRoutePayload,
     refreshMobileRoutes,
     setMobileRoutesForTest: (routes) => {
