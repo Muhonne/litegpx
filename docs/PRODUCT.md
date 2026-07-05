@@ -900,7 +900,7 @@ Editing behavior:
 - In editing mode, Shift + drag moves/pans the map.
 - Route points are edited with mouse interactions only.
 - Pressing and releasing an existing route point without moving it is treated as a no-op and does not consume undo history.
-- Duplicate endpoint clicks and adjacent duplicate inserts are ignored so no-op edits do not add points or consume undo history.
+- Duplicate endpoint clicks, adjacent duplicate inserts, and adjacent duplicate point moves are ignored so no-op edits do not add points or consume undo history.
 - Freehand drawing can continue from the current endpoint without duplicating that endpoint.
 - Point coordinates are not numerically editable in the sidebar in v1.
 

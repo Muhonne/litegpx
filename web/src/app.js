@@ -251,11 +251,7 @@ async function initMap() {
       return;
     }
     if (state.draggingPointIndex == null) return;
-    const points = clonePoints(state.points);
-    points[state.draggingPointIndex] = snapToVisibleLines([event.lngLat.lng, event.lngLat.lat]);
-    state.points = points;
-    updateMapRoute();
-    renderSidebar();
+    movePoint(state.draggingPointIndex, [event.lngLat.lng, event.lngLat.lat]);
   });
 
   map.on("mouseup", () => finishPointerEdit());
@@ -1052,6 +1048,33 @@ function sameRoutePoint(left, right) {
 function sameRoutePoints(leftPoints, rightPoints) {
   return leftPoints.length === rightPoints.length
     && leftPoints.every((point, index) => sameRoutePoint(point, rightPoints[index]));
+}
+
+function wouldDuplicateAdjacentPoint(index, point) {
+  const previous = state.points[index - 1];
+  const next = state.points[index + 1];
+  return Boolean(
+    (previous && sameOrTooCloseRoutePoint(previous, point))
+      || (next && sameOrTooCloseRoutePoint(next, point)),
+  );
+}
+
+function sameOrTooCloseRoutePoint(left, right) {
+  return sameRoutePoint(left, right)
+    || distanceBetween(left, right) < FREEHAND_MIN_DISTANCE_METERS;
+}
+
+function movePoint(index, point) {
+  if (index < 0 || index >= state.points.length) return false;
+  if (wouldDuplicateAdjacentPoint(index, point)) return false;
+  const snappedPoint = snapToVisibleLines(point);
+  if (wouldDuplicateAdjacentPoint(index, snappedPoint)) return false;
+  const points = clonePoints(state.points);
+  points[index] = snappedPoint;
+  state.points = points;
+  updateMapRoute();
+  renderSidebar();
+  return true;
 }
 
 function insertPoint(index, point) {
@@ -2285,6 +2308,7 @@ function exposeTestApi() {
       renderSidebar();
     },
     insertPoint: (index, lon, lat) => insertPoint(index, [lon, lat]),
+    movePoint: (index, lon, lat) => movePoint(index, [lon, lat]),
     deletePoint,
     setLayerSetting: (settingKey, value) => {
       if (!(settingKey in state.layerSettings)) throw new Error(`Unknown layer setting: ${settingKey}`);

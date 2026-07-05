@@ -89,6 +89,18 @@ state = window.__trailLiteTest.getState();
 if (state.undoDepth !== undoDepthBeforePointPress) {
   throw new Error(`Pressing a point without moving should not create undo history, got ${state.undoDepth} from ${undoDepthBeforePointPress}`);
 }
+window.__trailLiteMap.jumpTo({ center: [24.931000, 60.171000], zoom: 15 });
+await new Promise((resolve) => setTimeout(resolve, 80));
+const undoDepthBeforeDuplicateDrag = state.undoDepth;
+window.__trailLiteTest.movePoint(1, state.points[2][0], state.points[2][1]);
+state = window.__trailLiteTest.getState();
+if (state.points[1][0].toFixed(6) === state.points[2][0].toFixed(6) &&
+    state.points[1][1].toFixed(6) === state.points[2][1].toFixed(6)) {
+  throw new Error(`Dragging onto an adjacent point should not create duplicate coordinates: ${JSON.stringify(state.points)}`);
+}
+if (state.undoDepth !== undoDepthBeforeDuplicateDrag) {
+  throw new Error(`Rejected adjacent duplicate drag should not create undo history, got ${state.undoDepth} from ${undoDepthBeforeDuplicateDrag}`);
+}
 const undoDepthBeforeDuplicate = state.undoDepth;
 const lastPoint = state.points[state.points.length - 1];
 window.__trailLiteTest.addPoint(lastPoint[0], lastPoint[1]);
