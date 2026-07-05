@@ -151,6 +151,9 @@ if (!loadedCard?.classList.contains("unsaved")) {
 if (!loadedCard.textContent.includes("Unsaved")) {
   throw new Error(`Unsaved loaded route should show an Unsaved badge, got ${loadedCard.textContent.trim()}`);
 }
+if (!loadedCard.textContent.includes("Renamed Pajamaki") || loadedCard.textContent.includes("Pajamaki TestUnsaved")) {
+  throw new Error(`Unsaved loaded route should show the draft route name, got ${loadedCard.textContent.trim()}`);
+}
 let confirmCalls = 0;
 const originalConfirm = window.confirm;
 window.confirm = () => {

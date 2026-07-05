@@ -1451,7 +1451,7 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
       const title = document.createElement("span");
       title.className = "mobile-route-title";
       const titleText = document.createElement("span");
-      titleText.textContent = route.title || route.id;
+      titleText.textContent = routeUnsaved ? state.routeName : (route.title || route.id);
       title.append(titleText);
       if (routeLoaded) {
         const loadedBadge = document.createElement("span");
