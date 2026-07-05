@@ -144,6 +144,13 @@ let state = window.__trailLiteTest.getState();
 if (state.routeSaveState !== "Unsaved mobile edits") {
   throw new Error(`Renaming loaded route should mark unsaved edits, got ${state.routeSaveState}`);
 }
+let loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
+if (!loadedCard?.classList.contains("unsaved")) {
+  throw new Error("Renaming a loaded mobile route should mark its route-list item unsaved");
+}
+if (!loadedCard.textContent.includes("Unsaved")) {
+  throw new Error(`Unsaved loaded route should show an Unsaved badge, got ${loadedCard.textContent.trim()}`);
+}
 let confirmCalls = 0;
 const originalConfirm = window.confirm;
 window.confirm = () => {
@@ -174,6 +181,10 @@ if (capturedSaveBody.routeName !== "Renamed Pajamaki") {
 state = window.__trailLiteTest.getState();
 if (state.routeSaveState !== "Saved to mobile") {
   throw new Error(`Save to mobile should clear unsaved state, got ${state.routeSaveState}`);
+}
+loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
+if (loadedCard?.classList.contains("unsaved") || loadedCard?.textContent.includes("Unsaved")) {
+  throw new Error("Saving to mobile should clear the route-list unsaved marker");
 }
 true;
 })()

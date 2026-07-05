@@ -284,6 +284,10 @@ button:disabled {
   border-color: color-mix(in srgb, var(--primary), var(--button-border) 35%);
 }
 
+.mobile-route-item.unsaved {
+  border-color: color-mix(in srgb, var(--view-route), var(--button-border) 30%);
+}
+
 .mobile-route-title,
 .mobile-route-meta {
   display: block;
@@ -318,6 +322,11 @@ button:disabled {
   font-weight: 800;
   line-height: 1.3;
   text-transform: uppercase;
+}
+
+.mobile-route-item.unsaved .route-state-badge {
+  border-color: color-mix(in srgb, var(--view-route), var(--button-border) 30%);
+  color: var(--view-route);
 }
 
 .mobile-route-meta,

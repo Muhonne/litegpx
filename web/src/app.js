@@ -1442,6 +1442,11 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
         button.classList.add("loaded");
         button.dataset.loaded = "true";
       }
+      const routeUnsaved = routeLoaded && hasUnsavedRouteChanges();
+      if (routeUnsaved) {
+        button.classList.add("unsaved");
+        button.dataset.unsaved = "true";
+      }
 
       const title = document.createElement("span");
       title.className = "mobile-route-title";
@@ -1451,7 +1456,7 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
       if (routeLoaded) {
         const loadedBadge = document.createElement("span");
         loadedBadge.className = "route-state-badge";
-        loadedBadge.textContent = "Loaded";
+        loadedBadge.textContent = routeUnsaved ? "Unsaved" : "Loaded";
         title.append(loadedBadge);
       }
       const meta = document.createElement("span");
