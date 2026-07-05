@@ -1345,6 +1345,7 @@ function spinnerElement() {
 }
 
 async function refreshMobileRoutes(options = {}) {
+  const preservedRoutes = routesPreservedForRefresh(options.preserveRouteIds);
   state.mobileRoutesLoading = true;
   state.mobileRoutesError = "";
   renderMobileRoutes();
@@ -1352,7 +1353,10 @@ async function refreshMobileRoutes(options = {}) {
     const response = await fetch(MOBILE_ROUTES_URL);
     if (!response.ok) throw new Error(`Mobile route catalog failed: ${response.status}`);
     const data = await response.json();
-    state.mobileRoutes = Array.isArray(data.routes) ? data.routes : [];
+    state.mobileRoutes = mergePreservedMobileRoutes(
+      Array.isArray(data.routes) ? data.routes : [],
+      preservedRoutes,
+    );
     state.mobileRoutesError = "";
   } catch {
     if (!options.preserveOnError) state.mobileRoutes = [];
@@ -1361,6 +1365,21 @@ async function refreshMobileRoutes(options = {}) {
     state.mobileRoutesLoading = false;
     renderSidebar();
   }
+}
+
+function routesPreservedForRefresh(routeIds = []) {
+  const ids = new Set(routeIds.filter(Boolean));
+  if (ids.size === 0) return [];
+  return state.mobileRoutes.filter((route) => ids.has(route.id));
+}
+
+function mergePreservedMobileRoutes(routes, preservedRoutes) {
+  if (preservedRoutes.length === 0) return routes;
+  const routeIds = new Set(routes.map((route) => route.id));
+  return [
+    ...routes,
+    ...preservedRoutes.filter((route) => !routeIds.has(route.id)),
+  ].sort((left, right) => (left.title || left.id).localeCompare(right.title || right.id, "fi"));
 }
 
 function renderMobileRoutes() {
@@ -1807,7 +1826,7 @@ async function saveRouteToMobileApp() {
     markRouteSavedToMobile();
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();
-    refreshMobileRoutes({ preserveOnError: true });
+    refreshMobileRoutes({ preserveOnError: true, preserveRouteIds: [state.mobileRouteId] });
   } catch (error) {
     setStatus(`Mobile save failed: ${error.message}`, true);
   } finally {

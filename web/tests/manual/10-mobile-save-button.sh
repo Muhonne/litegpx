@@ -50,8 +50,17 @@ window.fetch = async (url, options = {}) => {
     });
   }
   if (String(url).includes("/api/mobile-routes")) {
-    return new Response(JSON.stringify({ error: "catalog temporarily unavailable" }), {
-      status: 503,
+    return new Response(JSON.stringify({
+      routes: [
+        {
+          id: "older-route",
+          title: "Older Route",
+          lengthKm: 4.2,
+          trackPointCount: 22,
+        },
+      ],
+    }), {
+      status: 200,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -89,7 +98,7 @@ if (!state.status.includes("Saved to mobile app")) throw new Error(`Unexpected s
 if (state.mobileRouteId !== "mobile-save-test") throw new Error(`Saved route id missing from state: ${state.mobileRouteId}`);
 const savedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"mobile-save-test\"]");
 if (!savedCard?.classList.contains("loaded")) {
-  throw new Error("Saved route should stay visible and marked loaded even if catalog refresh fails");
+  throw new Error("Saved route should stay visible and marked loaded even if catalog refresh is stale");
 }
 true;
 '
