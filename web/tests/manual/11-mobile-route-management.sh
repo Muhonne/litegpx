@@ -107,6 +107,10 @@ if (state.mode !== "view") throw new Error(`Loaded mobile route should start in 
 if (!state.imported) throw new Error("Loaded mobile route should be treated as imported");
 if (state.points.length !== 2) throw new Error(`Loaded mobile route point count wrong: ${state.points.length}`);
 if (state.routeSaveState !== "Saved to mobile") throw new Error(`Loaded mobile route should start clean, got ${state.routeSaveState}`);
+const loadButton = document.querySelector("#loadMobileRouteButton");
+if (!loadButton.disabled || loadButton.textContent.trim() !== "Loaded") {
+  throw new Error(`Selected clean loaded route should disable load action as Loaded, got "${loadButton.textContent.trim()}" disabled=${loadButton.disabled}`);
+}
 const loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
 if (!loadedCard?.classList.contains("loaded")) {
   throw new Error("Loaded mobile route should be visibly marked in the route list");
@@ -143,6 +147,10 @@ document.querySelector("#routeName").dispatchEvent(new Event("input", { bubbles:
 let state = window.__trailLiteTest.getState();
 if (state.routeSaveState !== "Unsaved mobile edits") {
   throw new Error(`Renaming loaded route should mark unsaved edits, got ${state.routeSaveState}`);
+}
+let loadButton = document.querySelector("#loadMobileRouteButton");
+if (loadButton.disabled || loadButton.textContent.trim() !== "Revert changes") {
+  throw new Error(`Selected dirty loaded route should offer revert action, got "${loadButton.textContent.trim()}" disabled=${loadButton.disabled}`);
 }
 let loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
 if (!loadedCard?.classList.contains("unsaved")) {
@@ -197,6 +205,11 @@ window.confirm = () => {
 document.querySelector("#mobileRouteSearch").value = "";
 document.querySelector("#mobileRouteSearch").dispatchEvent(new Event("input", { bubbles: true }));
 document.querySelector("#mobileRouteSelect").value = "forest-loop";
+document.querySelector("#mobileRouteSelect").dispatchEvent(new Event("change", { bubbles: true }));
+loadButton = document.querySelector("#loadMobileRouteButton");
+if (loadButton.disabled || loadButton.textContent.trim() !== "Load route") {
+  throw new Error(`Selecting another route should offer Load route, got "${loadButton.textContent.trim()}" disabled=${loadButton.disabled}`);
+}
 document.querySelector("#loadMobileRouteButton").click();
 await new Promise((resolve) => setTimeout(resolve, 80));
 window.confirm = originalConfirm;

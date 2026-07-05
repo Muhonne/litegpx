@@ -136,10 +136,12 @@ Feature: Web GPX import and editing
     Then the web app loads that route GPX in view mode
     And the route save state shows the loaded route is saved to mobile
     And the loaded route is visibly marked in the mobile route list
+    And the selected loaded route shows a disabled "Loaded" action while it has no unsaved edits
     And pressing "Edit route" creates an editable copy before changes are made
     And route geometry or name edits mark the route as having unsaved mobile edits
     And the loaded route is visibly marked unsaved in the mobile route list
     And the unsaved loaded route card shows the draft route name
+    And the selected unsaved loaded route offers "Revert changes" instead of a generic load action
     And refreshing mobile routes keeps the loaded route visible
     And loading another route, importing GPX, resetting, or clearing asks for confirmation before discarding unsaved route changes
     And cancelling a route load keeps the picker selected on the currently loaded route

@@ -1409,8 +1409,8 @@ function renderMobileRoutes() {
   );
   elements.mobileRouteSelect.value = nextSelectedId;
   elements.mobileRouteSelect.disabled = state.mobileRoutesLoading || filteredRoutes.length === 0;
-  elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading || !elements.mobileRouteSelect.value;
   elements.refreshMobileRoutesButton.disabled = state.mobileRoutesLoading;
+  renderMobileRouteLoadButton(nextSelectedId);
   renderMobileRouteList(filteredRoutes, nextSelectedId);
 
   if (state.mobileRoutesLoading) {
@@ -1420,6 +1420,23 @@ function renderMobileRoutes() {
   } else {
     elements.mobileRouteStatus.textContent = mobileRouteStatusText(filteredRoutes);
   }
+}
+
+function renderMobileRouteLoadButton(selectedRouteId) {
+  const selectedLoadedRoute = selectedRouteId && selectedRouteId === state.mobileRouteId;
+  const selectedLoadedRouteDirty = selectedLoadedRoute && hasUnsavedRouteChanges();
+  if (selectedLoadedRouteDirty) {
+    elements.loadMobileRouteButton.textContent = "Revert changes";
+    elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading;
+    return;
+  }
+  if (selectedLoadedRoute) {
+    elements.loadMobileRouteButton.textContent = "Loaded";
+    elements.loadMobileRouteButton.disabled = true;
+    return;
+  }
+  elements.loadMobileRouteButton.textContent = "Load route";
+  elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading || !selectedRouteId;
 }
 
 function renderMobileRouteList(filteredRoutes, selectedId) {
