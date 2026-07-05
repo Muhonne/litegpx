@@ -378,7 +378,7 @@ function bindUi() {
   });
   elements.exportButton.addEventListener("click", () => downloadGpx());
   elements.mobileSaveButton.addEventListener("click", () => saveRouteToMobileApp());
-  elements.refreshMobileRoutesButton.addEventListener("click", () => refreshMobileRoutes());
+  elements.refreshMobileRoutesButton.addEventListener("click", () => refreshManagedMobileRoutes());
   elements.loadMobileRouteButton.addEventListener("click", () => loadSelectedMobileRoute());
   elements.mobileRouteSearch.addEventListener("input", () => {
     state.mobileRouteFilter = elements.mobileRouteSearch.value;
@@ -1365,6 +1365,13 @@ async function refreshMobileRoutes(options = {}) {
     if (!options.background) state.mobileRoutesLoading = false;
     renderSidebar();
   }
+}
+
+function refreshManagedMobileRoutes() {
+  refreshMobileRoutes({
+    preserveOnError: true,
+    preserveRouteIds: [state.mobileRouteId],
+  });
 }
 
 function routesPreservedForRefresh(routeIds = []) {

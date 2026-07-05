@@ -908,6 +908,7 @@ Sidebar content model:
 - Mobile routes are managed in the sidebar with a filter, compact selectable list, refresh action, and load action.
 - The visible mobile route list scrolls rather than hiding matching routes behind an invisible picker.
 - The currently loaded mobile route is marked separately from the selected route pending load.
+- Refreshing mobile routes preserves the loaded route card so edit context is not lost.
 - The loaded route card shows an unsaved state when edits are pending.
 - The loaded route card shows the draft route name while name edits are unsaved.
 - Saving a renamed loaded route keeps the updated name in the mobile route list even when the save response is minimal.

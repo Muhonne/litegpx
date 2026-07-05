@@ -154,6 +154,40 @@ if (!loadedCard.textContent.includes("Unsaved")) {
 if (!loadedCard.textContent.includes("Renamed Pajamaki") || loadedCard.textContent.includes("Pajamaki TestUnsaved")) {
   throw new Error(`Unsaved loaded route should show the draft route name, got ${loadedCard.textContent.trim()}`);
 }
+document.querySelector("#refreshMobileRoutesButton").click();
+await new Promise((resolve) => setTimeout(resolve, 80));
+loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
+if (!loadedCard?.classList.contains("unsaved")) {
+  throw new Error("Refreshing mobile routes should preserve the loaded unsaved route card");
+}
+window.__trailLiteTest.setMobileRoutesForTest([
+  {
+    id: "forest-loop",
+    title: "Forest Loop",
+    lengthKm: 12.4,
+    trackPointCount: 18,
+    gpx: `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>Forest Loop</name><trkseg>
+    <trkpt lat="60.170000" lon="24.930000" />
+    <trkpt lat="60.171000" lon="24.931000" />
+  </trkseg></trk>
+</gpx>`,
+  },
+  {
+    id: "pajamaki-test",
+    title: "Pajamaki Test",
+    lengthKm: 7.6,
+    trackPointCount: 4,
+    gpx: `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>Pajamaki Test</name><trkseg>
+    <trkpt lat="60.220000" lon="24.850000" />
+    <trkpt lat="60.221000" lon="24.851000" />
+  </trkseg></trk>
+</gpx>`,
+  },
+]);
 let confirmCalls = 0;
 const originalConfirm = window.confirm;
 window.confirm = () => {
