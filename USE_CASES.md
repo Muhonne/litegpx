@@ -120,6 +120,7 @@ Feature: Web GPX import and editing
     When the user refreshes the Mobile routes list
     Then the web app lists routes from mobile/app/src/main/assets/routes/routes.json
     And the user can filter the list by route name or route metadata
+    And pressing Enter in the filtered route search loads the selected route
     When the user chooses a route and presses "Load route"
     Then the web app loads that route GPX in view mode
     And the route save state shows the loaded route is saved to mobile

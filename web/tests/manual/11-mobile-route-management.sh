@@ -10,6 +10,7 @@ agent-browser open http://localhost:5173/web/
 agent-browser wait 1200
 
 agent-browser eval '
+(async () => {
 window.__trailLiteTest.setMobileRoutesForTest([
   {
     id: "forest-loop",
@@ -48,7 +49,8 @@ if (options.length !== 1 || !options[0].includes("Pajamaki Test")) {
 }
 const status = document.querySelector("#mobileRouteStatus")?.textContent || "";
 if (!status.includes("1 of 2")) throw new Error(`Filtered route status missing count: ${status}`);
-document.querySelector("#loadMobileRouteButton").click();
+search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+await new Promise((resolve) => setTimeout(resolve, 80));
 const state = window.__trailLiteTest.getState();
 if (state.routeName !== "Pajamaki Test") throw new Error(`Selected mobile route did not load: ${state.routeName}`);
 if (state.mode !== "view") throw new Error(`Loaded mobile route should start in view mode: ${state.mode}`);
@@ -56,6 +58,7 @@ if (!state.imported) throw new Error("Loaded mobile route should be treated as i
 if (state.points.length !== 2) throw new Error(`Loaded mobile route point count wrong: ${state.points.length}`);
 if (state.routeSaveState !== "Saved to mobile") throw new Error(`Loaded mobile route should start clean, got ${state.routeSaveState}`);
 true;
+})()
 '
 
 agent-browser eval '

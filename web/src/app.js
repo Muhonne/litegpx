@@ -380,6 +380,12 @@ function bindUi() {
     state.mobileRouteFilter = elements.mobileRouteSearch.value;
     renderMobileRoutes();
   });
+  elements.mobileRouteSearch.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    if (!elements.mobileRouteSelect.value || elements.loadMobileRouteButton.disabled) return;
+    event.preventDefault();
+    loadSelectedMobileRoute();
+  });
   elements.mobileRouteSelect.addEventListener("change", () => renderMobileRoutes());
   elements.drawAreaButton.addEventListener("click", () => toggleAreaSelectMode());
   elements.downloadAreaButton.addEventListener("click", () => downloadSelectedAreaMap());
