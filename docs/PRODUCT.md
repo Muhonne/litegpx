@@ -908,9 +908,10 @@ Sidebar content model:
 
 - User controls first.
 - Export action is always visible near the top controls.
-- Mobile routes are managed in the sidebar with a filter, compact selectable list, refresh action, and load action.
+- Mobile routes are managed in the sidebar with a filter, Nearby/A-Z/Length sorting, compact selectable list, refresh action, and load action.
 - The sidebar is context-aware: route management and map tools are visible in view/planning mode, while edit mode focuses on editing controls, route details, snapping, and the point list.
 - Mobile route filtering searches route title and visible card metadata such as distance, point count, and source.
+- Mobile route sorting mirrors the Android app: Nearby, A-Z, and Length. In the web planner, Nearby uses distance from the current map center because there is no live GPS location.
 - The visible mobile route list scrolls rather than hiding matching routes behind an invisible picker.
 - The currently loaded mobile route is marked separately from the selected route pending load.
 - If filtering temporarily hides the loaded route, clearing the filter restores the loaded route as the selected route.

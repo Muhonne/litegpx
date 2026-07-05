@@ -131,6 +131,8 @@ Feature: Web GPX import and editing
     When the user refreshes the Mobile routes list
     Then the web app lists routes from mobile/app/src/main/assets/routes/routes.json
     And the user can filter the list by route name or visible route metadata
+    And the user can sort the list by Nearby, A-Z, or Length
+    And Nearby sorting uses the current map center as the web planner location reference
     And the filtered routes are visible as a compact selectable list in the sidebar
     And every filtered route remains reachable from the visible list
     And ArrowUp and ArrowDown move selection through the filtered route list

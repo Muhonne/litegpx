@@ -40,6 +40,11 @@
           <h2 class="section-title">Mobile routes</h2>
           <label class="field-label" for="mobileRouteSearch">Filter app routes</label>
           <input id="mobileRouteSearch" type="search" placeholder="Route name" autocomplete="off" />
+          <div class="mobile-route-sort" aria-label="Sort mobile routes">
+            <button id="mobileRouteSortNearby" type="button" data-route-sort="nearby">Nearby</button>
+            <button id="mobileRouteSortName" type="button" data-route-sort="name">A-Z</button>
+            <button id="mobileRouteSortLength" type="button" data-route-sort="length">Length</button>
+          </div>
           <div id="mobileRouteList" class="mobile-route-list" role="listbox" aria-label="Filtered mobile routes"></div>
           <label class="field-label visually-hidden" for="mobileRouteSelect">Saved in app</label>
           <select id="mobileRouteSelect" class="route-select-fallback" tabindex="-1" aria-hidden="true">

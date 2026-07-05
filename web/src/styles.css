@@ -258,6 +258,25 @@ button:disabled {
   gap: 8px;
 }
 
+.mobile-route-sort {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mobile-route-sort button {
+  min-height: 28px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.mobile-route-sort button.selected {
+  border-color: color-mix(in srgb, var(--primary), var(--button-border) 20%);
+  background: color-mix(in srgb, var(--primary), var(--panel) 82%);
+  color: var(--primary);
+  font-weight: 800;
+}
+
 .mobile-route-list {
   display: grid;
   max-height: 150px;

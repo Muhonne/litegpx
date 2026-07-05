@@ -18,6 +18,12 @@ const routeFixtures = Array.from({ length: 10 }, (_, index) => {
     title: `Route ${routeNumber}`,
     lengthKm: routeNumber,
     trackPointCount: routeNumber + 10,
+    bounds: {
+      minLon: 24.94 + index * 0.01,
+      minLat: 60.24 + index * 0.01,
+      maxLon: 24.945 + index * 0.01,
+      maxLat: 60.245 + index * 0.01,
+    },
     gpx: `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
   <trk><name>Route ${routeNumber}</name><trkseg>
@@ -52,6 +58,54 @@ lastCard.click();
 if (document.querySelector("#mobileRouteSelect").value !== "route-10") {
   throw new Error("Clicking the last visible mobile route should select it");
 }
+
+window.__trailLiteTest.setMobileRoutesForTest([
+  {
+    id: "alpha-far",
+    title: "Alpha Far",
+    lengthKm: 5,
+    trackPointCount: 50,
+    bounds: { minLon: 25.90, minLat: 61.50, maxLon: 25.95, maxLat: 61.55 },
+  },
+  {
+    id: "beta-near",
+    title: "Beta Near",
+    lengthKm: 20,
+    trackPointCount: 200,
+    bounds: { minLon: 24.94, minLat: 60.24, maxLon: 24.95, maxLat: 60.25 },
+  },
+  {
+    id: "gamma-mid",
+    title: "Gamma Mid",
+    lengthKm: 12,
+    trackPointCount: 120,
+    bounds: { minLon: 25.05, minLat: 60.35, maxLon: 25.10, maxLat: 60.40 },
+  },
+]);
+const visibleRouteIds = () => Array.from(document.querySelectorAll("#mobileRouteList [data-mobile-route-id]"))
+  .map((card) => card.dataset.mobileRouteId);
+const expectVisibleOrder = (expected, label) => {
+  const actual = visibleRouteIds();
+  if (actual.join(",") !== expected.join(",")) {
+    throw new Error(`${label} route sort order wrong: ${actual.join(",")} !== ${expected.join(",")}`);
+  }
+};
+if (!document.querySelector("#mobileRouteSortNearby")?.classList.contains("selected")) {
+  throw new Error("Nearby route sort should be selected by default");
+}
+expectVisibleOrder(["beta-near", "gamma-mid", "alpha-far"], "Nearby");
+document.querySelector("#mobileRouteSortName")?.click();
+if (!document.querySelector("#mobileRouteSortName")?.classList.contains("selected")) {
+  throw new Error("A-Z route sort should become selected");
+}
+expectVisibleOrder(["alpha-far", "beta-near", "gamma-mid"], "A-Z");
+document.querySelector("#mobileRouteSortLength")?.click();
+if (!document.querySelector("#mobileRouteSortLength")?.classList.contains("selected")) {
+  throw new Error("Length route sort should become selected");
+}
+expectVisibleOrder(["alpha-far", "gamma-mid", "beta-near"], "Length");
+document.querySelector("#mobileRouteSortNearby")?.click();
+expectVisibleOrder(["beta-near", "gamma-mid", "alpha-far"], "Nearby restored");
 
 window.__trailLiteTest.setMobileRoutesForTest([
   {
@@ -139,8 +193,8 @@ if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
 if (!document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]")?.classList.contains("selected")) {
   throw new Error("Clearing a no-match filter should visibly select the loaded route");
 }
-window.__trailLiteTest.search("Turku");
-await new Promise((resolve) => setTimeout(resolve, 900));
+window.__trailLiteMap.jumpTo({ center: [22.2666, 60.4518], zoom: 12 });
+await new Promise((resolve) => setTimeout(resolve, 80));
 const centerBeforeLoadedDoubleClick = window.__trailLiteTest.getState().mapCenter;
 document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]")
   .dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));

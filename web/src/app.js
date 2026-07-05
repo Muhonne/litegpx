@@ -86,6 +86,7 @@ const elements = {
   mobileRouteSearch: document.getElementById("mobileRouteSearch"),
   mobileRouteList: document.getElementById("mobileRouteList"),
   mobileRouteSelect: document.getElementById("mobileRouteSelect"),
+  mobileRouteSortButtons: Array.from(document.querySelectorAll("[data-route-sort]")),
   refreshMobileRoutesButton: document.getElementById("refreshMobileRoutesButton"),
   loadMobileRouteButton: document.getElementById("loadMobileRouteButton"),
   mobileRouteStatus: document.getElementById("mobileRouteStatus"),
@@ -150,6 +151,7 @@ const state = {
   mobileRoutes: [],
   mobileRouteGpxById: {},
   mobileRouteFilter: "",
+  mobileRouteSortMode: "nearby",
   mobileRoutesLoading: true,
   mobileRoutesError: "",
   dataset: {
@@ -212,6 +214,12 @@ async function initMap() {
 
   map.on("idle", () => {
     applyLayerSettings();
+  });
+
+  map.on("moveend", () => {
+    if (state.mobileRouteSortMode === "nearby" && state.mode !== "edit") {
+      renderMobileRoutes();
+    }
   });
 
   map.on("mousedown", (event) => {
@@ -397,6 +405,12 @@ function bindUi() {
     }
   });
   elements.mobileRouteSelect.addEventListener("change", () => renderMobileRoutes());
+  elements.mobileRouteSortButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mobileRouteSortMode = button.dataset.routeSort;
+      renderMobileRoutes();
+    });
+  });
   elements.drawAreaButton.addEventListener("click", () => toggleAreaSelectMode());
   elements.downloadAreaButton.addEventListener("click", () => downloadSelectedAreaMap());
   elements.searchForm.addEventListener("submit", (event) => {
@@ -1479,6 +1493,7 @@ function renderMobileRoutes() {
   elements.mobileRouteSelect.value = nextSelectedId;
   elements.mobileRouteSelect.disabled = state.mobileRoutesLoading || filteredRoutes.length === 0;
   elements.refreshMobileRoutesButton.disabled = state.mobileRoutesLoading;
+  renderMobileRouteSortButtons();
   renderMobileRouteLoadButton(nextSelectedId);
   renderMobileRouteList(filteredRoutes, nextSelectedId);
 
@@ -1568,7 +1583,10 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
         elements.mobileRouteSelect.value = route.id;
         renderMobileRoutes();
       });
-      button.addEventListener("dblclick", () => loadSelectedMobileRoute());
+      button.addEventListener("dblclick", () => {
+        elements.mobileRouteSelect.value = route.id;
+        loadSelectedMobileRoute(route.id);
+      });
       return button;
     }),
   );
@@ -1596,17 +1614,71 @@ function emptyMobileRouteListItem(message) {
   return item;
 }
 
+function renderMobileRouteSortButtons() {
+  elements.mobileRouteSortButtons.forEach((button) => {
+    const selected = button.dataset.routeSort === state.mobileRouteSortMode;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+}
+
 function filteredMobileRoutes() {
   const filter = normalizeSearchText(state.mobileRouteFilter);
-  if (!filter) return state.mobileRoutes;
-  return state.mobileRoutes.filter((route) => normalizeSearchText([
-    route.id,
-    mobileRouteDisplayTitle(route),
-    route.title,
-    mobileRouteMeta(route),
-    route.source,
-    Number.isFinite(route.lengthKm) ? `${route.lengthKm.toFixed(1)} km` : "",
-  ].filter(Boolean).join(" ")).includes(filter));
+  const filteredRoutes = filter
+    ? state.mobileRoutes.filter((route) => normalizeSearchText([
+        route.id,
+        mobileRouteDisplayTitle(route),
+        route.title,
+        mobileRouteMeta(route),
+        route.source,
+        Number.isFinite(route.lengthKm) ? `${route.lengthKm.toFixed(1)} km` : "",
+      ].filter(Boolean).join(" ")).includes(filter))
+    : state.mobileRoutes;
+  return [...filteredRoutes].sort(mobileRouteComparator());
+}
+
+function mobileRouteComparator() {
+  if (state.mobileRouteSortMode === "name") {
+    return (left, right) => compareRouteTitle(left, right);
+  }
+  if (state.mobileRouteSortMode === "length") {
+    return (left, right) =>
+      compareNullableNumber(left.lengthKm, right.lengthKm) || compareRouteTitle(left, right);
+  }
+  return (left, right) =>
+    compareNullableNumber(routeDistanceFromMapCenter(left), routeDistanceFromMapCenter(right)) ||
+    compareRouteTitle(left, right);
+}
+
+function compareRouteTitle(left, right) {
+  return (left.title || left.id || "").localeCompare(right.title || right.id || "", "fi", { sensitivity: "base" });
+}
+
+function compareNullableNumber(left, right) {
+  const normalizedLeft = Number.isFinite(left) ? left : Number.POSITIVE_INFINITY;
+  const normalizedRight = Number.isFinite(right) ? right : Number.POSITIVE_INFINITY;
+  return normalizedLeft - normalizedRight;
+}
+
+function routeDistanceFromMapCenter(route) {
+  if (!map || !routeBoundsAreUsable(route?.bounds)) return null;
+  const center = map.getCenter();
+  const nearest = {
+    lng: clamp(center.lng, route.bounds.minLon, route.bounds.maxLon),
+    lat: clamp(center.lat, route.bounds.minLat, route.bounds.maxLat),
+  };
+  return distanceBetween([center.lng, center.lat], [nearest.lng, nearest.lat]);
+}
+
+function routeBoundsAreUsable(bounds) {
+  return Number.isFinite(bounds?.minLon) &&
+    Number.isFinite(bounds?.minLat) &&
+    Number.isFinite(bounds?.maxLon) &&
+    Number.isFinite(bounds?.maxLat);
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function mobileRouteDisplayTitle(route) {
@@ -1665,9 +1737,9 @@ function upsertSavedMobileRoute(payload, gpx) {
   state.mobileRouteGpxById[savedRoute.id] = gpx;
 }
 
-async function loadSelectedMobileRoute() {
-  const routeId = elements.mobileRouteSelect.value;
+async function loadSelectedMobileRoute(routeId = elements.mobileRouteSelect.value) {
   if (!routeId) return;
+  elements.mobileRouteSelect.value = routeId;
   const revertingLoadedRoute = routeId === state.mobileRouteId && hasUnsavedRouteChanges();
   if (routeId === state.mobileRouteId && !revertingLoadedRoute) return;
   if (!confirmDiscardUnsavedRoute()) {
