@@ -53,6 +53,12 @@ window.fetch = async (url, options = {}) => {
     return new Response(JSON.stringify({
       routes: [
         {
+          id: "mobile-save-test",
+          title: "Old Mobile Save Title",
+          lengthKm: 99,
+          trackPointCount: 1,
+        },
+        {
           id: "older-route",
           title: "Older Route",
           lengthKm: 4.2,
@@ -99,6 +105,9 @@ if (state.mobileRouteId !== "mobile-save-test") throw new Error(`Saved route id 
 const savedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"mobile-save-test\"]");
 if (!savedCard?.classList.contains("loaded")) {
   throw new Error("Saved route should stay visible and marked loaded even if catalog refresh is stale");
+}
+if (!savedCard.textContent.includes("Mobile Save Test") || savedCard.textContent.includes("Old Mobile Save Title")) {
+  throw new Error(`Saved route should keep fresh save metadata after stale catalog refresh, got ${savedCard.textContent.trim()}`);
 }
 true;
 '

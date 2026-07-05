@@ -144,6 +144,7 @@ Feature: Web GPX import and editing
     And the save-to-mobile button stays disabled and shows progress while route and map data are being written
     And a newly saved route is immediately visible as the loaded route in the mobile route list
     And the newly saved route remains visible if the catalog refresh is stale
+    And fresh saved route metadata wins over stale same-id catalog metadata
     And a successful mobile save clears the unsaved edit state
 
   Scenario: Reject a broken GPX file

@@ -911,6 +911,7 @@ Sidebar content model:
 - The mobile route filter supports keyboard selection with ArrowUp, ArrowDown, and Enter.
 - Saving a route to mobile updates the route manager immediately, even before a full catalog refresh completes.
 - A stale catalog refresh must not hide a route that was just saved from the web app.
+- Fresh saved route metadata should not be replaced by stale same-id catalog metadata.
 - Map search and map layer settings sit below the primary route controls and stay visible.
 - Map layer settings use simple checkboxes with the same labels as mobile.
 - Route name below controls.

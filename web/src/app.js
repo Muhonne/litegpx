@@ -1375,9 +1375,10 @@ function routesPreservedForRefresh(routeIds = []) {
 
 function mergePreservedMobileRoutes(routes, preservedRoutes) {
   if (preservedRoutes.length === 0) return routes;
+  const preservedById = new Map(preservedRoutes.map((route) => [route.id, route]));
   const routeIds = new Set(routes.map((route) => route.id));
   return [
-    ...routes,
+    ...routes.map((route) => preservedById.get(route.id) || route),
     ...preservedRoutes.filter((route) => !routeIds.has(route.id)),
   ].sort((left, right) => (left.title || left.id).localeCompare(right.title || right.id, "fi"));
 }
