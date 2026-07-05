@@ -707,7 +707,7 @@ private fun RoutePickerDialog(
                 Text("Close")
             }
         },
-        title = { Text("Routes") },
+        title = { Text("${filteredRoutes.size} Routes") },
         text = {
             Column(modifier = Modifier.widthIn(max = 520.dp)) {
                 Button(onClick = onAddRoute, modifier = Modifier.fillMaxWidth()) {
@@ -742,13 +742,6 @@ private fun RoutePickerDialog(
                         onClick = { onSortChange(RouteSortMode.Length) },
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${filteredRoutes.size} routes",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
                 LazyColumn {
                     items(filteredRoutes, key = { it.id }) { route ->
                         Column(
