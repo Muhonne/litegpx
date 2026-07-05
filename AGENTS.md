@@ -12,9 +12,9 @@ This repository is being organized as a small multi-app workspace.
 
 ## Documentation Index
 
-- `PRODUCT.md` is the top-level product overview, feature scope, and data-format contract.
-- `USE_CASES.md` contains Gherkin-style user flows and acceptance scenarios.
-- `DATA.md` explains route/map data layers, storage locations, generated artifacts, credentials, and service ownership.
+- `docs/PRODUCT.md` is the top-level product overview, feature scope, and data-format contract.
+- `docs/USE_CASES.md` contains Gherkin-style user flows and acceptance scenarios.
+- `docs/DATA.md` explains route/map data layers, storage locations, generated artifacts, credentials, and service ownership.
 - `mapdataservice/README.md` documents map data service commands and local API endpoints.
 - `mobile/README.md` documents Android build/runtime behavior and bundled map/route assets.
 - `web/README.md` documents web app install, run, build, and manual checks.

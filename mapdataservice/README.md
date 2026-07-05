@@ -4,9 +4,9 @@ This directory contains a minimal CLI/API workflow for creating local map packag
 
 Related documents:
 
-- [../DATA.md](../DATA.md) for data layers, storage locations, generated artifacts, and credentials.
-- [../USE_CASES.md](../USE_CASES.md) for user-facing data workflows.
-- [../PRODUCT.md](../PRODUCT.md) for product scope and data-format contracts.
+- [../docs/DATA.md](../docs/DATA.md) for data layers, storage locations, generated artifacts, and credentials.
+- [../docs/USE_CASES.md](../docs/USE_CASES.md) for user-facing data workflows.
+- [../docs/PRODUCT.md](../docs/PRODUCT.md) for product scope and data-format contracts.
 
 V1 is intentionally simple:
 

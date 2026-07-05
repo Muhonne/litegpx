@@ -4,9 +4,9 @@ Technical notes for building, installing, and testing the Android app.
 
 Product scope and behavior live at the workspace root:
 
-- [../PRODUCT.md](../PRODUCT.md)
-- [../USE_CASES.md](../USE_CASES.md)
-- [../DATA.md](../DATA.md)
+- [../docs/PRODUCT.md](../docs/PRODUCT.md)
+- [../docs/USE_CASES.md](../docs/USE_CASES.md)
+- [../docs/DATA.md](../docs/DATA.md)
 
 ## Stack
 

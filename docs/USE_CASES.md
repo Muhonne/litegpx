@@ -6,7 +6,7 @@ Related documents:
 
 - [PRODUCT.md](PRODUCT.md) for product scope, features, and data-format contracts.
 - [DATA.md](DATA.md) for map/route data layers, storage locations, and service workflows.
-- [mapdataservice/README.md](mapdataservice/README.md) for map data service commands and API details.
+- [../mapdataservice/README.md](../mapdataservice/README.md) for map data service commands and API details.
 
 ## Mobile App
 

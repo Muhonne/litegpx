@@ -6,7 +6,7 @@ Related documents:
 
 - [USE_CASES.md](USE_CASES.md) for Gherkin-style product scenarios and user flows.
 - [DATA.md](DATA.md) for map/route data layers, ownership, generated files, and service workflows.
-- [mapdataservice/README.md](mapdataservice/README.md) for map data service commands and API details.
+- [../mapdataservice/README.md](../mapdataservice/README.md) for map data service commands and API details.
 
 ## Mobile App
 

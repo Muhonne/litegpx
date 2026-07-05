@@ -6,8 +6,8 @@ Related documents:
 
 - [PRODUCT.md](PRODUCT.md) for product scope and format contracts.
 - [USE_CASES.md](USE_CASES.md) for user-facing scenarios.
-- [mapdataservice/README.md](mapdataservice/README.md) for service commands and API details.
-- [AGENTS.md](AGENTS.md) for workspace-level operating notes.
+- [../mapdataservice/README.md](../mapdataservice/README.md) for service commands and API details.
+- [../AGENTS.md](../AGENTS.md) for workspace-level operating notes.
 
 ## Principles
 
