@@ -94,6 +94,7 @@ Feature: Web GPX route creation
     And the reverted edit can be restored with "Redo"
     And the app keeps the last 10 route edit actions in history
     And the route distance and point count update
+    And the newest-first point list still shows each point's route-order number
 
   Scenario: Simplify a dense drawn route
     Given the user is editing a route with many freehand points

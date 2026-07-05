@@ -42,6 +42,10 @@ let state = window.__trailLiteTest.getState();
 if (state.points.length !== 4) throw new Error(`Expected 4 points after undoing insert, got ${state.points.length}`);
 const firstPointText = document.querySelector("#pointsList li:first-child code")?.textContent || "";
 if (firstPointText !== "60.172000, 24.941000") throw new Error(`Latest point should render first, got ${firstPointText}`);
+const firstPointIndex = document.querySelector("#pointsList li:first-child .point-index")?.textContent || "";
+const lastPointIndex = document.querySelector("#pointsList li:last-child .point-index")?.textContent || "";
+if (firstPointIndex !== "#4") throw new Error(`Latest visible point should keep route-order label #4, got ${firstPointIndex}`);
+if (lastPointIndex !== "#1") throw new Error(`Oldest visible point should keep route-order label #1, got ${lastPointIndex}`);
 '
 agent-browser click "#pointsList li:first-child .point-delete"
 agent-browser eval '

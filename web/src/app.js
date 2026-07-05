@@ -1280,8 +1280,13 @@ function renderSidebar() {
     ...newestFirstPoints.map(({ point, index }) => {
       const item = document.createElement("li");
       const pointText = document.createElement("span");
+      pointText.className = "point-row-main";
+      const pointIndex = document.createElement("span");
+      pointIndex.className = "point-index";
+      pointIndex.textContent = `#${index + 1}`;
       const code = document.createElement("code");
       code.textContent = `${point[1].toFixed(6)}, ${point[0].toFixed(6)}`;
+      pointText.append(pointIndex);
       pointText.append(code);
       item.append(pointText);
       if (state.mode === "edit") {
