@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { basename, dirname, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, "..");
@@ -20,10 +21,19 @@ const bundledMapPath = resolve(process.env.MOBILE_BUNDLED_MAP_PATH || resolve(wo
 const bundledProviderMapPath = resolve(
   process.env.MOBILE_BUNDLED_PROVIDER_MAP_PATH || resolve(workspaceRoot, "shared/maps/finland.providers.pmtiles"),
 );
+const bundledMapManifestPath = resolve(
+  process.env.MOBILE_BUNDLED_MAP_MANIFEST_PATH || resolve(workspaceRoot, "shared/maps/manifest.json"),
+);
 const port = Number.parseInt(process.env.PORT || "5174", 10);
 const webOrigin = process.env.WEB_ORIGIN || "http://localhost:5173";
 
-createServer(async (request, response) => {
+if (isMainModule()) {
+  createServer(handleRequest).listen(port, "::", () => {
+    console.log(`TrailLite map data service at http://localhost:${port}/api/health`);
+  });
+}
+
+async function handleRequest(request, response) {
   setCors(response);
   if (request.method === "OPTIONS") {
     response.writeHead(204);
@@ -57,9 +67,11 @@ createServer(async (request, response) => {
   } catch (error) {
     sendJson(response, 400, { error: error.message || "Request failed" });
   }
-}).listen(port, "::", () => {
-  console.log(`TrailLite map data service at http://localhost:${port}/api/health`);
-});
+}
+
+function isMainModule() {
+  return process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+}
 
 async function listDatasets() {
   if (!existsSync(outputDir)) return [];
@@ -195,6 +207,10 @@ async function saveMobileRoute(body) {
   });
   await mkdir(dirname(bundledProviderMapPath), { recursive: true });
   await copyFile(provider.pmtiles, bundledProviderMapPath);
+  const mapManifest = await writeBundledMapManifest(bundledMapManifestPath, [
+    { name: basename(bundledMapPath), path: bundledMapPath },
+    { name: basename(bundledProviderMapPath), path: bundledProviderMapPath },
+  ]);
 
   return {
     route: {
@@ -214,6 +230,8 @@ async function saveMobileRoute(body) {
       providerMobileFile: relative(workspaceRoot, bundledProviderMapPath).replaceAll("\\", "/"),
       metadata: relative(workspaceRoot, metadata.output.metadata).replaceAll("\\", "/"),
       providerMetadata: relative(workspaceRoot, provider.metadata).replaceAll("\\", "/"),
+      manifest: relative(workspaceRoot, bundledMapManifestPath).replaceAll("\\", "/"),
+      manifestFiles: mapManifest.files,
       bufferMeters: Number(bufferMeters),
       coverage,
       maxzoom: Number(maxzoom),
@@ -222,6 +240,34 @@ async function saveMobileRoute(body) {
     },
     stdout: [run.stdout.trim(), provider.stdout].filter(Boolean).join("\n"),
   };
+}
+
+async function writeBundledMapManifest(path, files) {
+  const manifest = await buildBundledMapManifest(files);
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  return manifest;
+}
+
+async function buildBundledMapManifest(files) {
+  return {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    files: await Promise.all(files.map(async (file) => {
+      const info = await stat(file.path);
+      return {
+        name: file.name,
+        sizeBytes: info.size,
+        sha256: await sha256File(file.path),
+      };
+    })),
+  };
+}
+
+async function sha256File(path) {
+  const hash = createHash("sha256");
+  hash.update(await readFile(path));
+  return hash.digest("hex");
 }
 
 async function buildProviderOverlay({ body, source, maxzoom, minzoom, bbox, name, gpx, bufferMeters, coverage }) {
@@ -459,3 +505,7 @@ function parseDotEnvValue(value) {
   const commentIndex = trimmed.indexOf(" #");
   return (commentIndex >= 0 ? trimmed.slice(0, commentIndex) : trimmed).trim();
 }
+
+export {
+  buildBundledMapManifest,
+};

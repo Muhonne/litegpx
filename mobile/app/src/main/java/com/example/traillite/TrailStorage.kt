@@ -57,14 +57,27 @@ class TrailStorage(private val context: Context) {
     fun ensureBundledMapPackage(): File? {
         val target = mapsDir.resolve(BUNDLED_MAP_NAME)
         val providerTarget = mapsDir.resolve(BUNDLED_PROVIDER_MAP_NAME)
+        val bundledManifest = bundledMapManifestText()
+        val localManifest = mapsDir.resolve(BUNDLED_MAP_MANIFEST_NAME)
+        if (bundledManifest != null) {
+            val localManifestText = runCatching { localManifest.readText(Charsets.UTF_8) }.getOrNull()
+            if (target.exists() && target.length() > 0L && localManifestText == bundledManifest) {
+                copyBundledProviderMapIfAvailable(providerTarget)
+                return target
+            }
+            return runCatching {
+                copyBundledMap(target)
+                copyBundledProviderMapIfAvailable(providerTarget, replaceExisting = true)
+                localManifest.writeText(bundledManifest, Charsets.UTF_8)
+                target
+            }.getOrNull()
+        }
         return if (target.exists() && target.length() > 0L) {
             copyBundledProviderMapIfAvailable(providerTarget)
             target
         } else {
             runCatching {
-                context.assets.open("maps/$BUNDLED_MAP_NAME").use { input ->
-                    FileOutputStream(target).use { output -> input.copyTo(output) }
-                }
+                copyBundledMap(target)
                 copyBundledProviderMapIfAvailable(providerTarget)
                 target
             }.getOrNull()
@@ -178,12 +191,28 @@ class TrailStorage(private val context: Context) {
         return style.toString()
     }
 
-    private fun copyBundledProviderMapIfAvailable(target: File) {
-        if (target.exists() && target.length() > 0L) return
+    private fun copyBundledMap(target: File) {
+        context.assets.open("maps/$BUNDLED_MAP_NAME").use { input ->
+            FileOutputStream(target).use { output -> input.copyTo(output) }
+        }
+    }
+
+    private fun bundledMapManifestText(): String? {
+        return runCatching {
+            context.assets.open("maps/$BUNDLED_MAP_MANIFEST_NAME").use { input ->
+                input.readBytes().toString(Charsets.UTF_8)
+            }
+        }.getOrNull()
+    }
+
+    private fun copyBundledProviderMapIfAvailable(target: File, replaceExisting: Boolean = false) {
+        if (!replaceExisting && target.exists() && target.length() > 0L) return
         runCatching {
             context.assets.open("maps/$BUNDLED_PROVIDER_MAP_NAME").use { input ->
                 FileOutputStream(target).use { output -> input.copyTo(output) }
             }
+        }.onFailure {
+            if (replaceExisting) target.delete()
         }
     }
 
@@ -275,6 +304,7 @@ class TrailStorage(private val context: Context) {
     private companion object {
         const val BUNDLED_MAP_NAME = "finland.pmtiles"
         const val BUNDLED_PROVIDER_MAP_NAME = "finland.providers.pmtiles"
+        const val BUNDLED_MAP_MANIFEST_NAME = "manifest.json"
         const val BASE_SOURCE_ID = "osm"
         const val PROVIDER_SOURCE_ID = "finnish"
         const val PROVIDER_LAYER_PREFIX = "finnish-"

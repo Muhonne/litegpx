@@ -30,11 +30,12 @@ GPX route or bbox
   -> provider overlay PMTiles package
 ```
 
-Current mobile/web packages use two files: the base Protomaps corridor extract and a separate Finnish provider overlay PMTiles beside it. Android loads `finland.providers.pmtiles` over `finland.pmtiles` when both are bundled.
+Current mobile/web packages use two files: the base Protomaps corridor extract and a separate Finnish provider overlay PMTiles beside it. Android loads `finland.providers.pmtiles` over `finland.pmtiles` when both are bundled. The service also writes `shared/maps/manifest.json` when saving to mobile so Android can detect app-updated bundled maps and refresh its copied runtime files.
 
 ## Code Starting Points
 
 - `server.mjs` exposes the local HTTP API: `GET /api/datasets`, `POST /api/extract-bbox`, and `POST /api/save-mobile-route`.
+- `server.mjs` writes `shared/maps/manifest.json` through `buildBundledMapManifest` after a mobile save.
 - `extract-route-map.mjs` wraps `pmtiles extract` for GPX route corridors and bboxes.
 - `build-finnish-map.mjs` downloads/normalizes Finnish provider data and builds provider overlay PMTiles.
 - `tests/fixtures/nls/` contains local NLS GeoJSON fixtures for smoke checks.
@@ -248,6 +249,7 @@ The request body contains a route name and GPX text. The service then:
 - extracts a corridor map package with `--coverage corridor --buffer-meters 1000 --maxzoom 15`
 - copies the generated PMTiles to `shared/maps/finland.pmtiles`, which the Android Gradle asset source set bundles as `maps/finland.pmtiles`
 - builds a Finnish provider overlay PMTiles for the same corridor and copies it to `shared/maps/finland.providers.pmtiles`
+- writes `shared/maps/manifest.json` with file sizes and SHA-256 hashes for both bundled PMTiles files
 
 By default the save endpoint builds the provider overlay with Digiroad. If `NLS_API_KEY` is set, it uses `digiroad,nls`. Override with `TRAILLITE_FINNISH_PROVIDERS=digiroad` or `TRAILLITE_FINNISH_PROVIDERS=digiroad,nls`.
 
