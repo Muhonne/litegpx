@@ -908,6 +908,7 @@ Sidebar content model:
 - Mobile routes are managed in the sidebar with a filter, compact selectable list, refresh action, and load action.
 - The visible mobile route list scrolls rather than hiding matching routes behind an invisible picker.
 - The currently loaded mobile route is marked separately from the selected route pending load.
+- The mobile route filter supports keyboard selection with ArrowUp, ArrowDown, and Enter.
 - Map search and map layer settings sit below the primary route controls and stay visible.
 - Map layer settings use simple checkboxes with the same labels as mobile.
 - Route name below controls.

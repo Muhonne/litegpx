@@ -385,10 +385,16 @@ function bindUi() {
     renderMobileRoutes();
   });
   elements.mobileRouteSearch.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter") return;
-    if (!elements.mobileRouteSelect.value || elements.loadMobileRouteButton.disabled) return;
-    event.preventDefault();
-    loadSelectedMobileRoute();
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      selectAdjacentMobileRoute(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    if (event.key === "Enter") {
+      if (!elements.mobileRouteSelect.value || elements.loadMobileRouteButton.disabled) return;
+      event.preventDefault();
+      loadSelectedMobileRoute();
+    }
   });
   elements.mobileRouteSelect.addEventListener("change", () => renderMobileRoutes());
   elements.drawAreaButton.addEventListener("click", () => toggleAreaSelectMode());
@@ -1440,6 +1446,21 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
       return button;
     }),
   );
+  elements.mobileRouteList.querySelector(".mobile-route-item.selected")
+    ?.scrollIntoView({ block: "nearest" });
+}
+
+function selectAdjacentMobileRoute(direction) {
+  const filteredRoutes = filteredMobileRoutes();
+  if (filteredRoutes.length === 0) return;
+  const currentIndex = filteredRoutes.findIndex((route) => route.id === elements.mobileRouteSelect.value);
+  const fallbackIndex = direction > 0 ? -1 : filteredRoutes.length;
+  const nextIndex = Math.max(0, Math.min(
+    filteredRoutes.length - 1,
+    (currentIndex === -1 ? fallbackIndex : currentIndex) + direction,
+  ));
+  elements.mobileRouteSelect.value = filteredRoutes[nextIndex].id;
+  renderMobileRoutes();
 }
 
 function emptyMobileRouteListItem(message) {

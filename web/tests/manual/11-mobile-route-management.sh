@@ -32,6 +32,18 @@ const allCards = Array.from(document.querySelectorAll("#mobileRouteList [data-mo
 if (allCards.length !== routeFixtures.length) {
   throw new Error(`Visible mobile route list should expose all filtered routes, got ${allCards.length} of ${routeFixtures.length}`);
 }
+const routeSearchForAll = document.querySelector("#mobileRouteSearch");
+routeSearchForAll.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+if (document.querySelector("#mobileRouteSelect").value !== "route-2") {
+  throw new Error(`ArrowDown should select route-2, got ${document.querySelector("#mobileRouteSelect").value}`);
+}
+if (!document.querySelector("#mobileRouteList [data-mobile-route-id=\"route-2\"]")?.classList.contains("selected")) {
+  throw new Error("ArrowDown should update the visible selected route");
+}
+routeSearchForAll.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+if (document.querySelector("#mobileRouteSelect").value !== "route-1") {
+  throw new Error(`ArrowUp should select route-1, got ${document.querySelector("#mobileRouteSelect").value}`);
+}
 const lastCard = allCards.at(-1);
 if (lastCard.dataset.mobileRouteId !== "route-10") {
   throw new Error(`Last visible mobile route should be route-10, got ${lastCard.dataset.mobileRouteId}`);

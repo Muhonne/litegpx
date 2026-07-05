@@ -130,6 +130,7 @@ Feature: Web GPX import and editing
     And the user can filter the list by route name or route metadata
     And the filtered routes are visible as a compact selectable list in the sidebar
     And every filtered route remains reachable from the visible list
+    And ArrowUp and ArrowDown move selection through the filtered route list
     And pressing Enter in the filtered route search loads the selected route
     When the user chooses a route and presses "Load route"
     Then the web app loads that route GPX in view mode
