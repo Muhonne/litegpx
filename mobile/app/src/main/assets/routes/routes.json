@@ -1,5 +1,25 @@
 [
   {
+    "id": "gymitellen",
+    "title": "gymitellen",
+    "lengthKm": 4.4,
+    "durationText": "--",
+    "source": "TrailLite GPX Builder",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "gymitellen",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/gymitellen.gpx",
+    "bounds": {
+      "minLon": 24.819061,
+      "minLat": 60.21039,
+      "maxLon": 24.861699,
+      "maxLat": 60.222884
+    },
+    "trackPointCount": 170
+  },
+  {
     "id": "hartola-vuorenkyla-hartola-rengasreitti",
     "title": "Hartola-Vuorenkylä-Hartola rengasreitti.",
     "lengthKm": 57,
