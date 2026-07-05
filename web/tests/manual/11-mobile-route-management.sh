@@ -118,6 +118,19 @@ if (!loadedCard?.classList.contains("loaded")) {
 if (!loadedCard.textContent.includes("Loaded")) {
   throw new Error(`Loaded mobile route should show a Loaded badge, got ${loadedCard.textContent.trim()}`);
 }
+search.value = "no-such-route";
+search.dispatchEvent(new Event("input", { bubbles: true }));
+if (document.querySelectorAll("#mobileRouteList [data-mobile-route-id]").length !== 0) {
+  throw new Error("No-match filter should hide route cards");
+}
+search.value = "";
+search.dispatchEvent(new Event("input", { bubbles: true }));
+if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
+  throw new Error(`Clearing a no-match filter should restore the loaded route selection, got ${document.querySelector("#mobileRouteSelect").value}`);
+}
+if (!document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]")?.classList.contains("selected")) {
+  throw new Error("Clearing a no-match filter should visibly select the loaded route");
+}
 true;
 })()
 '

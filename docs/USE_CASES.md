@@ -137,6 +137,7 @@ Feature: Web GPX import and editing
     And the route save state shows the loaded route is saved to mobile
     And the loaded route is visibly marked in the mobile route list
     And the selected loaded route shows a disabled "Loaded" action while it has no unsaved edits
+    And clearing a no-match route filter restores the loaded route selection
     And pressing "Edit route" creates an editable copy before changes are made
     And route geometry or name edits mark the route as having unsaved mobile edits
     And the loaded route is visibly marked unsaved in the mobile route list

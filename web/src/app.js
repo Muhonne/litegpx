@@ -1397,8 +1397,7 @@ function renderMobileRoutes() {
     elements.mobileRouteSearch.value = state.mobileRouteFilter;
   }
   const filteredRoutes = filteredMobileRoutes();
-  const selectedStillExists = filteredRoutes.some((route) => route.id === selectedId);
-  const nextSelectedId = selectedStillExists ? selectedId : filteredRoutes[0]?.id || "";
+  const nextSelectedId = nextMobileRouteSelection(selectedId, filteredRoutes);
 
   elements.mobileRouteSelect.replaceChildren(
     ...(state.mobileRoutesLoading
@@ -1420,6 +1419,14 @@ function renderMobileRoutes() {
   } else {
     elements.mobileRouteStatus.textContent = mobileRouteStatusText(filteredRoutes);
   }
+}
+
+function nextMobileRouteSelection(selectedId, filteredRoutes) {
+  if (filteredRoutes.some((route) => route.id === selectedId)) return selectedId;
+  if (state.mobileRouteId && filteredRoutes.some((route) => route.id === state.mobileRouteId)) {
+    return state.mobileRouteId;
+  }
+  return filteredRoutes[0]?.id || "";
 }
 
 function renderMobileRouteLoadButton(selectedRouteId) {
