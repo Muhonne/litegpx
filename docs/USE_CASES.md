@@ -143,6 +143,7 @@ Feature: Web GPX import and editing
     And saving to mobile preserves the loaded mobile route id when writing the edited route back into the Android workspace
     And the save-to-mobile button stays disabled and shows progress while route and map data are being written
     And a newly saved route is immediately visible as the loaded route in the mobile route list
+    And the route filter is cleared if it would hide the newly saved route
     And the newly saved route remains visible if the catalog refresh is stale
     And fresh saved route metadata wins over stale same-id catalog metadata
     And a successful mobile save clears the unsaved edit state

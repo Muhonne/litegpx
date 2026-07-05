@@ -1824,6 +1824,7 @@ async function saveRouteToMobileApp() {
     if (!response.ok) throw new Error(payload.error || "Mobile save failed");
     upsertSavedMobileRoute(payload, gpx);
     state.mobileRouteId = payload.route?.id || state.mobileRouteId;
+    state.mobileRouteFilter = "";
     markRouteSavedToMobile();
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();

@@ -18,6 +18,9 @@ const button = document.querySelector("#mobileSaveButton");
 if (!button) throw new Error("Mobile save button missing");
 if (button.hidden) throw new Error("Mobile save button should be visible for exportable route");
 if (button.disabled) throw new Error("Mobile save button should be enabled for exportable route");
+const routeSearch = document.querySelector("#mobileRouteSearch");
+routeSearch.value = "older";
+routeSearch.dispatchEvent(new Event("input", { bubbles: true }));
 true;
 '
 
@@ -105,6 +108,9 @@ if (state.mobileRouteId !== "mobile-save-test") throw new Error(`Saved route id 
 const savedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"mobile-save-test\"]");
 if (!savedCard?.classList.contains("loaded")) {
   throw new Error("Saved route should stay visible and marked loaded even if catalog refresh is stale");
+}
+if (document.querySelector("#mobileRouteSearch").value !== "") {
+  throw new Error("Saving a route should clear an excluding mobile route filter so the saved route is visible");
 }
 if (!savedCard.textContent.includes("Mobile Save Test") || savedCard.textContent.includes("Old Mobile Save Title")) {
   throw new Error(`Saved route should keep fresh save metadata after stale catalog refresh, got ${savedCard.textContent.trim()}`);
