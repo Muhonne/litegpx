@@ -1346,9 +1346,9 @@ function spinnerElement() {
 
 async function refreshMobileRoutes(options = {}) {
   const preservedRoutes = routesPreservedForRefresh(options.preserveRouteIds);
-  state.mobileRoutesLoading = true;
+  if (!options.background) state.mobileRoutesLoading = true;
   state.mobileRoutesError = "";
-  renderMobileRoutes();
+  if (!options.background) renderMobileRoutes();
   try {
     const response = await fetch(MOBILE_ROUTES_URL);
     if (!response.ok) throw new Error(`Mobile route catalog failed: ${response.status}`);
@@ -1362,7 +1362,7 @@ async function refreshMobileRoutes(options = {}) {
     if (!options.preserveOnError) state.mobileRoutes = [];
     state.mobileRoutesError = "Start map data service to load app routes.";
   } finally {
-    state.mobileRoutesLoading = false;
+    if (!options.background) state.mobileRoutesLoading = false;
     renderSidebar();
   }
 }
@@ -1534,9 +1534,10 @@ function mobileRouteMeta(route) {
 
 function upsertSavedMobileRoute(payload, gpx) {
   const route = payload.route || {};
-  if (!route.id) return;
+  const routeId = route.id || state.mobileRouteId;
+  if (!routeId) return;
   const savedRoute = {
-    id: route.id,
+    id: routeId,
     title: route.title || state.routeName,
     lengthKm: Number.isFinite(route.lengthKm) ? route.lengthKm : undefined,
     trackPointCount: Number.isFinite(route.trackPointCount)
@@ -1827,13 +1828,13 @@ async function saveRouteToMobileApp() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "Mobile save failed");
-    upsertSavedMobileRoute(payload, gpx);
     state.mobileRouteId = payload.route?.id || state.mobileRouteId;
+    upsertSavedMobileRoute(payload, gpx);
     state.mobileRouteFilter = "";
     markRouteSavedToMobile();
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();
-    refreshMobileRoutes({ preserveOnError: true, preserveRouteIds: [state.mobileRouteId] });
+    refreshMobileRoutes({ background: true, preserveOnError: true, preserveRouteIds: [state.mobileRouteId] });
   } catch (error) {
     setStatus(`Mobile save failed: ${error.message}`, true);
   } finally {

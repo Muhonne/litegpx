@@ -910,8 +910,10 @@ Sidebar content model:
 - The currently loaded mobile route is marked separately from the selected route pending load.
 - The loaded route card shows an unsaved state when edits are pending.
 - The loaded route card shows the draft route name while name edits are unsaved.
+- Saving a renamed loaded route keeps the updated name in the mobile route list even when the save response is minimal.
 - The mobile route filter supports keyboard selection with ArrowUp, ArrowDown, and Enter.
 - Saving a route to mobile updates the route manager immediately, even before a full catalog refresh completes.
+- Saving a route to mobile keeps the route list visible while the catalog refresh runs in the background.
 - Saving a route to mobile clears an active route filter so the saved route remains visible.
 - A stale catalog refresh must not hide a route that was just saved from the web app.
 - Fresh saved route metadata should not be replaced by stale same-id catalog metadata.

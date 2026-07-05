@@ -189,6 +189,9 @@ loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pa
 if (loadedCard?.classList.contains("unsaved") || loadedCard?.textContent.includes("Unsaved")) {
   throw new Error("Saving to mobile should clear the route-list unsaved marker");
 }
+if (!loadedCard?.textContent.includes("Renamed Pajamaki") || loadedCard.textContent.includes("Pajamaki TestLoaded")) {
+  throw new Error(`Saved renamed route should keep the new route-list title, got ${loadedCard?.textContent.trim()}`);
+}
 true;
 })()
 '
