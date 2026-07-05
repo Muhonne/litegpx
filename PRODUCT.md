@@ -2,11 +2,24 @@
 
 TrailLite is a small offline route navigation workspace. The current product is the Android mobile app in `mobile/`. A companion web app is planned as a sibling project for generating GPX route files that can be opened in the mobile app.
 
+Related documents:
+
+- [USE_CASES.md](USE_CASES.md) for Gherkin-style product scenarios and user flows.
+- [DATA.md](DATA.md) for map/route data layers, ownership, generated files, and service workflows.
+- [mapdataservice/README.md](mapdataservice/README.md) for map data service commands and API details.
+
 ## Mobile App
 
 The mobile app is a Kotlin and Jetpack Compose Android application for viewing GPX routes on an offline MapLibre map. It is designed to work without network access after install.
 
-Primary use cases:
+Code starting points:
+
+- `mobile/app/src/main/java/com/example/traillite/MainActivity.kt`
+- `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt`
+- `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt`
+- `mobile/app/src/main/AndroidManifest.xml`
+
+Primary capabilities:
 
 - View an offline Finland map from the shared bundled PMTiles package.
 - Import a GPX file through Android's document picker.
@@ -17,6 +30,15 @@ Primary use cases:
 - Show simple route navigation status while tracking location.
 
 ## Main Features
+
+Code starting points:
+
+- Offline map loading: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `ensureBundledMapPackage`, `writeLocalStyle`
+- Map rendering and overlays: `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt`
+- GPX import/open flows: `mobile/app/src/main/java/com/example/traillite/MainActivity.kt`
+- Route catalog loading: `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt`
+- Location tracking: `mobile/app/src/main/java/com/example/traillite/BatteryLocationClient.kt`
+- Settings: `mobile/app/src/main/java/com/example/traillite/MapLayerSettings.kt`
 
 ### Offline maps
 
@@ -53,138 +75,15 @@ The current off-route threshold is 75 meters.
 
 ## Data Formats
 
-## Main Use Cases And User Flows
+Use cases are maintained in [USE_CASES.md](USE_CASES.md). Map and route data ownership is maintained in [DATA.md](DATA.md).
 
-The main product behavior is defined in Gherkin-style scenarios so implementation, manual testing, and documentation stay aligned.
+Code starting points:
 
-```gherkin
-Feature: Mobile offline route navigation
-  TrailLite mobile lets the user select an offline GPX route and track their current position against it.
-
-  Scenario: Select a bundled route
-    Given the Android app is installed with bundled GPX routes
-    And the bundled offline map packages are available in app assets
-    When the user opens the route list
-    And selects a route
-    Then the route is drawn on the offline map
-    And the route name, point count, and distance are shown
-    And the app remains usable without network access
-
-  Scenario: Track position against the selected route
-    Given a route is selected
-    And location permission is granted
-    When the user starts GPS tracking
-    Then the app updates the current position on the map
-    And the map follows the current position during tracking
-    And the navigation readout shows route progress, remaining distance, and on-route/off-route status
-
-  Scenario: Adjust tracking settings
-    Given the app is open
-    When the user opens Settings
-    Then the user can adjust the GPS refresh interval
-    And the user can toggle light or dark display behavior
-    And the user can show or hide the Map info card and Route info card independently
-```
-
-```gherkin
-Feature: Web GPX route creation
-  TrailLite GPX Builder lets the user create mobile-compatible GPX routes on desktop.
-
-  Scenario: Draw a new route by dragging on the map
-    Given the web app is open in view mode
-    And no route points exist
-    When the user presses "Draw route"
-    And drags the mouse across the map
-    Then the app adds route points along the drag path
-    And the route is shown in edit mode using the edit route color
-    And the route distance and point count update
-
-  Scenario: Finish and save a drawn route
-    Given the user has drawn at least two route points
-    And the route has a name
-    When the user presses "Done"
-    Then the app returns to view mode
-    When the user presses "Save route"
-    Then the browser downloads a GPX 1.1 file
-    And the GPX contains TrailLite-compatible track points in route order
-
-  Scenario: Undo route drawing mistakes
-    Given the user is editing a route
-    And route point edits have been made
-    When the user presses "Undo"
-    Then the most recent point edit is reverted
-    And the route distance and point count update
-```
-
-```gherkin
-Feature: Web GPX import and editing
-  TrailLite GPX Builder lets the user inspect existing GPX files and edit a copy.
-
-  Scenario: Import a valid GPX file for viewing
-    Given the web app is open
-    When the user imports a valid GPX file
-    Then the route is parsed from GPX track points
-    And the route is shown on the map in view mode
-    And the route name, distance, and point count are shown
-
-  Scenario: Edit an imported GPX copy
-    Given a GPX route has been imported
-    When the user presses "Edit route"
-    Then the app creates an editable copy
-    And edits do not mutate the original imported file
-    And the user can drag, insert, delete, draw, or undo route points
-
-  Scenario: Reject a broken GPX file
-    Given the user has selected a broken GPX file
-    When the app cannot parse usable track points
-    Then the app shows a simple browser alert
-    And the current route remains unchanged
-```
-
-```gherkin
-Feature: Web map data management
-  TrailLite GPX Builder renders broad map context and can download local detail data for selected areas.
-
-  Scenario: Render full planning map context
-    Given the web app is open
-    When the map loads
-    Then the full map viewport is drawn with broad Finland map context
-    And the mobile bundled PMTiles package is loaded as a local detail overlay
-    And every stored map data service dataset is loaded as an additional detail overlay
-
-  Scenario: Download detail data for a rectangle
-    Given the local map data service is running
-    When the user presses "Draw area"
-    And drags a rectangle on the map
-    Then the selected bbox is shown temporarily
-    And "Download area map" becomes enabled
-    When the user presses "Download area map"
-    Then the service extracts a base PMTiles package for the bbox
-    And the service extracts a Finnish provider overlay for the same bbox
-    And the web app loads both outputs as detail overlays
-    And the temporary rectangle is cleared after a successful download
-
-  Scenario: Reuse previously downloaded map data
-    Given map data packages already exist under mapdataservice/output
-    When the web app starts
-    Then it lists stored datasets from the local service
-    And it loads those datasets as map overlays without downloading them again
-```
-
-```gherkin
-Feature: Save web-created routes into the mobile workspace
-  TrailLite GPX Builder can write a route and its corridor map data into the Android project for local builds.
-
-  Scenario: Save route and corridor data to mobile
-    Given the user has a named route with at least two points
-    And the local map data service is running
-    When the user presses "Save to mobile"
-    Then the service writes the GPX under mobile/app/src/main/assets/routes
-    And the service updates the bundled route catalog
-    And the service extracts corridor map data for the route
-    And the service writes the Android bundled PMTiles packages under shared/maps
-    And the next Android build can include the route and required offline map data
-```
+- Mobile GPX parsing: `mobile/app/src/main/java/com/example/traillite/GpxParser.kt`
+- Web GPX parsing/export: `web/src/app.js` `parseGpx`, `exportGpx`
+- Bundled route catalog model: `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt`
+- Save-to-mobile catalog writing: `mapdataservice/server.mjs` `buildRouteCatalogEntry`, `upsertRouteCatalog`
+- Map style source-layer contract: `shared/styles/style_template.json`
 
 ### Imported GPX
 
@@ -322,6 +221,14 @@ Future mobile enhancements that would improve web integration:
 ## Web App Product Plan
 
 Status: v1 product plan.
+
+Code starting points:
+
+- Web app shell: `web/index.html`
+- Web app behavior: `web/src/app.js`
+- Web app styling: `web/src/styles.css`
+- Web local server/build scripts: `web/scripts/serve.mjs`, `web/scripts/build.mjs`
+- Web manual checks: `web/tests/manual/`
 
 ### Product Role
 

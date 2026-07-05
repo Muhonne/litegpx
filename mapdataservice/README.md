@@ -2,6 +2,12 @@
 
 This directory contains a minimal CLI/API workflow for creating local map packages.
 
+Related documents:
+
+- [../DATA.md](../DATA.md) for data layers, storage locations, generated artifacts, and credentials.
+- [../USE_CASES.md](../USE_CASES.md) for user-facing data workflows.
+- [../PRODUCT.md](../PRODUCT.md) for product scope and data-format contracts.
+
 V1 is intentionally simple:
 
 ```text
@@ -25,6 +31,13 @@ GPX route or bbox
 ```
 
 Current mobile/web packages use two files: the base Protomaps corridor extract and a separate Finnish provider overlay PMTiles beside it. Android loads `finland.providers.pmtiles` over `finland.pmtiles` when both are bundled.
+
+## Code Starting Points
+
+- `server.mjs` exposes the local HTTP API: `GET /api/datasets`, `POST /api/extract-bbox`, and `POST /api/save-mobile-route`.
+- `extract-route-map.mjs` wraps `pmtiles extract` for GPX route corridors and bboxes.
+- `build-finnish-map.mjs` downloads/normalizes Finnish provider data and builds provider overlay PMTiles.
+- `tests/fixtures/nls/` contains local NLS GeoJSON fixtures for smoke checks.
 
 ## Requirements
 
@@ -296,19 +309,3 @@ mapdataservice/output/
 ```
 
 Default output names include a short hash. The hash covers source, zooms, bbox/route geometry, buffer, coverage mode, and GPX file content where applicable. If the same output already exists and the sidecar cache key matches, the extractor reuses it instead of downloading more data. Pass `--force` only when intentionally replacing an existing package.
-
-## Later Pipeline
-
-The intended future service shape is:
-
-```text
-GPX route
-  -> route corridor or bbox
-  -> OSM Finland extract
-  -> Digiroad road/street and path enrichment
-  -> NLS topographic enrichment for buildings, land use, water, names, and terrain context
-  -> TrailLite vector tile schema
-  -> PMTiles
-```
-
-Keep that as a server/tooling concern. The Android app should only download or import the resulting `.pmtiles` file.

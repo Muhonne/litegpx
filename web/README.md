@@ -1,0 +1,87 @@
+# TrailLite Web
+
+Technical notes for running, building, and testing the desktop GPX Builder.
+
+Product scope and behavior live at the workspace root:
+
+- [../PRODUCT.md](../PRODUCT.md)
+- [../USE_CASES.md](../USE_CASES.md)
+- [../DATA.md](../DATA.md)
+
+## Stack
+
+- Static HTML
+- Plain CSS
+- Plain JavaScript ES modules
+- MapLibre GL JS
+- PMTiles browser protocol
+- npm scripts for local serving, build, and manual checks
+
+Code starting points:
+
+- `index.html` for the app shell.
+- `src/app.js` for map setup, route editing, GPX import/export, map data service calls, and test hooks.
+- `src/styles.css` for the sidebar/map UI.
+- `scripts/serve.mjs` for the local static server.
+- `scripts/build.mjs` for static build output.
+- `tests/manual/` for agent-browser-compatible manual checks.
+
+## Install
+
+From this directory:
+
+```sh
+npm install
+```
+
+## Run
+
+From this directory:
+
+```sh
+npm run serve
+```
+
+Default local URL:
+
+```text
+http://localhost:5173/web/
+```
+
+The map data service is separate. Start it from the workspace root when testing area downloads or save-to-mobile:
+
+```sh
+node mapdataservice/server.mjs
+```
+
+## Build
+
+From this directory:
+
+```sh
+npm run build
+```
+
+Build output:
+
+```text
+web/dist/
+```
+
+## Manual Checks
+
+Run all web manual checks:
+
+```sh
+npm test
+```
+
+Individual checks live under `tests/manual/`, for example:
+
+```sh
+bash tests/manual/00-map-foundation.sh
+bash tests/manual/05-map-tools.sh
+bash tests/manual/09-route-draw-mouseup.sh
+```
+
+These checks use `agent-browser`, so keep the web server running before running individual scripts.
