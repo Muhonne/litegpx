@@ -131,6 +131,17 @@ if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
 if (!document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]")?.classList.contains("selected")) {
   throw new Error("Clearing a no-match filter should visibly select the loaded route");
 }
+window.__trailLiteTest.search("Turku");
+await new Promise((resolve) => setTimeout(resolve, 900));
+const centerBeforeLoadedDoubleClick = window.__trailLiteTest.getState().mapCenter;
+document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]")
+  .dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+await new Promise((resolve) => setTimeout(resolve, 300));
+const centerAfterLoadedDoubleClick = window.__trailLiteTest.getState().mapCenter;
+if (centerAfterLoadedDoubleClick[0] > 23.5 ||
+    Math.abs(centerAfterLoadedDoubleClick[1] - centerBeforeLoadedDoubleClick[1]) > 0.2) {
+  throw new Error(`Double-clicking a clean loaded route should not reload/refit it, moved from ${centerBeforeLoadedDoubleClick} to ${centerAfterLoadedDoubleClick}`);
+}
 true;
 })()
 '

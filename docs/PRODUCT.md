@@ -914,6 +914,7 @@ Sidebar content model:
 - The loaded route card shows the draft route name while name edits are unsaved.
 - Filtering mobile routes searches the visible draft name for a dirty loaded route as well as saved catalog metadata.
 - The selected loaded route uses a context-sensitive action: clean routes show disabled "Loaded"; unsaved loaded routes show "Revert changes".
+- Clean loaded routes are inert in the route manager; card double-clicks do not reload or refit them.
 - The revert action reloads the saved mobile route and clears the unsaved edit state.
 - Saving a renamed loaded route keeps the updated name in the mobile route list even when the save response is minimal.
 - The mobile route filter supports keyboard selection with ArrowUp, ArrowDown, and Enter.

@@ -1598,6 +1598,7 @@ async function loadSelectedMobileRoute() {
   const routeId = elements.mobileRouteSelect.value;
   if (!routeId) return;
   const revertingLoadedRoute = routeId === state.mobileRouteId && hasUnsavedRouteChanges();
+  if (routeId === state.mobileRouteId && !revertingLoadedRoute) return;
   if (!confirmDiscardUnsavedRoute()) {
     restoreLoadedMobileRouteSelection();
     return;
