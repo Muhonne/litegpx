@@ -112,6 +112,10 @@ const elements = {
   pointsList: document.getElementById("pointsList"),
   shortcutSummary: document.getElementById("shortcutSummary"),
   shortcutRows: Array.from(document.querySelectorAll("[data-shortcut-context]")),
+  mobileRoutesSection: document.querySelector(".mobile-routes-section"),
+  routeSection: document.querySelector(".route-section"),
+  mapToolsSection: document.querySelector(".map-tools-section"),
+  pointsSection: document.querySelector(".points-section"),
 };
 
 const state = {
@@ -1296,6 +1300,7 @@ function renderSidebar() {
   const editing = state.mode === "edit";
   const hasRoute = state.points.length > 0;
   const exportable = canExport();
+  const showRouteDetails = editing || hasRoute;
   elements.modeBadge.textContent = state.mode === "edit" ? "Edit" : "View";
   setCommandButtonLabel(elements.newRouteButton, "Reset");
   setCommandButtonLabel(elements.editButton, hasRoute ? "Edit route" : "Draw route");
@@ -1323,6 +1328,10 @@ function renderSidebar() {
   elements.clearButton.hidden = !hasRoute;
   elements.exportButton.hidden = !exportable;
   elements.mobileSaveButton.hidden = !exportable;
+  elements.mobileRoutesSection.hidden = editing;
+  elements.mapToolsSection.hidden = editing;
+  elements.routeSection.hidden = !showRouteDetails;
+  elements.pointsSection.hidden = !editing;
   elements.streetNamesToggle.checked = state.layerSettings.streetNames;
   elements.poisToggle.checked = state.layerSettings.pois;
   elements.buildingsToggle.checked = state.layerSettings.buildings;

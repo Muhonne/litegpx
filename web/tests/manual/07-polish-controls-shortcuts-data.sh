@@ -41,6 +41,10 @@ if (!document.querySelector("#newRouteButton").hidden) throw new Error("Reset sh
 if (!document.querySelector("#fitRouteButton").hidden) throw new Error("Fit route should be hidden without a route");
 if (!document.querySelector("#clearButton").hidden) throw new Error("Clear should be hidden without a route");
 if (!document.querySelector("#exportButton").hidden) throw new Error("Save route should be hidden until exportable");
+if (getComputedStyle(document.querySelector(".sidebar")).overflowY !== "auto") throw new Error("Sidebar should scroll when context panels exceed the viewport");
+if (document.querySelector(".points-section").hidden === false) throw new Error("Point list should hide until route editing is active");
+if (document.querySelector(".mobile-routes-section").hidden) throw new Error("Mobile route manager should be visible in view mode");
+if (document.querySelector(".map-tools-section").hidden) throw new Error("Map tools should be visible in view mode");
 if (document.querySelector("#editButton").textContent.trim() !== "Draw route") throw new Error("Blank route action should be Draw route");
 if (document.querySelector(".shortcut-panel").open) throw new Error("Shortcuts should be collapsed by default");
 true;
@@ -67,6 +71,9 @@ if (state.cursor !== "crosshair") throw new Error(`Edit cursor should be crossha
 if (!document.querySelector("#editButton").hidden) throw new Error("Edit button should hide while editing");
 if (document.querySelector("#doneButton").hidden) throw new Error("Done button should show while editing");
 if (document.querySelector("#importButton").hidden === false) throw new Error("Import should hide while editing");
+if (!document.querySelector(".mobile-routes-section").hidden) throw new Error("Mobile route manager should hide while editing a route");
+if (!document.querySelector(".map-tools-section").hidden) throw new Error("Map tools should hide while editing a route");
+if (document.querySelector(".points-section").hidden) throw new Error("Point list should show while editing a route");
 const visible = Array.from(document.querySelectorAll(".shortcut-list div:not([hidden]) kbd")).map((element) => element.textContent.trim());
 for (const key of ["E", "Esc", "Ctrl+Z", "Ctrl+Y", "Drag", "Shift"]) {
   if (!visible.includes(key)) throw new Error(`Missing edit shortcut: ${key}`);
@@ -111,6 +118,9 @@ if (state.mode !== "edit") throw new Error(`E did not re-enter edit mode: ${stat
 window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
 state = window.__trailLiteTest.getState();
 if (state.mode !== "view") throw new Error(`E did not toggle back to view mode: ${state.mode}`);
+if (document.querySelector(".mobile-routes-section").hidden) throw new Error("Mobile route manager should return after leaving edit mode");
+if (document.querySelector(".map-tools-section").hidden) throw new Error("Map tools should return after leaving edit mode");
+if (document.querySelector(".points-section").hidden === false) throw new Error("Point list should hide after leaving edit mode");
 true;
 })()
 '

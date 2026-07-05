@@ -909,6 +909,7 @@ Sidebar content model:
 - User controls first.
 - Export action is always visible near the top controls.
 - Mobile routes are managed in the sidebar with a filter, compact selectable list, refresh action, and load action.
+- The sidebar is context-aware: route management and map tools are visible in view/planning mode, while edit mode focuses on editing controls, route details, snapping, and the point list.
 - Mobile route filtering searches route title and visible card metadata such as distance, point count, and source.
 - The visible mobile route list scrolls rather than hiding matching routes behind an invisible picker.
 - The currently loaded mobile route is marked separately from the selected route pending load.
@@ -928,7 +929,7 @@ Sidebar content model:
 - Saving a route to mobile clears an active route filter so the saved route remains visible.
 - A stale catalog refresh must not hide a route that was just saved from the web app.
 - Fresh saved route metadata should not be replaced by stale same-id catalog metadata.
-- Map search and map layer settings sit below the primary route controls and stay visible.
+- Map search and map layer settings sit below the primary route controls in view/planning mode.
 - Map layer settings use simple checkboxes with the same labels as mobile.
 - Route name below controls.
 - Route name uses a simple text input.
@@ -939,8 +940,9 @@ Sidebar content model:
 - Each listed point shows coordinates in a small font.
 - Coordinate precision is not product-critical; the coordinate list is small supporting information.
 - Point list is mostly informational in v1.
-- Only the point list scrolls inside the sidebar.
-- Controls, route name, stats, validation, and export actions remain visible.
+- The sidebar scrolls when the active context is taller than the viewport.
+- In edit mode, the point list is shown below route controls and route stats; in view mode it is hidden to keep route management and map tools usable.
+- Controls, route name, stats, validation, and export actions remain near the active context rather than being buried below unrelated panels.
 - Validation/export state near export controls.
 
 Control style:

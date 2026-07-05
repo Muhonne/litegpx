@@ -163,6 +163,15 @@ Feature: Web GPX import and editing
     And fresh saved route metadata wins over stale same-id catalog metadata
     And a successful mobile save clears the unsaved edit state
 
+  Scenario: Keep the sidebar focused while editing a route
+    Given the user is viewing the map or managing saved mobile routes
+    Then the Mobile routes and Map tools panels are visible in the sidebar
+    And the route point list is hidden
+    When the user starts drawing or editing a route
+    Then the Mobile routes and Map tools panels are hidden
+    And the route editing controls, route details, snapping toggle, and point list are visible
+    And the sidebar can scroll if the active editing context exceeds the viewport height
+
   Scenario: Reject a broken GPX file
     Given the user has selected a broken GPX file
     When the app cannot parse usable track points

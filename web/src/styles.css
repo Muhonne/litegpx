@@ -63,6 +63,7 @@ select {
   display: flex;
   min-height: 0;
   flex-direction: column;
+  overflow-y: auto;
   border-right: 1px solid var(--panel-border);
   background: var(--panel);
 }
@@ -573,8 +574,8 @@ kbd {
 
 .points-section {
   display: flex;
-  min-height: 0;
-  flex: 1 1 auto;
+  min-height: 220px;
+  flex: 1 0 220px;
   flex-direction: column;
 }
 
