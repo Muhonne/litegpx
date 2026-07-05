@@ -114,6 +114,11 @@ class TrailMapController(
         setLayerVisible(style, PATHS_HIGHLIGHT_LAYER_ID, settings.minorPaths)
         setLayerVisible(style, ROADS_MINOR_CASING_LAYER_ID, settings.minorPaths)
         setLayerVisible(style, ROADS_MINOR_LAYER_ID, settings.minorPaths)
+        if (trackingActive) {
+            latestLocationFix?.let { location ->
+                updateNavigationCamera(location, LatLng(location.latitude, location.longitude), force = true)
+            }
+        }
     }
 
     fun setTrack(points: List<GeoPoint>) {
@@ -187,11 +192,15 @@ class TrailMapController(
         if (!trackingActive && !force) return
         if (!force && SystemClock.elapsedRealtime() < followPausedUntilMs) return
         val bearing = navigationBearing(location)
-        val camera = CameraPosition.Builder(map.cameraPosition)
+        val automaticTrackingZoom = layerSettings.automaticTrackingZoom && trackPoints.size >= 2
+        val cameraBuilder = CameraPosition.Builder(map.cameraPosition)
             .target(latLng)
             .bearing(bearing)
             .padding(0.0, navigationTopPaddingPx().toDouble(), 0.0, 0.0)
-            .build()
+        if (automaticTrackingZoom) {
+            cameraBuilder.zoom(layerSettings.trackingZoomLevel)
+        }
+        val camera = cameraBuilder.build()
         map.moveCamera(CameraUpdateFactory.newCameraPosition(camera))
     }
 

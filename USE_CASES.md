@@ -45,6 +45,9 @@ Feature: Mobile offline route navigation
     Given the app is open
     When the user opens Settings
     Then the user can adjust the GPS refresh interval
+    And the user can keep the screen on while riding
+    And the user can enable app-specific screen brightness and set the brightness level
+    And the user can enable automatic tracking zoom and choose the route-tracking zoom level
     And the user can toggle light or dark display behavior
     And the user can show or hide the Map info card and Route info card independently
 ```

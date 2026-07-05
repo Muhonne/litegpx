@@ -39,6 +39,8 @@ Code starting points:
 - Route catalog loading: `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt`
 - Location tracking: `mobile/app/src/main/java/com/example/traillite/BatteryLocationClient.kt`
 - Settings: `mobile/app/src/main/java/com/example/traillite/MapLayerSettings.kt`
+- Settings UI and screen brightness application: `mobile/app/src/main/java/com/example/traillite/MainActivity.kt` `MapSettingsDialog`, `applyDisplaySettings`
+- Tracking camera zoom behavior: `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt` `updateNavigationCamera`
 
 ### Offline maps
 
@@ -72,6 +74,13 @@ When GPS tracking is active and a route is loaded, the app calculates:
 - Remaining route distance.
 
 The current off-route threshold is 75 meters.
+
+### Riding display settings
+
+- The user can keep the screen awake while TrailLite is open.
+- The user can enable an app-specific brightness override and choose the brightness percentage used by the Activity window.
+- The user can enable automatic tracking zoom and choose the zoom level applied while GPS tracking is active with a selected route.
+- When automatic tracking zoom is disabled, tracking keeps the current map zoom so manual zoom remains under user control.
 
 ## Data Formats
 

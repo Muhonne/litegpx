@@ -4,10 +4,12 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,9 +29,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -92,6 +94,7 @@ class MainActivity : ComponentActivity() {
         layerSettingsStore = MapLayerSettingsStore(this)
         val initialMap = storage.preferredMapPackage()
         val initialSettings = layerSettingsStore.load()
+        applyDisplaySettings(initialSettings)
         uiState = uiState.copy(
             mapName = initialMap?.name,
             bundledRoutes = routeCatalog(),
@@ -313,6 +316,7 @@ class MainActivity : ComponentActivity() {
     private fun updateLayerSettings(settings: MapLayerSettings) {
         val previousInterval = uiState.mapLayerSettings.locationIntervalSeconds
         layerSettingsStore.save(settings)
+        applyDisplaySettings(settings)
         mapController?.applyLayerSettings(settings)
         locationClient.setIntervalSeconds(settings.locationIntervalSeconds)
         uiState = uiState.copy(
@@ -323,6 +327,22 @@ class MainActivity : ComponentActivity() {
                 uiState.status
             },
         )
+    }
+
+    private fun applyDisplaySettings(settings: MapLayerSettings) {
+        if (settings.keepScreenOn) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+
+        val attributes = window.attributes
+        attributes.screenBrightness = if (settings.overrideSystemBrightness) {
+            settings.screenBrightnessPercent.coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT) / 100f
+        } else {
+            WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        }
+        window.attributes = attributes
     }
 
     private fun routeCatalog(): List<BundledRoute> {
@@ -370,6 +390,10 @@ enum class RouteSortMode {
 
 private const val MIN_GPS_INTERVAL_SECONDS = 1
 private const val MAX_GPS_INTERVAL_SECONDS = 30
+private const val MIN_SCREEN_BRIGHTNESS_PERCENT = 1
+private const val MAX_SCREEN_BRIGHTNESS_PERCENT = 100
+private const val MIN_TRACKING_ZOOM_LEVEL = 8.0
+private const val MAX_TRACKING_ZOOM_LEVEL = 17.0
 
 @Composable
 private fun TrailLiteTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
@@ -561,7 +585,11 @@ private fun MapSettingsDialog(
         },
         title = { Text("Settings") },
         text = {
-            Column(modifier = Modifier.widthIn(max = 420.dp)) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 Text(
                     text = "Map layers",
                     style = MaterialTheme.typography.titleSmall,
@@ -600,9 +628,41 @@ private fun MapSettingsDialog(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
+                    text = "Tracking camera",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                LayerSwitchRow(
+                    label = "Automatic tracking zoom",
+                    checked = settings.automaticTrackingZoom,
+                    onCheckedChange = { onChange(settings.copy(automaticTrackingZoom = it)) },
+                )
+                DecimalStepper(
+                    value = settings.trackingZoomLevel,
+                    label = "Zoom",
+                    step = 0.5,
+                    range = MIN_TRACKING_ZOOM_LEVEL..MAX_TRACKING_ZOOM_LEVEL,
+                    onChange = { zoom -> onChange(settings.copy(trackingZoomLevel = zoom)) },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
                     text = "Display",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
+                )
+                LayerSwitchRow(
+                    label = "Keep screen on",
+                    checked = settings.keepScreenOn,
+                    onCheckedChange = { onChange(settings.copy(keepScreenOn = it)) },
+                )
+                LayerSwitchRow(
+                    label = "App brightness",
+                    checked = settings.overrideSystemBrightness,
+                    onCheckedChange = { onChange(settings.copy(overrideSystemBrightness = it)) },
+                )
+                PercentStepper(
+                    percent = settings.screenBrightnessPercent,
+                    onChange = { percent -> onChange(settings.copy(screenBrightnessPercent = percent)) },
                 )
                 LayerSwitchRow(
                     label = "Dark theme",
@@ -622,6 +682,85 @@ private fun MapSettingsDialog(
             }
         },
     )
+}
+
+@Composable
+private fun DecimalStepper(
+    value: Double,
+    label: String,
+    step: Double,
+    range: ClosedFloatingPointRange<Double>,
+    onChange: (Double) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = { onChange((value - step).coerceIn(range.start, range.endInclusive)) },
+            enabled = value > range.start,
+        ) {
+            Text("-${step.formatStepperValue()}")
+        }
+        TextField(
+            value = "%.1f".format(Locale.US, value),
+            onValueChange = { text ->
+                val parsed = text.replace(',', '.').toDoubleOrNull() ?: return@TextField
+                onChange(parsed.coerceIn(range.start, range.endInclusive))
+            },
+            modifier = Modifier.width(96.dp),
+            singleLine = true,
+            label = { Text(label) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+        )
+        OutlinedButton(
+            onClick = { onChange((value + step).coerceIn(range.start, range.endInclusive)) },
+            enabled = value < range.endInclusive,
+        ) {
+            Text("+${step.formatStepperValue()}")
+        }
+    }
+}
+
+@Composable
+private fun PercentStepper(
+    percent: Int,
+    onChange: (Int) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = { onChange((percent - 5).coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT)) },
+            enabled = percent > MIN_SCREEN_BRIGHTNESS_PERCENT,
+        ) {
+            Text("-5")
+        }
+        TextField(
+            value = percent.toString(),
+            onValueChange = { value ->
+                val parsed = value.filter { it.isDigit() }.toIntOrNull() ?: return@TextField
+                onChange(parsed.coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT))
+            },
+            modifier = Modifier.width(96.dp),
+            singleLine = true,
+            label = { Text("%") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+        )
+        OutlinedButton(
+            onClick = { onChange((percent + 5).coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT)) },
+            enabled = percent < MAX_SCREEN_BRIGHTNESS_PERCENT,
+        ) {
+            Text("+5")
+        }
+    }
+}
+
+private fun Double.formatStepperValue(): String {
+    return if (this % 1.0 == 0.0) toInt().toString() else "%.1f".format(Locale.US, this)
 }
 
 @Composable
