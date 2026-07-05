@@ -38,6 +38,7 @@ Always follow this workflow when making changes:
 5. Verify the test case passes. Continue editing if it does not.
 6. Update documentation.
 7. Commit with a short message and push.
+8. Check for leftover Playwright/agent-browser processes, kill if found.
 
 ## Expected Commands
 

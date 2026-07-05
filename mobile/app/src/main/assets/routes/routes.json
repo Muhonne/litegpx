@@ -400,6 +400,26 @@
     "trackPointCount": 264
   },
   {
+    "id": "rapasgotti",
+    "title": "Rapasgotti",
+    "lengthKm": 3.3,
+    "durationText": "--",
+    "source": "TrailLite GPX Builder",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Rapasgotti",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/rapasgotti.gpx",
+    "bounds": {
+      "minLon": 24.835524,
+      "minLat": 60.179887,
+      "maxLon": 24.877488,
+      "maxLat": 60.191165
+    },
+    "trackPointCount": 92
+  },
+  {
     "id": "saimaa-by-cycle-gravel-hummon-hurautus",
     "title": "Saimaa by Cycle Gravel: Hummon hurautus",
     "lengthKm": 74,

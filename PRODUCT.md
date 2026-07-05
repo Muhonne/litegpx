@@ -922,4 +922,4 @@ Control style:
 Validation and error behavior:
 
 - Broken imported GPX format can use a simple browser alert in v1.
-- Alert text for broken GPX: `format is fucked`.
+- Alert text for broken GPX: `format is broken`.
