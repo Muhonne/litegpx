@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { basename, dirname, relative, resolve } from "node:path";
@@ -9,11 +9,17 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, "..");
+loadDotEnv(resolve(workspaceRoot, ".env"));
+
 const extractor = resolve(scriptDir, "extract-route-map.mjs");
+const finnishBuilder = resolve(scriptDir, "build-finnish-map.mjs");
 const outputDir = resolve(scriptDir, "output");
 const mobileRoutesDir = resolve(process.env.MOBILE_ROUTES_DIR || resolve(workspaceRoot, "mobile/app/src/main/assets/routes"));
 const mobileRouteCatalogPath = resolve(process.env.MOBILE_ROUTE_CATALOG_PATH || resolve(mobileRoutesDir, "routes.json"));
 const bundledMapPath = resolve(process.env.MOBILE_BUNDLED_MAP_PATH || resolve(workspaceRoot, "shared/maps/finland.pmtiles"));
+const bundledProviderMapPath = resolve(
+  process.env.MOBILE_BUNDLED_PROVIDER_MAP_PATH || resolve(workspaceRoot, "shared/maps/finland.providers.pmtiles"),
+);
 const port = Number.parseInt(process.env.PORT || "5174", 10);
 const webOrigin = process.env.WEB_ORIGIN || "http://localhost:5173";
 
@@ -110,6 +116,14 @@ async function extractBbox(body) {
   const dryRun = await runNode([...baseArgs, "--dry-run"]);
   const metadata = JSON.parse(dryRun.stdout);
   const run = await runNode(baseArgs);
+  const provider = await buildProviderOverlay({
+    body,
+    source,
+    maxzoom,
+    minzoom: body.minzoom,
+    bbox: bbox.join(","),
+    name,
+  });
   const relativePath = relative(workspaceRoot, metadata.output.pmtiles).replaceAll("\\", "/");
   return {
     cached: run.stdout.includes("Using cached"),
@@ -120,7 +134,8 @@ async function extractBbox(body) {
     pmtiles: metadata.output.pmtiles,
     metadata: metadata.output.metadata,
     url: `${webOrigin}/${relativePath}`,
-    stdout: run.stdout.trim(),
+    provider,
+    stdout: [run.stdout.trim(), provider.stdout].filter(Boolean).join("\n"),
   };
 }
 
@@ -169,6 +184,18 @@ async function saveMobileRoute(body) {
   await mkdir(dirname(bundledMapPath), { recursive: true });
   await copyFile(metadata.output.pmtiles, bundledMapPath);
 
+  const provider = await buildProviderOverlay({
+    body,
+    source,
+    maxzoom,
+    minzoom: body.minzoom,
+    gpx: gpxPath,
+    bufferMeters,
+    coverage,
+  });
+  await mkdir(dirname(bundledProviderMapPath), { recursive: true });
+  await copyFile(provider.pmtiles, bundledProviderMapPath);
+
   return {
     route: {
       id: routeEntry.id,
@@ -183,14 +210,51 @@ async function saveMobileRoute(body) {
       cached: run.stdout.includes("Using cached"),
       generatedFile: relative(workspaceRoot, metadata.output.pmtiles).replaceAll("\\", "/"),
       mobileFile: relative(workspaceRoot, bundledMapPath).replaceAll("\\", "/"),
+      providerGeneratedFile: relative(workspaceRoot, provider.pmtiles).replaceAll("\\", "/"),
+      providerMobileFile: relative(workspaceRoot, bundledProviderMapPath).replaceAll("\\", "/"),
       metadata: relative(workspaceRoot, metadata.output.metadata).replaceAll("\\", "/"),
+      providerMetadata: relative(workspaceRoot, provider.metadata).replaceAll("\\", "/"),
       bufferMeters: Number(bufferMeters),
       coverage,
       maxzoom: Number(maxzoom),
       sizeBytes: await stat(bundledMapPath).then((info) => info.size),
+      providerSizeBytes: await stat(bundledProviderMapPath).then((info) => info.size),
     },
+    stdout: [run.stdout.trim(), provider.stdout].filter(Boolean).join("\n"),
+  };
+}
+
+async function buildProviderOverlay({ body, source, maxzoom, minzoom, bbox, name, gpx, bufferMeters, coverage }) {
+  const providerArgs = [finnishBuilder, "--source", source, "--maxzoom", maxzoom, "--providers", providerList(body)];
+  if (bbox) providerArgs.push("--bbox", bbox);
+  if (name) providerArgs.push("--name", name);
+  if (gpx) providerArgs.push("--gpx", gpx);
+  if (bufferMeters != null) providerArgs.push("--buffer-meters", String(bufferMeters));
+  if (coverage) providerArgs.push("--coverage", coverage);
+  if (minzoom != null) providerArgs.push("--minzoom", String(minzoom));
+  const nlsGeojsonDir = body.nlsGeojsonDir || process.env.TRAILLITE_NLS_GEOJSON_DIR;
+  if (nlsGeojsonDir) providerArgs.push("--nls-geojson-dir", resolve(nlsGeojsonDir));
+  if (body.nlsApiKey) providerArgs.push("--nls-api-key", String(body.nlsApiKey));
+
+  const dryRun = await runNode([...providerArgs, "--dry-run"]);
+  const metadata = JSON.parse(dryRun.stdout);
+  const run = await runNode(providerArgs);
+  const relativePath = relative(workspaceRoot, metadata.output.providerPmtiles).replaceAll("\\", "/");
+  return {
+    cached: run.stdout.includes("Using cached"),
+    providers: metadata.providers,
+    bbox: metadata.bbox,
+    cacheKey: metadata.cacheKey,
+    sizeBytes: await stat(metadata.output.providerPmtiles).then((info) => info.size),
+    pmtiles: metadata.output.providerPmtiles,
+    metadata: metadata.output.metadata,
+    url: `${webOrigin}/${relativePath}`,
     stdout: run.stdout.trim(),
   };
+}
+
+function providerList(body) {
+  return body.providers || process.env.TRAILLITE_FINNISH_PROVIDERS || (process.env.NLS_API_KEY ? "digiroad,nls" : "digiroad");
 }
 
 function normalizeBbox(value) {
@@ -368,4 +432,30 @@ function sendJson(response, status, body) {
     "Cache-Control": "no-store",
   });
   response.end(text);
+}
+
+function loadDotEnv(path) {
+  if (!existsSync(path)) return;
+  const lines = readFileSync(path, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(trimmed);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] != null) continue;
+    process.env[key] = parseDotEnvValue(rawValue);
+  }
+}
+
+function parseDotEnvValue(value) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  const commentIndex = trimmed.indexOf(" #");
+  return (commentIndex >= 0 ? trimmed.slice(0, commentIndex) : trimmed).trim();
 }

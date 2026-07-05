@@ -7,12 +7,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,14 +20,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -86,10 +91,11 @@ class MainActivity : ComponentActivity() {
         storage = TrailStorage(this)
         layerSettingsStore = MapLayerSettingsStore(this)
         val initialMap = storage.preferredMapPackage()
+        val initialSettings = layerSettingsStore.load()
         uiState = uiState.copy(
             mapName = initialMap?.name,
-            bundledRoutes = BundledRouteCatalog.load(this),
-            mapLayerSettings = layerSettingsStore.load(),
+            bundledRoutes = routeCatalog(),
+            mapLayerSettings = initialSettings,
             status = if (initialMap == null) {
                 "No offline map package loaded"
             } else {
@@ -113,24 +119,28 @@ class MainActivity : ComponentActivity() {
             uiState = uiState.copy(
                 locationText = "GPS $locationText",
                 navigation = navigation,
+                currentLocation = currentLocationPoint,
             )
         }
 
         setContent {
-            TrailLiteTheme {
+            TrailLiteTheme(darkTheme = uiState.mapLayerSettings.darkTheme) {
                 TrailLiteScreen(
                     state = uiState,
                     onMapReady = { mapView, map ->
-                        val controller = TrailMapController(this, mapView, map, storage)
+                        val controller = TrailMapController(this, mapView, map, storage) { zoom ->
+                            uiState = uiState.copy(mapZoom = zoom)
+                        }
                         mapController = controller
+                        controller.setTrackingActive(uiState.tracking)
                         controller.applyLayerSettings(uiState.mapLayerSettings)
                         controller.loadInitialStyle(storage.preferredMapPackage())
                     },
-                    onImportMap = { importMapLauncher.launch(MAP_MIME_TYPES) },
-                    onImportTrack = { importTrackLauncher.launch(TRACK_MIME_TYPES) },
                     onShowRoutes = { uiState = uiState.copy(showRoutePicker = true) },
                     onDismissRoutes = { uiState = uiState.copy(showRoutePicker = false) },
+                    onAddRoute = { importTrackLauncher.launch(TRACK_MIME_TYPES) },
                     onRouteSearchChange = { query -> uiState = uiState.copy(routeSearchQuery = query) },
+                    onRouteSortChange = { sortMode -> uiState = uiState.copy(routeSortMode = sortMode) },
                     onSelectRoute = ::loadBundledRoute,
                     onShowMapSettings = { uiState = uiState.copy(showMapSettings = true) },
                     onDismissMapSettings = { uiState = uiState.copy(showMapSettings = false) },
@@ -152,11 +162,13 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (::locationClient.isInitialized && uiState.tracking && locationClient.hasPermission()) {
+            mapController?.setTrackingActive(true)
             locationClient.start()
         }
     }
 
     override fun onStop() {
+        mapController?.setTrackingActive(false)
         if (::locationClient.isInitialized) locationClient.stop()
         super.onStop()
     }
@@ -169,7 +181,7 @@ class MainActivity : ComponentActivity() {
     private val importTrackLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
-        if (uri != null) importTrack(uri)
+        if (uri != null) addRouteFromGpx(uri)
     }
 
     private val importMapLauncher = registerForActivityResult(
@@ -186,27 +198,29 @@ class MainActivity : ComponentActivity() {
         if (granted) startTracking() else uiState = uiState.copy(status = "Location permission denied")
     }
 
-    private fun importTrack(uri: Uri) {
-        uiState = uiState.copy(busy = true, status = "Importing GPX")
+    private fun addRouteFromGpx(uri: Uri) {
+        uiState = uiState.copy(busy = true, status = "Adding route")
         lifecycleScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val file = storage.copyTrack(uri)
-                    val points = GpxParser.parseTrackPoints(file.inputStream())
-                    file to points
+                    val route = storage.importRoute(uri)
+                    val points = route.openGpx().use { GpxParser.parseTrackPoints(it) }
+                    route to points
                 }
-            }.onSuccess { (file, points) ->
+            }.onSuccess { (route, points) ->
                 activeTrackPoints = points
                 mapController?.setTrack(points)
                 uiState = uiState.copy(
                     busy = false,
-                    trackName = file.name,
+                    bundledRoutes = routeCatalog(),
+                    showRoutePicker = false,
+                    trackName = route.title,
                     trackPointCount = points.size,
                     navigation = latestLocationPoint?.let { RouteNavigation.analyze(it, points) },
-                    status = if (points.size >= 2) "GPX loaded" else "GPX has fewer than 2 track points",
+                    status = "Route added",
                 )
             }.onFailure { error ->
-                uiState = uiState.copy(busy = false, status = error.message ?: "GPX import failed")
+                uiState = uiState.copy(busy = false, status = error.message ?: "Route import failed")
             }
         }
     }
@@ -216,7 +230,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val points = assets.open(route.gpxAsset).use { GpxParser.parseTrackPoints(it) }
+                    val points = route.openGpx().use { GpxParser.parseTrackPoints(it) }
                     route to points
                 }
             }.onSuccess { (loadedRoute, points) ->
@@ -237,7 +251,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleViewIntent(intent: Intent?) {
         if (intent?.action == Intent.ACTION_VIEW && intent.data != null) {
-            importTrack(intent.data!!)
+            addRouteFromGpx(intent.data!!)
         }
     }
 
@@ -269,6 +283,7 @@ class MainActivity : ComponentActivity() {
     private fun toggleTracking() {
         if (uiState.tracking) {
             locationClient.stop()
+            mapController?.setTrackingActive(false)
             uiState = uiState.copy(tracking = false, locationText = "GPS idle", status = "GPS stopped")
             return
         }
@@ -286,15 +301,36 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startTracking() {
+        mapController?.setTrackingActive(true)
+        locationClient.setIntervalSeconds(uiState.mapLayerSettings.locationIntervalSeconds)
         locationClient.start()
-        uiState = uiState.copy(tracking = true, status = "GPS tracking every 10s")
+        uiState = uiState.copy(
+            tracking = true,
+            status = "GPS tracking every ${uiState.mapLayerSettings.locationIntervalSeconds}s",
+        )
     }
 
     private fun updateLayerSettings(settings: MapLayerSettings) {
+        val previousInterval = uiState.mapLayerSettings.locationIntervalSeconds
         layerSettingsStore.save(settings)
         mapController?.applyLayerSettings(settings)
-        uiState = uiState.copy(mapLayerSettings = settings)
+        locationClient.setIntervalSeconds(settings.locationIntervalSeconds)
+        uiState = uiState.copy(
+            mapLayerSettings = settings,
+            status = if (uiState.tracking && settings.locationIntervalSeconds != previousInterval) {
+                "GPS tracking every ${settings.locationIntervalSeconds}s"
+            } else {
+                uiState.status
+            },
+        )
     }
+
+    private fun routeCatalog(): List<BundledRoute> {
+        return BundledRouteCatalog.load(this) + storage.importedRoutes()
+    }
+
+    private fun BundledRoute.openGpx() =
+        gpxFile?.inputStream() ?: assets.open(requireNotNull(gpxAsset) { "Route has no GPX source" })
 
     private fun File.isSupportedMapPackage(): Boolean {
         return extension.lowercase(Locale.US) in setOf("pmtiles", "mbtiles")
@@ -316,22 +352,43 @@ data class TrailLiteUiState(
     val locationText: String = "GPS idle",
     val navigation: RouteNavigationSnapshot? = null,
     val busy: Boolean = false,
+    val mapZoom: Double? = null,
     val bundledRoutes: List<BundledRoute> = emptyList(),
     val showRoutePicker: Boolean = false,
     val routeSearchQuery: String = "",
+    val routeSortMode: RouteSortMode = RouteSortMode.Nearby,
+    val currentLocation: GeoPoint? = null,
     val showMapSettings: Boolean = false,
     val mapLayerSettings: MapLayerSettings = MapLayerSettings(),
 )
 
+enum class RouteSortMode {
+    Nearby,
+    Name,
+    Length,
+}
+
+private const val MIN_GPS_INTERVAL_SECONDS = 1
+private const val MAX_GPS_INTERVAL_SECONDS = 30
+
 @Composable
-private fun TrailLiteTheme(content: @Composable () -> Unit) {
+private fun TrailLiteTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = Color(0xFF17324D),
-            secondary = Color(0xFFFF5733),
-            surface = Color.White,
-            background = Color(0xFFEEF2F3),
-        ),
+        colorScheme = if (darkTheme) {
+            darkColorScheme(
+                primary = Color(0xFFA8C7E8),
+                secondary = Color(0xFFFFB4A4),
+                surface = Color(0xFF171C20),
+                background = Color(0xFF101417),
+            )
+        } else {
+            lightColorScheme(
+                primary = Color(0xFF17324D),
+                secondary = Color(0xFFFF5733),
+                surface = Color.White,
+                background = Color(0xFFEEF2F3),
+            )
+        },
         content = content,
     )
 }
@@ -340,11 +397,11 @@ private fun TrailLiteTheme(content: @Composable () -> Unit) {
 private fun TrailLiteScreen(
     state: TrailLiteUiState,
     onMapReady: (MapView, MapLibreMap) -> Unit,
-    onImportMap: () -> Unit,
-    onImportTrack: () -> Unit,
     onShowRoutes: () -> Unit,
     onDismissRoutes: () -> Unit,
+    onAddRoute: () -> Unit,
     onRouteSearchChange: (String) -> Unit,
+    onRouteSortChange: (RouteSortMode) -> Unit,
     onSelectRoute: (BundledRoute) -> Unit,
     onShowMapSettings: () -> Unit,
     onDismissMapSettings: () -> Unit,
@@ -353,25 +410,29 @@ private fun TrailLiteScreen(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         TrailMap(onMapReady = onMapReady)
-        TopControls(
+        if (state.mapLayerSettings.showMapInfo || state.mapLayerSettings.showRouteInfo) {
+            TopInfoCards(
+                state = state,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        }
+        BottomControls(
             state = state,
-            onImportMap = onImportMap,
-            onImportTrack = onImportTrack,
             onShowRoutes = onShowRoutes,
             onShowMapSettings = onShowMapSettings,
             onToggleTracking = onToggleTracking,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
-        BottomStatus(
-            state = state,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
         if (state.showRoutePicker) {
             RoutePickerDialog(
                 routes = state.bundledRoutes,
                 query = state.routeSearchQuery,
+                sortMode = state.routeSortMode,
+                currentLocation = state.currentLocation,
                 onDismiss = onDismissRoutes,
+                onAddRoute = onAddRoute,
                 onQueryChange = onRouteSearchChange,
+                onSortChange = onRouteSortChange,
                 onSelectRoute = onSelectRoute,
             )
         }
@@ -386,55 +447,101 @@ private fun TrailLiteScreen(
 }
 
 @Composable
-private fun TopControls(
+private fun BottomControls(
     state: TrailLiteUiState,
-    onImportMap: () -> Unit,
-    onImportTrack: () -> Unit,
     onShowRoutes: () -> Unit,
     onShowMapSettings: () -> Unit,
     onToggleTracking: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .background(Color.White.copy(alpha = 0.94f)),
+            .navigationBarsPadding(),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 6.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "TrailLite",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            OutlinedButton(onClick = onImportMap) {
-                Text("Map")
+        Column {
+            if (state.busy) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
-            OutlinedButton(onClick = onShowRoutes) {
-                Text("Routes")
-            }
-            OutlinedButton(onClick = onShowMapSettings) {
-                Text("Layers")
-            }
-            Button(
-                onClick = onImportTrack,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("GPX")
-            }
-            TextButton(onClick = onToggleTracking) {
-                Text(if (state.tracking) "Stop" else "Start")
+                Text(
+                    text = "TrailLite",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    modifier = Modifier.widthIn(max = 82.dp),
+                    overflow = TextOverflow.Ellipsis,
+                )
+                CommandButton(
+                    icon = if (state.tracking) "■" else "▶",
+                    label = if (state.tracking) "Stop" else "Start",
+                    onClick = onToggleTracking,
+                    primary = true,
+                    modifier = Modifier.weight(1f),
+                )
+                CommandButton(
+                    icon = "◇",
+                    label = "Routes",
+                    onClick = onShowRoutes,
+                    modifier = Modifier.weight(1f),
+                )
+                CommandButton(
+                    icon = "≡",
+                    label = "Settings",
+                    onClick = onShowMapSettings,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
-        if (state.busy) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun CommandButton(
+    icon: String,
+    label: String,
+    onClick: () -> Unit,
+    primary: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val buttonContent: @Composable () -> Unit = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(icon, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+    if (primary) {
+        Button(
+            onClick = onClick,
+            shape = RoundedCornerShape(8.dp),
+            modifier = modifier,
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+        ) {
+            buttonContent()
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            shape = RoundedCornerShape(8.dp),
+            modifier = modifier,
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+        ) {
+            buttonContent()
         }
     }
 }
@@ -452,9 +559,14 @@ private fun MapSettingsDialog(
                 Text("Close")
             }
         },
-        title = { Text("Map layers") },
+        title = { Text("Settings") },
         text = {
             Column(modifier = Modifier.widthIn(max = 420.dp)) {
+                Text(
+                    text = "Map layers",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 LayerSwitchRow(
                     label = "Street names",
                     checked = settings.streetNames,
@@ -475,9 +587,77 @@ private fun MapSettingsDialog(
                     checked = settings.minorPaths,
                     onCheckedChange = { onChange(settings.copy(minorPaths = it)) },
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "GPS refresh",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                GpsIntervalStepper(
+                    seconds = settings.locationIntervalSeconds,
+                    onChange = { seconds -> onChange(settings.copy(locationIntervalSeconds = seconds)) },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Display",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                LayerSwitchRow(
+                    label = "Dark theme",
+                    checked = settings.darkTheme,
+                    onCheckedChange = { onChange(settings.copy(darkTheme = it)) },
+                )
+                LayerSwitchRow(
+                    label = "Map info card",
+                    checked = settings.showMapInfo,
+                    onCheckedChange = { onChange(settings.copy(showMapInfo = it)) },
+                )
+                LayerSwitchRow(
+                    label = "Route info card",
+                    checked = settings.showRouteInfo,
+                    onCheckedChange = { onChange(settings.copy(showRouteInfo = it)) },
+                )
             }
         },
     )
+}
+
+@Composable
+private fun GpsIntervalStepper(
+    seconds: Int,
+    onChange: (Int) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = { onChange((seconds - 1).coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS)) },
+            enabled = seconds > MIN_GPS_INTERVAL_SECONDS,
+        ) {
+            Text("-1")
+        }
+        TextField(
+            value = seconds.toString(),
+            onValueChange = { value ->
+                val parsed = value.filter { it.isDigit() }.toIntOrNull() ?: return@TextField
+                onChange(parsed.coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS))
+            },
+            modifier = Modifier.width(96.dp),
+            singleLine = true,
+            label = { Text("sec") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+        )
+        OutlinedButton(
+            onClick = { onChange((seconds + 1).coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS)) },
+            enabled = seconds < MAX_GPS_INTERVAL_SECONDS,
+        ) {
+            Text("+1")
+        }
+    }
 }
 
 @Composable
@@ -509,13 +689,17 @@ private fun LayerSwitchRow(
 private fun RoutePickerDialog(
     routes: List<BundledRoute>,
     query: String,
+    sortMode: RouteSortMode,
+    currentLocation: GeoPoint?,
     onDismiss: () -> Unit,
+    onAddRoute: () -> Unit,
     onQueryChange: (String) -> Unit,
+    onSortChange: (RouteSortMode) -> Unit,
     onSelectRoute: (BundledRoute) -> Unit,
 ) {
-    val filteredRoutes = routes.filter { route ->
-        query.isBlank() || route.title.contains(query, ignoreCase = true)
-    }
+    val filteredRoutes = routes
+        .filter { route -> query.isBlank() || route.title.contains(query, ignoreCase = true) }
+        .sortedWith(routeComparator(sortMode, currentLocation))
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -526,6 +710,10 @@ private fun RoutePickerDialog(
         title = { Text("Routes") },
         text = {
             Column(modifier = Modifier.widthIn(max = 520.dp)) {
+                Button(onClick = onAddRoute, modifier = Modifier.fillMaxWidth()) {
+                    Text("Add route")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 TextField(
                     value = query,
                     onValueChange = onQueryChange,
@@ -533,6 +721,27 @@ private fun RoutePickerDialog(
                     singleLine = true,
                     label = { Text("Search routes") },
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    RouteSortButton(
+                        label = "Nearby",
+                        selected = sortMode == RouteSortMode.Nearby,
+                        onClick = { onSortChange(RouteSortMode.Nearby) },
+                    )
+                    RouteSortButton(
+                        label = "A-Z",
+                        selected = sortMode == RouteSortMode.Name,
+                        onClick = { onSortChange(RouteSortMode.Name) },
+                    )
+                    RouteSortButton(
+                        label = "Length",
+                        selected = sortMode == RouteSortMode.Length,
+                        onClick = { onSortChange(RouteSortMode.Length) },
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "${filteredRoutes.size} routes",
@@ -554,7 +763,7 @@ private fun RoutePickerDialog(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "${route.lengthLabel()} | ${route.durationText}",
+                                text = route.subtitle(sortMode, currentLocation),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -567,6 +776,54 @@ private fun RoutePickerDialog(
     )
 }
 
+@Composable
+private fun RouteSortButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Button(onClick = onClick) {
+            Text(label)
+        }
+    } else {
+        OutlinedButton(onClick = onClick) {
+            Text(label)
+        }
+    }
+}
+
+private fun routeComparator(sortMode: RouteSortMode, currentLocation: GeoPoint?): Comparator<BundledRoute> {
+    return when (sortMode) {
+        RouteSortMode.Nearby -> compareBy<BundledRoute>(
+            { route -> route.distanceFrom(currentLocation) ?: Double.POSITIVE_INFINITY },
+            { route -> route.title.lowercase(Locale.getDefault()) },
+        )
+        RouteSortMode.Name -> compareBy { route -> route.title.lowercase(Locale.getDefault()) }
+        RouteSortMode.Length -> compareBy<BundledRoute>(
+            { route -> route.lengthKm },
+            { route -> route.title.lowercase(Locale.getDefault()) },
+        )
+    }
+}
+
+private fun BundledRoute.subtitle(sortMode: RouteSortMode, currentLocation: GeoPoint?): String {
+    val base = "${lengthLabel()} | $durationText"
+    if (sortMode != RouteSortMode.Nearby) return base
+    val distance = distanceFrom(currentLocation)?.formatDistance() ?: "--"
+    return "$distance away | $base"
+}
+
+private fun BundledRoute.distanceFrom(location: GeoPoint?): Double? {
+    val routeBounds = bounds ?: return null
+    val current = location ?: return null
+    val nearest = GeoPoint(
+        latitude = current.latitude.coerceIn(routeBounds.minLat, routeBounds.maxLat),
+        longitude = current.longitude.coerceIn(routeBounds.minLon, routeBounds.maxLon),
+    )
+    return current.distanceTo(nearest)
+}
+
 private fun BundledRoute.lengthLabel(): String {
     val km = if (lengthKm % 1.0 == 0.0) {
         lengthKm.toInt().toString()
@@ -577,67 +834,108 @@ private fun BundledRoute.lengthLabel(): String {
 }
 
 @Composable
-private fun BottomStatus(
+private fun TopInfoCards(
     state: TrailLiteUiState,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding(),
-        color = Color.White.copy(alpha = 0.94f),
-        shadowElevation = 2.dp,
+            .statusBarsPadding()
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(
-                text = state.status,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "Map: ${state.mapName ?: "none"}",
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "Track: ${state.trackName ?: "none"} (${state.trackPointCount} pts)",
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = state.locationText,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            state.navigation?.let { navigation ->
-                Spacer(modifier = Modifier.height(6.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(6.dp))
+        if (state.mapLayerSettings.showMapInfo) {
+            FloatingInfoCard {
                 Text(
-                    text = if (navigation.isOffRoute) {
-                        "Off route by ${navigation.distanceToRouteMeters.formatDistance()}"
-                    } else {
-                        "On route (${navigation.distanceToRouteMeters.formatDistance()} from line)"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Map",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (navigation.isOffRoute) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${state.status} | ${state.mapName ?: "none"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "Progress ${navigation.progressPercent}% | remaining ${navigation.remainingDistanceMeters.formatDistance()}",
+                    text = "Zoom: ${state.mapZoom?.let { "%.1f".format(Locale.US, it) } ?: "--"}",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
+        if (state.mapLayerSettings.showRouteInfo) {
+            FloatingInfoCard {
+                Text(
+                    text = "Route",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${state.trackName ?: "none"} (${state.trackPointCount} pts)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = state.locationText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                state.navigation?.let { navigation ->
+                    Text(
+                        text = if (navigation.isOffRoute) {
+                            "Off route by ${navigation.distanceToRouteMeters.formatDistance()}"
+                        } else {
+                            "On route (${navigation.distanceToRouteMeters.formatDistance()} from line)"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (navigation.isOffRoute) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "Progress ${navigation.progressPercent}% | remaining ${navigation.remainingDistanceMeters.formatDistance()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingInfoCard(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 4.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            content = content,
+        )
     }
 }
 

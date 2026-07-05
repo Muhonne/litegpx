@@ -53,6 +53,139 @@ The current off-route threshold is 75 meters.
 
 ## Data Formats
 
+## Main Use Cases And User Flows
+
+The main product behavior is defined in Gherkin-style scenarios so implementation, manual testing, and documentation stay aligned.
+
+```gherkin
+Feature: Mobile offline route navigation
+  TrailLite mobile lets the user select an offline GPX route and track their current position against it.
+
+  Scenario: Select a bundled route
+    Given the Android app is installed with bundled GPX routes
+    And the bundled offline map packages are available in app assets
+    When the user opens the route list
+    And selects a route
+    Then the route is drawn on the offline map
+    And the route name, point count, and distance are shown
+    And the app remains usable without network access
+
+  Scenario: Track position against the selected route
+    Given a route is selected
+    And location permission is granted
+    When the user starts GPS tracking
+    Then the app updates the current position on the map
+    And the map follows the current position during tracking
+    And the navigation readout shows route progress, remaining distance, and on-route/off-route status
+
+  Scenario: Adjust tracking settings
+    Given the app is open
+    When the user opens Settings
+    Then the user can adjust the GPS refresh interval
+    And the user can toggle light or dark display behavior
+    And the user can show or hide the Map info card and Route info card independently
+```
+
+```gherkin
+Feature: Web GPX route creation
+  TrailLite GPX Builder lets the user create mobile-compatible GPX routes on desktop.
+
+  Scenario: Draw a new route by dragging on the map
+    Given the web app is open in view mode
+    And no route points exist
+    When the user presses "Draw route"
+    And drags the mouse across the map
+    Then the app adds route points along the drag path
+    And the route is shown in edit mode using the edit route color
+    And the route distance and point count update
+
+  Scenario: Finish and save a drawn route
+    Given the user has drawn at least two route points
+    And the route has a name
+    When the user presses "Done"
+    Then the app returns to view mode
+    When the user presses "Save route"
+    Then the browser downloads a GPX 1.1 file
+    And the GPX contains TrailLite-compatible track points in route order
+
+  Scenario: Undo route drawing mistakes
+    Given the user is editing a route
+    And route point edits have been made
+    When the user presses "Undo"
+    Then the most recent point edit is reverted
+    And the route distance and point count update
+```
+
+```gherkin
+Feature: Web GPX import and editing
+  TrailLite GPX Builder lets the user inspect existing GPX files and edit a copy.
+
+  Scenario: Import a valid GPX file for viewing
+    Given the web app is open
+    When the user imports a valid GPX file
+    Then the route is parsed from GPX track points
+    And the route is shown on the map in view mode
+    And the route name, distance, and point count are shown
+
+  Scenario: Edit an imported GPX copy
+    Given a GPX route has been imported
+    When the user presses "Edit route"
+    Then the app creates an editable copy
+    And edits do not mutate the original imported file
+    And the user can drag, insert, delete, draw, or undo route points
+
+  Scenario: Reject a broken GPX file
+    Given the user has selected a broken GPX file
+    When the app cannot parse usable track points
+    Then the app shows a simple browser alert
+    And the current route remains unchanged
+```
+
+```gherkin
+Feature: Web map data management
+  TrailLite GPX Builder renders broad map context and can download local detail data for selected areas.
+
+  Scenario: Render full planning map context
+    Given the web app is open
+    When the map loads
+    Then the full map viewport is drawn with broad Finland map context
+    And the mobile bundled PMTiles package is loaded as a local detail overlay
+    And every stored map data service dataset is loaded as an additional detail overlay
+
+  Scenario: Download detail data for a rectangle
+    Given the local map data service is running
+    When the user presses "Draw area"
+    And drags a rectangle on the map
+    Then the selected bbox is shown temporarily
+    And "Download area map" becomes enabled
+    When the user presses "Download area map"
+    Then the service extracts a base PMTiles package for the bbox
+    And the service extracts a Finnish provider overlay for the same bbox
+    And the web app loads both outputs as detail overlays
+    And the temporary rectangle is cleared after a successful download
+
+  Scenario: Reuse previously downloaded map data
+    Given map data packages already exist under mapdataservice/output
+    When the web app starts
+    Then it lists stored datasets from the local service
+    And it loads those datasets as map overlays without downloading them again
+```
+
+```gherkin
+Feature: Save web-created routes into the mobile workspace
+  TrailLite GPX Builder can write a route and its corridor map data into the Android project for local builds.
+
+  Scenario: Save route and corridor data to mobile
+    Given the user has a named route with at least two points
+    And the local map data service is running
+    When the user presses "Save to mobile"
+    Then the service writes the GPX under mobile/app/src/main/assets/routes
+    And the service updates the bundled route catalog
+    And the service extracts corridor map data for the route
+    And the service writes the Android bundled PMTiles packages under shared/maps
+    And the next Android build can include the route and required offline map data
+```
+
 ### Imported GPX
 
 The mobile app currently parses only GPX track points:
@@ -280,10 +413,11 @@ Editing behavior:
 Decisions:
 
 - V1 uses manual route geometry. Automatic road/path routing is out of scope for the first version.
-- The web app must use the same map data as the mobile application.
-- The initial map data source is the shared PMTiles package: `shared/maps/finland.pmtiles`.
-- Longer-term map data should be shared at the workspace level so mobile and web use the same dataset.
-- The exact shared dataset and asset pipeline will be sorted out later.
+- The web app renders a broad Protomaps PMTiles source as the planning base so the full map viewport is always drawn.
+- The web app also loads the same local PMTiles files used by mobile from `shared/maps/` as detail overlays.
+- Stored map data service outputs are reused as additional detail overlays instead of being downloaded again.
+- Mobile uses the bundled shared PMTiles files from `shared/maps/` for offline use.
+- The map data service can create route-corridor extracts for mobile and bbox extracts for web planning.
 - V1 is Finland-only, with the practical target area being southern Finland.
 
 Option A: manual polyline editor
@@ -347,11 +481,12 @@ Current compatible handoff paths:
 - Download `.gpx` from the web app, then open/import it on Android.
 - Share or copy the `.gpx` file to the Android device.
 - Open the file in TrailLite through Android document picker or compatible `ACTION_VIEW`.
+- Use the local "Save to mobile app" workflow during development to write the GPX, update the bundled route catalog, and generate corridor map data for the Android project.
 
 Decision:
 
-- A plain `.gpx` download button is enough for v1.
-- The web app does not need Android-specific handoff instructions in v1.
+- A plain `.gpx` download button remains the portable user-facing handoff.
+- The local workspace can additionally save a route and corridor map data directly into `mobile/app/src/main/assets/routes/` and `shared/maps/` for Android builds.
 - Direct web-to-mobile app links are deferred unless they become a product requirement later.
 
 ### Success Criteria
@@ -432,7 +567,7 @@ Recommended implementation shape:
 
 ### Map Rendering
 
-The web app needs a browser map renderer that can display the same PMTiles dataset used by mobile.
+The web app needs a browser map renderer that can display broad Finland map context while also rendering the same local PMTiles datasets used by mobile.
 
 Recommended stack:
 
@@ -442,7 +577,12 @@ Recommended stack:
 
 Map constraints:
 
-- Use the same map data as the mobile application.
+- Use a broad Protomaps PMTiles source as the desktop planning base so the full map viewport renders even when the mobile bundle is a route corridor extract.
+- Load the mobile bundled PMTiles files from `shared/maps/` as local detail overlays, including provider overlays when present.
+- Load every stored map data service output as additional detail overlays.
+- Keep map data composition clean: the broad base source owns land, water, boundaries, and place context; local detail overlays contribute roads, paths, buildings, POIs, and labels only.
+- In the web app, Protomaps bbox extracts are stored and counted as downloaded map data, but they are not rendered as extra detail because the full Protomaps source is already the visible base. Finnish provider PMTiles overlays are the rendered downloaded detail.
+- Do not clone broad fill layers such as water or landcover into clipped detail overlays because route-corridor and bbox extracts can render as large visual artefacts.
 - V1 target area is southern Finland.
 - Shared workspace-level map assets are the desired direction.
 - Use `shared/maps/` for shared PMTiles datasets.

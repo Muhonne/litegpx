@@ -1,0 +1,10 @@
+{
+  "name": "traillite-mapdataservice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@maplibre/geojson-vt": "^6.1.1",
+    "@maplibre/vt-pbf": "^4.3.2"
+  }
+}

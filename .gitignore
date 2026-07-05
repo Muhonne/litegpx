@@ -5,6 +5,9 @@ local.properties
 *.iml
 .idea/
 .DS_Store
+.env
 web/tests/manual/*.png
-shared/maps/*.pmtiles
+shared/maps/
+mapdataservice/cache/
+mapdataservice/node_modules/
 mapdataservice/output/

@@ -136,3 +136,14 @@ Scenario: View stored map data status
   Given the app has base and detail map datasets available
   Then the sidebar shows the total map data size
   And the map uses every stored dataset when rendering visible map detail
+
+Scenario: Download detail map data for a rectangle
+  Given the local map data service is running
+  When I press "Draw area"
+  And I drag a rectangle on the map
+  Then the rectangle is shown as a temporary selection
+  And "Download area map" becomes enabled
+  When I press "Download area map"
+  Then the service extracts base and Finnish-provider PMTiles for that bbox
+  And the web app adds both datasets as detail overlays
+  And the temporary rectangle is cleared after a successful download

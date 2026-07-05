@@ -1,0 +1,34 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kohdeluokka": 12314,
+        "nimi": "Fixture path"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [24.846, 60.214],
+          [24.852, 60.218],
+          [24.858, 60.222]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kohdeluokka": 12121,
+        "nimi": "Fixture road"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [24.862, 60.214],
+          [24.870, 60.219]
+        ]
+      }
+    }
+  ]
+}

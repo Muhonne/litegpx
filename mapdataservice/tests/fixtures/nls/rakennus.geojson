@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kohdeluokka": 42211,
+        "nimi": "Fixture building"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [24.854, 60.216],
+            [24.856, 60.216],
+            [24.856, 60.218],
+            [24.854, 60.218],
+            [24.854, 60.216]
+          ]
+        ]
+      }
+    }
+  ]
+}

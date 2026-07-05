@@ -1,24 +1,52 @@
 const FINLAND_CENTER = [24.94, 60.24];
-const VIEW_ROUTE_COLOR = "#FF5733";
+const VIEW_ROUTE_COLOR = "#D83A1D";
 const EDIT_ROUTE_COLOR = "#1D73D4";
 const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
 const MAX_VISIBLE_ROUTE_POINTS = 300;
 const SNAP_TOLERANCE_PIXELS = 16;
-const DEFAULT_MAP_URL = `${window.location.origin}/shared/maps/finland.pmtiles`;
+const FULL_BASE_MAP_URL = "https://build.protomaps.com/20260703.pmtiles";
+const LOCAL_BASE_MAP_URL = `${window.location.origin}/shared/maps/finland.pmtiles`;
+const SHARED_DETAIL_MAPS = [
+  { url: LOCAL_BASE_MAP_URL, name: "Android bundled map", kind: "base-extract" },
+  { url: `${window.location.origin}/shared/maps/finland.providers.pmtiles`, name: "Android provider overlay", kind: "provider" },
+];
 const MAP_DATASETS_URL = "http://localhost:5174/api/datasets";
+const EXTRACT_BBOX_URL = "http://localhost:5174/api/extract-bbox";
 const MOBILE_SAVE_URL = "http://localhost:5174/api/save-mobile-route";
 const BASE_MAP_SOURCE_ID = "osm";
 const DETAIL_MAP_STORAGE_KEY = "traillite.detailMaps.v1";
 const SNAP_LINE_LAYER_IDS = ["roads-major", "roads-minor", "paths-highlight"];
+const BROAD_BASE_LAYER_IDS = new Set([
+  "earth",
+  "landuse-green",
+  "landcover-park",
+  "water",
+  "boundaries",
+  "waterway",
+  "place-names",
+]);
 
 const LAYER_GROUPS = {
   streetNames: ["street-names"],
   pois: ["poi-dots", "poi-names"],
   buildings: ["buildings"],
-  minorPaths: ["paths-highlight", "roads-minor"],
+  minorPaths: ["paths-highlight-casing", "paths-highlight", "roads-minor-casing", "roads-minor"],
 };
+const DETAIL_OVERLAY_LAYER_IDS = new Set([
+  "buildings",
+  "roads-minor-casing",
+  "roads-minor",
+  "paths-highlight-casing",
+  "paths-highlight",
+  "roads-major-casing",
+  "roads-major",
+  "street-names",
+  "poi-dots",
+  "poi-names",
+]);
+const RENDERED_DETAIL_KINDS = new Set(["provider"]);
 
 const PLACE_INDEX = [
   { name: "Helsinki", aliases: ["helsingfors"], center: [24.9384, 60.1699] },
@@ -50,6 +78,9 @@ const elements = {
   gpxInput: document.getElementById("gpxInput"),
   searchForm: document.getElementById("searchForm"),
   searchInput: document.getElementById("searchInput"),
+  drawAreaButton: document.getElementById("drawAreaButton"),
+  downloadAreaButton: document.getElementById("downloadAreaButton"),
+  areaStatusText: document.getElementById("areaStatusText"),
   streetNamesToggle: document.getElementById("streetNamesToggle"),
   poisToggle: document.getElementById("poisToggle"),
   buildingsToggle: document.getElementById("buildingsToggle"),
@@ -81,13 +112,18 @@ const state = {
   drawingRoute: false,
   pendingRouteDraw: false,
   pendingDrawPoint: null,
+  areaSelectMode: false,
+  drawingArea: false,
+  areaStartPoint: null,
+  selectedAreaBbox: null,
+  areaDownloadBusy: false,
   drawStartPoints: null,
   drawAddedPointCount: 0,
   hoveredPointId: null,
   skipNextMapClick: false,
   suppressMapClickUntil: 0,
   lastExportedGpx: "",
-  mapSourceUrl: DEFAULT_MAP_URL,
+  mapSourceUrl: FULL_BASE_MAP_URL,
   detailMaps: [],
   dataset: {
     baseBytes: null,
@@ -112,6 +148,7 @@ async function init() {
   await initMap();
   bindUi();
   bindKeyboardShortcuts();
+  loadSharedDetailMaps();
   restorePersistedDetailMaps();
   refreshStoredDetailMaps();
   refreshBaseDatasetSize();
@@ -136,14 +173,31 @@ async function initMap() {
 
   map.on("load", () => {
     syncMapOverlays();
+    queueLayerSettingsApply();
     setStatus("Map view ready.");
   });
 
   map.on("style.load", () => {
     syncMapOverlays();
+    queueLayerSettingsApply();
+  });
+
+  map.on("idle", () => {
+    applyLayerSettings();
   });
 
   map.on("mousedown", (event) => {
+    if (state.areaSelectMode) {
+      event.preventDefault();
+      state.drawingArea = true;
+      state.areaStartPoint = [event.lngLat.lng, event.lngLat.lat];
+      state.selectedAreaBbox = null;
+      map.dragPan.disable();
+      ensureAreaLayers();
+      updateAreaOverlay();
+      updateMapCursor();
+      return;
+    }
     if (state.mode !== "edit" || state.shiftKeyDown) return;
     if (shouldSuppressMapClick()) return;
     if (state.routePointHover || state.draggingPointIndex != null) return;
@@ -153,6 +207,13 @@ async function initMap() {
   });
 
   map.on("mousemove", (event) => {
+    if (state.drawingArea && state.areaStartPoint) {
+      state.selectedAreaBbox = bboxFromPoints(state.areaStartPoint, [event.lngLat.lng, event.lngLat.lat]);
+      ensureAreaLayers();
+      updateAreaOverlay();
+      renderSidebar();
+      return;
+    }
     if (state.pendingRouteDraw && state.pendingDrawPoint) {
       const point = [event.lngLat.lng, event.lngLat.lat];
       if (distanceBetween(state.pendingDrawPoint, point) >= FREEHAND_MIN_DISTANCE_METERS) {
@@ -244,7 +305,7 @@ async function loadStyle() {
   const response = await fetch("../shared/styles/style_template.json");
   const style = await response.json();
   style.glyphs = `${window.location.origin}/shared/glyphs/{fontstack}/{range}.pbf`;
-  style.sources[BASE_MAP_SOURCE_ID].url = `pmtiles://${DEFAULT_MAP_URL}`;
+  style.sources[BASE_MAP_SOURCE_ID].url = `pmtiles://${FULL_BASE_MAP_URL}`;
   return style;
 }
 
@@ -253,7 +314,9 @@ function syncMapOverlays() {
   ensureDetailMapLayers();
   applyLayerSettings();
   ensureRouteLayers();
+  ensureAreaLayers();
   updateMapRoute();
+  updateAreaOverlay();
 }
 
 function bindUi() {
@@ -282,6 +345,8 @@ function bindUi() {
   });
   elements.exportButton.addEventListener("click", () => downloadGpx());
   elements.mobileSaveButton.addEventListener("click", () => saveRouteToMobileApp());
+  elements.drawAreaButton.addEventListener("click", () => toggleAreaSelectMode());
+  elements.downloadAreaButton.addEventListener("click", () => downloadSelectedAreaMap());
   elements.searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     locateSearchQuery();
@@ -383,7 +448,7 @@ function bindLayerToggle(element, settingKey) {
 }
 
 function applyLayerSettings() {
-  if (!map?.isStyleLoaded()) return;
+  if (!map) return;
   Object.entries(LAYER_GROUPS).forEach(([settingKey]) => {
     layerIdsForSetting(settingKey).forEach((layerId) => {
       if (!map.getLayer(layerId)) return;
@@ -393,6 +458,15 @@ function applyLayerSettings() {
         state.layerSettings[settingKey] ? "visible" : "none",
       );
     });
+  });
+}
+
+function queueLayerSettingsApply() {
+  [0, 100, 500, 1200, 2500, 5000].forEach((delay) => {
+    window.setTimeout(() => {
+      ensureDetailMapLayers();
+      applyLayerSettings();
+    }, delay);
   });
 }
 
@@ -430,8 +504,8 @@ function addDetailMap(url, options = {}) {
     if (options.sizeBytes != null) existing.sizeBytes = options.sizeBytes;
     if (options.name) existing.name = options.name;
     if (options.cacheKey) existing.cacheKey = options.cacheKey;
+    if (options.kind) existing.kind = options.kind;
     existing.sizeLoading = existing.sizeBytes == null;
-    state.mapSourceUrl = url;
     ensureDetailMapLayers();
     if (options.persist !== false) persistDetailMaps();
     if (existing.sizeLoading) loadDetailDatasetSize(existing);
@@ -443,17 +517,28 @@ function addDetailMap(url, options = {}) {
     sourceId,
     url,
     name: options.name || url.split("/").pop() || "detail map",
+    kind: options.kind || classifyDetailMapKind(url, options.name),
     cacheKey: options.cacheKey || null,
     sizeBytes: Number.isFinite(options.sizeBytes) ? options.sizeBytes : null,
     sizeLoading: !Number.isFinite(options.sizeBytes),
   };
   state.detailMaps = [...state.detailMaps, detailMap];
-  state.mapSourceUrl = url;
   ensureDetailMapLayers();
   applyLayerSettings();
+  queueLayerSettingsApply();
   if (options.persist !== false) persistDetailMaps();
   if (detailMap.sizeLoading) loadDetailDatasetSize(detailMap);
   renderSidebar();
+}
+
+function loadSharedDetailMaps() {
+  SHARED_DETAIL_MAPS.forEach((detailMap) => {
+    addDetailMap(detailMap.url, {
+      name: detailMap.name,
+      kind: detailMap.kind,
+      persist: false,
+    });
+  });
 }
 
 function restorePersistedDetailMaps() {
@@ -468,6 +553,7 @@ function restorePersistedDetailMaps() {
     if (!detailMap?.url) return;
     addDetailMap(detailMap.url, {
       name: detailMap.name,
+      kind: detailMap.kind || classifyDetailMapKind(detailMap.url, detailMap.name),
       cacheKey: detailMap.cacheKey,
       sizeBytes: detailMap.sizeBytes,
       persist: false,
@@ -485,6 +571,7 @@ async function refreshStoredDetailMaps() {
       if (!dataset.url) return;
       addDetailMap(dataset.url, {
         name: dataset.name,
+        kind: classifyDetailMapKind(dataset.url, dataset.name),
         cacheKey: dataset.cacheKey,
         sizeBytes: dataset.sizeBytes,
       });
@@ -496,10 +583,11 @@ async function refreshStoredDetailMaps() {
 
 function persistDetailMaps() {
   const persisted = state.detailMaps
-    .filter((detailMap) => detailMap.url !== DEFAULT_MAP_URL)
+    .filter((detailMap) => !SHARED_DETAIL_MAPS.some((sharedMap) => sharedMap.url === detailMap.url))
     .map((detailMap) => ({
       url: detailMap.url,
       name: detailMap.name,
+      kind: detailMap.kind,
       cacheKey: detailMap.cacheKey,
       sizeBytes: detailMap.sizeBytes,
     }));
@@ -510,7 +598,7 @@ async function refreshBaseDatasetSize() {
   state.dataset.baseLoading = true;
   renderSidebar();
   try {
-    state.dataset.baseBytes = await fetchDatasetSize(DEFAULT_MAP_URL);
+    state.dataset.baseBytes = await fetchDatasetSize(LOCAL_BASE_MAP_URL);
   } catch {
     state.dataset.baseBytes = null;
   } finally {
@@ -545,20 +633,17 @@ async function fetchDatasetSize(url) {
 function ensureDetailMapLayers() {
   if (!map?.isStyleLoaded()) return;
   state.detailMaps.forEach((detailMap) => {
+    if (!RENDERED_DETAIL_KINDS.has(detailMap.kind)) return;
     if (!map.getSource(detailMap.sourceId)) {
       map.addSource(detailMap.sourceId, {
         type: "vector",
         url: `pmtiles://${detailMap.url}`,
       });
     }
-    baseMapLayers().forEach((layer) => {
+    detailOverlayBaseLayers().forEach((layer) => {
       const layerId = detailLayerId(detailMap.sourceId, layer.id);
       if (map.getLayer(layerId)) return;
-      const detailLayer = {
-        ...structuredClone(layer),
-        id: layerId,
-        source: detailMap.sourceId,
-      };
+      const detailLayer = detailLayerForMap(detailMap, layer, layerId);
       map.addLayer(detailLayer, firstOverlayLayerId());
     });
   });
@@ -568,8 +653,96 @@ function baseMapLayers() {
   return map.getStyle().layers.filter((layer) => layer.source === BASE_MAP_SOURCE_ID);
 }
 
+function detailOverlayBaseLayers() {
+  return baseMapLayers().filter((layer) =>
+    DETAIL_OVERLAY_LAYER_IDS.has(layer.id) && !BROAD_BASE_LAYER_IDS.has(layer.id),
+  );
+}
+
+function detailLayerForMap(detailMap, layer, layerId) {
+  const detailLayer = {
+    ...structuredClone(layer),
+    id: layerId,
+    source: detailMap.sourceId,
+  };
+  if (detailMap.kind !== "provider") return detailLayer;
+  detailLayer.paint = {
+    ...(detailLayer.paint || {}),
+    ...providerLayerPaintOverrides(layer.id),
+  };
+  if (layer.id === "buildings") {
+    detailLayer.minzoom = Math.min(layer.minzoom || 13, 13);
+  }
+  return detailLayer;
+}
+
+function providerLayerPaintOverrides(layerId) {
+  if (layerId === "roads-major-casing") {
+    return {
+      "line-color": "#EAF4FF",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 7, 1.8, 15, 6.6],
+      "line-opacity": 0.88,
+    };
+  }
+  if (layerId === "roads-major") {
+    return {
+      "line-color": "#0B5CAD",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 7, 1.1, 15, 4.8],
+      "line-opacity": 0.9,
+    };
+  }
+  if (layerId === "roads-minor-casing" || layerId === "paths-highlight-casing") {
+    return {
+      "line-color": "#ECFDF5",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.4, 15, 4.5],
+      "line-opacity": 0.86,
+    };
+  }
+  if (layerId === "roads-minor") {
+    return {
+      "line-color": "#047857",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.7, 15, 3.2],
+      "line-opacity": 0.9,
+    };
+  }
+  if (layerId === "paths-highlight") {
+    return {
+      "line-color": "#6B8E23",
+      "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 15, 3.0],
+      "line-opacity": 0.95,
+      "line-dasharray": [1.2, 1.0],
+    };
+  }
+  if (layerId === "buildings") {
+    return {
+      "fill-color": "#70675D",
+      "fill-opacity": 0.58,
+    };
+  }
+  if (layerId === "poi-dots") {
+    return {
+      "circle-color": "#7C3AED",
+      "circle-opacity": 0.9,
+    };
+  }
+  if (layerId === "poi-names") {
+    return {
+      "text-color": "#4C1D95",
+      "text-halo-color": "#FFFFFF",
+      "text-halo-width": 1.3,
+    };
+  }
+  return {};
+}
+
 function detailLayerId(sourceId, layerId) {
   return `${sourceId}-${layerId}`;
+}
+
+function classifyDetailMapKind(url, name = "") {
+  const value = `${url} ${name}`.toLowerCase();
+  if (value.includes("providers.pmtiles") || value.includes("-finnish-")) return "provider";
+  return "base-extract";
 }
 
 function firstOverlayLayerId() {
@@ -646,7 +819,46 @@ function ensureRouteLayers() {
   }
 }
 
+function ensureAreaLayers() {
+  if (!map?.isStyleLoaded()) return;
+  if (!map.getSource("selected-area")) {
+    map.addSource("selected-area", {
+      type: "geojson",
+      data: areaFeatureCollection(),
+    });
+  }
+  if (!map.getLayer("selected-area-fill")) {
+    map.addLayer({
+      id: "selected-area-fill",
+      type: "fill",
+      source: "selected-area",
+      paint: {
+        "fill-color": "#1D73D4",
+        "fill-opacity": 0.18,
+      },
+    }, firstOverlayLayerId());
+  }
+  if (!map.getLayer("selected-area-outline")) {
+    map.addLayer({
+      id: "selected-area-outline",
+      type: "line",
+      source: "selected-area",
+      paint: {
+        "line-color": "#0B57C2",
+        "line-width": 3,
+        "line-dasharray": [2.2, 1.1],
+      },
+    }, firstOverlayLayerId());
+  }
+}
+
 function startEditing() {
+  if (state.areaSelectMode || state.drawingArea) {
+    state.areaSelectMode = false;
+    state.drawingArea = false;
+    state.areaStartPoint = null;
+    map.dragPan.enable();
+  }
   if (state.imported && !state.importedEditingCopy) {
     state.points = clonePoints(state.points);
     state.importedEditingCopy = true;
@@ -676,6 +888,7 @@ function updateMapCursor() {
 }
 
 function currentMapCursor() {
+  if (state.areaSelectMode || state.drawingArea) return "crosshair";
   if (state.drawingRoute) return "crosshair";
   if (state.draggingPointIndex != null) return "grabbing";
   if (state.routePointHover && state.mode === "edit") return "grab";
@@ -685,10 +898,14 @@ function currentMapCursor() {
 }
 
 function hasActivePointerEdit() {
-  return state.pendingRouteDraw || state.drawingRoute || state.draggingPointIndex != null;
+  return state.pendingRouteDraw || state.drawingRoute || state.drawingArea || state.draggingPointIndex != null;
 }
 
 function finishPointerEdit() {
+  if (state.drawingArea) {
+    finishAreaDraw();
+    return;
+  }
   if (state.pendingRouteDraw) {
     state.pendingRouteDraw = false;
     state.pendingDrawPoint = null;
@@ -783,6 +1000,42 @@ function finishRouteDraw() {
   render();
 }
 
+function toggleAreaSelectMode() {
+  state.areaSelectMode = !state.areaSelectMode;
+  state.drawingArea = false;
+  state.areaStartPoint = null;
+  if (state.areaSelectMode) {
+    if (state.mode === "edit") setMode("view");
+    map.dragPan.disable();
+    ensureAreaLayers();
+    updateAreaOverlay();
+    setStatus("Drag a rectangle to choose map data area.");
+  } else {
+    map.dragPan.enable();
+    setStatus("Area drawing cancelled.");
+  }
+  updateMapCursor();
+  renderSidebar();
+}
+
+function finishAreaDraw() {
+  state.drawingArea = false;
+  state.areaStartPoint = null;
+  state.areaSelectMode = false;
+  map.dragPan.enable();
+  updateMapCursor();
+  ensureAreaLayers();
+  updateAreaOverlay();
+  renderSidebar();
+  if (state.selectedAreaBbox && bboxAreaIsUsable(state.selectedAreaBbox)) {
+    setStatus("Map data area selected.");
+  } else {
+    state.selectedAreaBbox = null;
+    updateAreaOverlay();
+    setStatus("Map data area selection cancelled.");
+  }
+}
+
 function undoPointEdit() {
   const previous = state.undoStack.pop();
   if (!previous) return;
@@ -797,7 +1050,9 @@ function render() {
     return;
   }
   ensureRouteLayers();
+  ensureAreaLayers();
   updateMapRoute();
+  updateAreaOverlay();
   renderSidebar();
 }
 
@@ -806,14 +1061,17 @@ function renderSidebar() {
   const hasRoute = state.points.length > 0;
   const exportable = canExport();
   elements.modeBadge.textContent = state.mode === "edit" ? "Edit" : "View";
-  elements.newRouteButton.textContent = "Reset route";
-  elements.editButton.textContent = hasRoute ? "Edit route" : "Draw route";
+  setCommandButtonLabel(elements.newRouteButton, "Reset");
+  setCommandButtonLabel(elements.editButton, hasRoute ? "Edit route" : "Draw route");
   elements.editButton.disabled = editing;
   elements.doneButton.disabled = !editing;
   elements.undoButton.disabled = state.undoStack.length === 0;
   elements.clearButton.disabled = !hasRoute;
   elements.exportButton.disabled = !exportable;
   elements.mobileSaveButton.disabled = !exportable;
+  elements.drawAreaButton.disabled = state.areaDownloadBusy || editing;
+  elements.downloadAreaButton.disabled = !state.selectedAreaBbox || state.areaDownloadBusy;
+  elements.drawAreaButton.classList.toggle("active", state.areaSelectMode || state.drawingArea);
   elements.newRouteButton.hidden = editing || !hasRoute;
   elements.editButton.hidden = editing;
   elements.importButton.hidden = editing;
@@ -826,8 +1084,10 @@ function renderSidebar() {
   elements.poisToggle.checked = state.layerSettings.pois;
   elements.buildingsToggle.checked = state.layerSettings.buildings;
   elements.minorPathsToggle.checked = state.layerSettings.minorPaths;
+  applyLayerSettings();
   elements.snapToLinesToggle.checked = state.snapToLines;
   elements.snapToLinesOption.hidden = !editing;
+  elements.areaStatusText.textContent = areaStatusText();
   renderDatasetStats();
   renderShortcutContext();
   elements.distanceValue.textContent = formatDistance(totalDistance(state.points));
@@ -854,11 +1114,16 @@ function renderSidebar() {
   );
 }
 
+function setCommandButtonLabel(button, label) {
+  button.textContent = label;
+}
+
 function renderDatasetStats() {
-  const detailBytes = state.detailMaps.reduce((sum, detailMap) => (
+  const countedDetailMaps = countedDetailMapsForStats();
+  const detailBytes = countedDetailMaps.reduce((sum, detailMap) => (
     Number.isFinite(detailMap.sizeBytes) ? sum + detailMap.sizeBytes : sum
   ), 0);
-  const anyDetailLoading = state.detailMaps.some((detailMap) => detailMap.sizeLoading);
+  const anyDetailLoading = countedDetailMaps.some((detailMap) => detailMap.sizeLoading);
   const totalBytes = Number.isFinite(state.dataset.baseBytes) ? state.dataset.baseBytes + detailBytes : null;
 
   elements.baseDatasetSize.textContent = state.dataset.baseLoading
@@ -870,7 +1135,11 @@ function renderDatasetStats() {
   elements.totalDatasetSize.textContent = state.dataset.baseLoading || anyDetailLoading
     ? "Loading"
     : formatBytes(totalBytes);
-  elements.detailDatasetCount.textContent = String(state.detailMaps.length);
+  elements.detailDatasetCount.textContent = String(countedDetailMaps.length);
+}
+
+function countedDetailMapsForStats() {
+  return state.detailMaps.filter((detailMap) => detailMap.url !== LOCAL_BASE_MAP_URL);
 }
 
 function renderShortcutContext() {
@@ -897,6 +1166,11 @@ function updateMapRoute() {
   map.getSource("route").setData(routeFeatureCollection());
 }
 
+function updateAreaOverlay() {
+  if (!map?.getSource("selected-area")) return;
+  map.getSource("selected-area").setData(areaFeatureCollection());
+}
+
 function routeFeatureCollection() {
   const features = [];
   if (state.mode !== "edit" && state.points.length >= 2) {
@@ -919,6 +1193,54 @@ function routeFeatureCollection() {
     });
   });
   return { type: "FeatureCollection", features };
+}
+
+function areaFeatureCollection() {
+  if (!state.selectedAreaBbox || !bboxAreaIsUsable(state.selectedAreaBbox)) {
+    return { type: "FeatureCollection", features: [] };
+  }
+  const [minLon, minLat, maxLon, maxLat] = state.selectedAreaBbox;
+  return {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [minLon, minLat],
+          [maxLon, minLat],
+          [maxLon, maxLat],
+          [minLon, maxLat],
+          [minLon, minLat],
+        ]],
+      },
+    }],
+  };
+}
+
+function bboxFromPoints(first, second) {
+  return [
+    Math.min(first[0], second[0]),
+    Math.min(first[1], second[1]),
+    Math.max(first[0], second[0]),
+    Math.max(first[1], second[1]),
+  ];
+}
+
+function bboxAreaIsUsable(bbox) {
+  return Array.isArray(bbox) &&
+    bbox.length === 4 &&
+    bbox.every(Number.isFinite) &&
+    Math.abs(bbox[2] - bbox[0]) > 0.00005 &&
+    Math.abs(bbox[3] - bbox[1]) > 0.00005;
+}
+
+function areaStatusText() {
+  if (state.areaDownloadBusy) return "Downloading selected map data.";
+  if (state.areaSelectMode || state.drawingArea) return "Drag on the map to draw area.";
+  if (!state.selectedAreaBbox) return "No area selected.";
+  return `BBox ${state.selectedAreaBbox.map((value) => value.toFixed(6)).join(", ")}`;
 }
 
 function visibleRoutePointIndexes(pointCount) {
@@ -1020,6 +1342,48 @@ async function saveRouteToMobileApp() {
   } catch (error) {
     setStatus(`Mobile save failed: ${error.message}`, true);
   } finally {
+    renderSidebar();
+  }
+}
+
+async function downloadSelectedAreaMap() {
+  if (!state.selectedAreaBbox || state.areaDownloadBusy) return;
+  state.areaDownloadBusy = true;
+  renderSidebar();
+  setStatus("Downloading selected area map data.");
+  try {
+    const response = await fetch(EXTRACT_BBOX_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bbox: state.selectedAreaBbox,
+        name: `web-area-${new Date().toISOString().slice(0, 10)}`,
+        maxzoom: 15,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Area map download failed");
+    addDetailMap(payload.url, {
+      name: payload.name,
+      cacheKey: payload.cacheKey,
+      sizeBytes: payload.sizeBytes,
+    });
+    if (payload.provider?.url) {
+      addDetailMap(payload.provider.url, {
+        name: payload.provider.name || `${payload.name} providers`,
+        kind: "provider",
+        cacheKey: payload.provider.cacheKey,
+        sizeBytes: payload.provider.sizeBytes,
+      });
+    }
+    state.selectedAreaBbox = null;
+    updateAreaOverlay();
+    refreshStoredDetailMaps();
+    setStatus(`Downloaded area map: ${payload.name || "selected area"}.`);
+  } catch (error) {
+    setStatus(`Area map download failed: ${error.message}`, true);
+  } finally {
+    state.areaDownloadBusy = false;
     renderSidebar();
   }
 }
@@ -1285,15 +1649,17 @@ function exposeTestApi() {
       dataset: {
         baseBytes: state.dataset.baseBytes,
         baseLoading: state.dataset.baseLoading,
-        detailBytes: state.detailMaps.reduce((sum, detailMap) => (
+        detailBytes: countedDetailMapsForStats().reduce((sum, detailMap) => (
           Number.isFinite(detailMap.sizeBytes) ? sum + detailMap.sizeBytes : sum
         ), 0),
-        detailCount: state.detailMaps.length,
-        detailLoading: state.detailMaps.some((detailMap) => detailMap.sizeLoading),
+        detailCount: countedDetailMapsForStats().length,
+        detailLoading: countedDetailMapsForStats().some((detailMap) => detailMap.sizeLoading),
       },
       cursor: currentMapCursor(),
       mapSourceUrl: state.mapSourceUrl,
       detailMaps: state.detailMaps.map((detailMap) => ({ ...detailMap })),
+      areaSelectMode: state.areaSelectMode,
+      selectedAreaBbox: state.selectedAreaBbox ? [...state.selectedAreaBbox] : null,
       mapCenter: map ? [map.getCenter().lng, map.getCenter().lat] : null,
       mapZoom: map ? map.getZoom() : null,
     }),
@@ -1328,6 +1694,12 @@ function exposeTestApi() {
       locateSearchQuery();
     },
     addDetailMap,
+    setSelectedAreaBbox: (bbox) => {
+      state.selectedAreaBbox = bbox ? [...bbox] : null;
+      ensureAreaLayers();
+      updateAreaOverlay();
+      renderSidebar();
+    },
     formatBytes,
     findPlace,
     exportGpx: () => exportGpx(state.routeName, state.points),

@@ -22,6 +22,37 @@ if (window.__trailLiteTest.getLayerVisibility("roads-minor") !== "visible") thro
 true;
 '
 
+agent-browser click "#drawAreaButton"
+agent-browser mouse move 430 350
+agent-browser mouse down
+agent-browser mouse move 700 520
+agent-browser mouse up
+agent-browser wait 300
+agent-browser eval '
+const state = window.__trailLiteTest.getState();
+if (state.areaSelectMode) throw new Error("Area select mode should finish after mouseup");
+if (!state.selectedAreaBbox) throw new Error("Area bbox was not selected");
+if (document.querySelector("#downloadAreaButton").disabled) throw new Error("Download area map should enable after selection");
+if (!document.querySelector("#areaStatusText").textContent.includes("BBox")) {
+  throw new Error(`Unexpected area status: ${document.querySelector("#areaStatusText").textContent}`);
+}
+for (const layerId of ["selected-area-fill", "selected-area-outline"]) {
+  if (!window.__trailLiteMap.getLayer(layerId)) throw new Error(`${layerId} should exist`);
+}
+const [minLon, minLat, maxLon, maxLat] = state.selectedAreaBbox;
+const first = window.__trailLiteMap.project([minLon, minLat]);
+const second = window.__trailLiteMap.project([maxLon, maxLat]);
+const areaFeatures = window.__trailLiteMap
+  .queryRenderedFeatures([
+    { x: Math.min(first.x, second.x), y: Math.min(first.y, second.y) },
+    { x: Math.max(first.x, second.x), y: Math.max(first.y, second.y) },
+  ])
+  .filter((feature) => feature.source === "selected-area");
+if (areaFeatures.length === 0) throw new Error("Selected area should render on the map");
+window.__trailLiteTest.setSelectedAreaBbox(null);
+true;
+'
+
 agent-browser click "#poisToggle"
 agent-browser click "#buildingsToggle"
 agent-browser click "#minorPathsToggle"

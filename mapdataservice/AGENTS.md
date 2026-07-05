@@ -8,6 +8,8 @@ Use `extract-route-map.mjs` when a GPX route or selected map rectangle should pr
 
 The current implementation extracts from an existing source PMTiles archive. It does not yet build fresh vector tiles from raw OSM, NLS, or Digiroad data.
 
+Use `build-finnish-map.mjs` when working on Finnish-provider enrichment. It wraps `extract-route-map.mjs`, downloads provider data for the same bbox/corridor, normalizes it into TrailLite-compatible GeoJSON layers, and emits a provider overlay PMTiles package. Web lists the overlay through `/api/datasets`, and Android loads the bundled `finland.providers.pmtiles` overlay beside `finland.pmtiles`.
+
 ## Required Local Data
 
 The default source map is the full remote Protomaps z15 build:
@@ -46,6 +48,20 @@ On macOS:
 brew install pmtiles
 ```
 
+Install service-local npm dependencies before running `build-finnish-map.mjs`:
+
+```sh
+cd mapdataservice
+npm install
+cd ..
+```
+
+Finnish-provider packaging also needs `sqlite3` for temporary MBTiles assembly before PMTiles conversion:
+
+```sh
+brew install sqlite
+```
+
 ## CLI Usage
 
 Run from the workspace root:
@@ -67,14 +83,16 @@ node mapdataservice/extract-route-map.mjs \
   --dry-run
 ```
 
-To cover all GPX files already bundled in the mobile application:
+To regenerate the bundled base map for all GPX files already bundled in the mobile application:
 
 ```sh
 node mapdataservice/extract-route-map.mjs \
   --gpx mobile/app/src/main/assets/routes \
   --buffer-meters 1000 \
   --coverage corridor \
-  --out mapdataservice/output/mobile-bundled-routes.pmtiles
+  --maxzoom 15 \
+  --out shared/maps/finland.pmtiles \
+  --force
 ```
 
 To extract a rectangle selected in the web app:
@@ -91,11 +109,37 @@ To run the local API used by the web app:
 node mapdataservice/server.mjs
 ```
 
-The service listens on `http://localhost:5174` and exposes `POST /api/extract-bbox`. It calls the same CLI, so cache and output rules remain identical.
+The service listens on `http://localhost:5174` and exposes `POST /api/extract-bbox`. It calls the same CLI, so cache and output rules remain identical. Bbox extraction writes both the base PMTiles package and a Finnish provider overlay PMTiles package for the same rectangle. API callers can pass `providers`, `nlsGeojsonDir`, or `nlsApiKey`; `TRAILLITE_NLS_GEOJSON_DIR` also sets a service-wide local NLS source directory.
 
 It also exposes `GET /api/datasets`, which lists all `.pmtiles` packages in `mapdataservice/output/`. The web app uses this endpoint on startup so every stored detail dataset is loaded as a map overlay.
 
-It also exposes `POST /api/save-mobile-route` for the web app's "Save to mobile app" action. That endpoint writes the submitted GPX to `mobile/app/src/main/assets/routes/`, updates `routes.json`, extracts a 1000 m corridor map package, and copies the resulting PMTiles to `shared/maps/finland.pmtiles` so Android bundles it through the shared asset source set.
+It also exposes `POST /api/save-mobile-route` for the web app's "Save to mobile app" action. That endpoint writes the submitted GPX to `mobile/app/src/main/assets/routes/`, updates `routes.json`, extracts a 1000 m corridor map package, and copies the resulting PMTiles to `shared/maps/finland.pmtiles` so Android bundles it through the shared asset source set. It also builds a Finnish provider overlay and copies it to `shared/maps/finland.providers.pmtiles`; use `TRAILLITE_FINNISH_PROVIDERS` or `NLS_API_KEY` to control whether the overlay includes only Digiroad or Digiroad plus NLS.
+
+To download Finnish provider data for a route corridor:
+
+```sh
+node mapdataservice/build-finnish-map.mjs \
+  --gpx mobile/app/src/main/assets/routes/poutamaentie-15-to-papinmaentie-31.gpx \
+  --buffer-meters 1000 \
+  --coverage corridor \
+  --providers digiroad,nls
+```
+
+For NLS, set `NLS_API_KEY`, pass `--nls-api-key <key>`, or pass `--nls-geojson-dir <dir>` for local NLS exports/tests containing `tieviiva.geojson` and `rakennus.geojson`. Digiroad WFS does not require authentication. If `--providers` is omitted, the builder uses `digiroad` by default, or `digiroad,nls` when `NLS_API_KEY` is set. Generated provider downloads are cached under `mapdataservice/cache/finnish-providers/`; normalized provider GeoJSON is written under `mapdataservice/output/.work/finnish-providers/`; provider overlay PMTiles files are written under `mapdataservice/output/`. Provider downloads page through OGC `next` links and WFS `startIndex` pages. Use `--download-only` to stop before MBTiles/PMTiles creation.
+
+The CLI and service also read `NLS_API_KEY` from the workspace root `.env`. For a full all-route provider overlay, use the route directory and a larger Node heap:
+
+```sh
+NODE_OPTIONS=--max-old-space-size=12288 node mapdataservice/build-finnish-map.mjs \
+  --gpx mobile/app/src/main/assets/routes \
+  --buffer-meters 1000 \
+  --coverage corridor \
+  --source local \
+  --maxzoom 15 \
+  --providers digiroad,nls \
+  --out shared/maps/finland.providers.pmtiles \
+  --force
+```
 
 The dry run prints:
 
@@ -129,14 +173,14 @@ The generated `.pmtiles` file can be used through the mobile app's existing map 
 
 ## Future Pipeline
 
-Keep future OSM/NLS/Digiroad enrichment in this service or a server-side successor, not inside the Android app. The intended future pipeline is:
+Keep heavier map-data packaging in this service or a server-side successor, not inside the Android app. The intended future single-package pipeline is:
 
 ```text
 GPX route
   -> buffered route area
   -> OSM Finland extract
-  -> optional Digiroad enrichment
-  -> optional NLS topographic enrichment
+  -> Digiroad road/street and path enrichment
+  -> NLS topographic enrichment for buildings, land use, water, names, and terrain context
   -> TrailLite vector tile schema
   -> PMTiles
 ```

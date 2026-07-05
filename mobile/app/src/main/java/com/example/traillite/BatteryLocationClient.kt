@@ -27,6 +27,8 @@ class BatteryLocationClient(
     private val locationManager =
         appContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private var currentFixToken: CancellationTokenSource? = null
+    private var intervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
+    private var running = false
 
     private val callback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -42,6 +44,7 @@ class BatteryLocationClient(
     fun start() {
         if (!hasPermission()) return
         stop()
+        running = true
         client.lastLocation.addOnSuccessListener { location ->
             if (location != null) onLocation(location)
         }
@@ -53,10 +56,10 @@ class BatteryLocationClient(
         }
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            LOCATION_INTERVAL_MS,
+            intervalMs,
         )
-            .setMinUpdateIntervalMillis(MIN_LOCATION_INTERVAL_MS)
-            .setMaxUpdateDelayMillis(MAX_LOCATION_DELAY_MS)
+            .setMinUpdateIntervalMillis((intervalMs / 2).coerceAtLeast(MIN_LOCATION_INTERVAL_MS))
+            .setMaxUpdateDelayMillis(intervalMs)
             .setMinUpdateDistanceMeters(MIN_LOCATION_DISTANCE_METERS)
             .setWaitForAccurateLocation(false)
             .build()
@@ -65,10 +68,20 @@ class BatteryLocationClient(
     }
 
     fun stop() {
+        running = false
         currentFixToken?.cancel()
         currentFixToken = null
         client.removeLocationUpdates(callback)
         locationManager.removeUpdates(gpsListener)
+    }
+
+    fun setIntervalSeconds(seconds: Int) {
+        val nextIntervalMs = seconds.coerceIn(MIN_LOCATION_INTERVAL_SECONDS, MAX_LOCATION_INTERVAL_SECONDS) * 1000L
+        if (intervalMs == nextIntervalMs) return
+        val wasRunning = running
+        if (wasRunning) stop()
+        intervalMs = nextIntervalMs
+        if (wasRunning) start()
     }
 
     fun hasPermission(): Boolean {
@@ -92,7 +105,7 @@ class BatteryLocationClient(
         runCatching {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
-                LOCATION_INTERVAL_MS,
+                intervalMs,
                 MIN_LOCATION_DISTANCE_METERS,
                 gpsListener,
                 Looper.getMainLooper(),
@@ -101,9 +114,10 @@ class BatteryLocationClient(
     }
 
     private companion object {
-        const val LOCATION_INTERVAL_MS = 10_000L
-        const val MIN_LOCATION_INTERVAL_MS = 5_000L
-        const val MAX_LOCATION_DELAY_MS = 10_000L
+        const val MIN_LOCATION_INTERVAL_MS = 2_500L
+        const val DEFAULT_LOCATION_INTERVAL_MS = 5_000L
+        const val MIN_LOCATION_INTERVAL_SECONDS = 1
+        const val MAX_LOCATION_INTERVAL_SECONDS = 30
         const val MIN_LOCATION_DISTANCE_METERS = 0f
     }
 }
