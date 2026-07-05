@@ -105,3 +105,36 @@ const undone = window.__trailLiteTest.getState();
 if (undone.points.length !== 2) throw new Error(`Undo should remove the continuation segment, got ${undone.points.length}`);
 true;
 '
+
+agent-browser eval '
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
+  [24.931000, 60.171000],
+], "Shift pan test");
+window.__trailLiteTest.startEditing();
+window.__shiftPanBefore = window.__trailLiteTest.getState();
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", bubbles: true }));
+true;
+'
+
+agent-browser mouse move 740 420
+agent-browser mouse down
+agent-browser mouse move 900 520
+agent-browser wait 150
+agent-browser mouse up
+agent-browser wait 250
+
+agent-browser eval '
+window.dispatchEvent(new KeyboardEvent("keyup", { key: "Shift", bubbles: true }));
+const state = window.__trailLiteTest.getState();
+const before = window.__shiftPanBefore;
+if (state.points.length !== before.points.length) {
+  throw new Error(`Shift+drag should pan the map without adding route points: ${before.points.length} -> ${state.points.length}`);
+}
+const moved = Math.abs(state.mapCenter[0] - before.mapCenter[0]) + Math.abs(state.mapCenter[1] - before.mapCenter[1]);
+if (moved < 0.001) {
+  throw new Error(`Shift+drag should move the map center, got delta ${moved}`);
+}
+if (state.cursor !== "crosshair") throw new Error(`Releasing Shift in edit mode should restore draw cursor, got ${state.cursor}`);
+true;
+'
