@@ -22,6 +22,18 @@ if (window.__trailLiteTest.getLayerVisibility("roads-minor") !== "visible") thro
 true;
 '
 
+agent-browser eval '
+window.__trailLiteTest.setSelectedAreaBbox([24.93, 60.16, 24.94, 60.17]);
+window.__trailLiteTest.setAreaDownloadBusy(true);
+const button = document.querySelector("#downloadAreaButton");
+if (!button.disabled) throw new Error("Download area map button should be disabled while busy");
+if (button.getAttribute("aria-busy") !== "true") throw new Error("Download area map button should expose aria-busy while busy");
+if (!button.querySelector(".spinner")) throw new Error("Download area map button should show a spinner while busy");
+if (!button.textContent.includes("Downloading")) throw new Error(`Unexpected busy label: ${button.textContent}`);
+window.__trailLiteTest.setAreaDownloadBusy(false);
+true;
+'
+
 agent-browser click "#drawAreaButton"
 agent-browser mouse move 430 350
 agent-browser mouse down

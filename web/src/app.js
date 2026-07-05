@@ -1071,6 +1071,7 @@ function renderSidebar() {
   elements.mobileSaveButton.disabled = !exportable;
   elements.drawAreaButton.disabled = state.areaDownloadBusy || editing;
   elements.downloadAreaButton.disabled = !state.selectedAreaBbox || state.areaDownloadBusy;
+  renderDownloadAreaButton();
   elements.drawAreaButton.classList.toggle("active", state.areaSelectMode || state.drawingArea);
   elements.newRouteButton.hidden = editing || !hasRoute;
   elements.editButton.hidden = editing;
@@ -1116,6 +1117,25 @@ function renderSidebar() {
 
 function setCommandButtonLabel(button, label) {
   button.textContent = label;
+}
+
+function renderDownloadAreaButton() {
+  elements.downloadAreaButton.setAttribute("aria-busy", state.areaDownloadBusy ? "true" : "false");
+  if (state.areaDownloadBusy) {
+    elements.downloadAreaButton.replaceChildren(
+      spinnerElement(),
+      document.createTextNode("Downloading"),
+    );
+    return;
+  }
+  elements.downloadAreaButton.textContent = "Download area map";
+}
+
+function spinnerElement() {
+  const spinner = document.createElement("span");
+  spinner.className = "spinner";
+  spinner.setAttribute("aria-hidden", "true");
+  return spinner;
 }
 
 function renderDatasetStats() {
@@ -1698,6 +1718,10 @@ function exposeTestApi() {
       state.selectedAreaBbox = bbox ? [...bbox] : null;
       ensureAreaLayers();
       updateAreaOverlay();
+      renderSidebar();
+    },
+    setAreaDownloadBusy: (busy) => {
+      state.areaDownloadBusy = Boolean(busy);
       renderSidebar();
     },
     formatBytes,

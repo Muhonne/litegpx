@@ -84,4 +84,4 @@ bash tests/manual/05-map-tools.sh
 bash tests/manual/09-route-draw-mouseup.sh
 ```
 
-These checks use `agent-browser`, so keep the web server running before running individual scripts.
+`05-map-tools.sh` covers layer toggles, area selection, and the area-download busy button state. These checks use `agent-browser`, so keep the web server running before running individual scripts.
