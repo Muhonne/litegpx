@@ -877,8 +877,9 @@ Route overlays should be prominent enough to read on the map without hiding map 
 
 Route point handles:
 
-- Small precise dots by default.
-- Enlarge on hover for easier grabbing.
+- Purple dots in edit mode so points are distinct from the blue route editing line.
+- Medium precise dots by default, about 50% larger than the first edit-handle pass.
+- Enlarge further on hover for easier grabbing.
 - Stay visually subordinate to the route line unless selected or hovered.
 
 ### Interaction Model

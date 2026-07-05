@@ -1,6 +1,7 @@
 const FINLAND_CENTER = [24.94, 60.24];
 const VIEW_ROUTE_COLOR = "#D83A1D";
 const EDIT_ROUTE_COLOR = "#1D73D4";
+const EDIT_POINT_COLOR = "#7C3AED";
 const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
@@ -894,8 +895,8 @@ function ensureRouteLayers() {
       source: "route",
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
-        "circle-color": EDIT_ROUTE_COLOR,
-        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 6, 2.6],
+        "circle-color": EDIT_POINT_COLOR,
+        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 9, 3.9],
         "circle-stroke-color": "#FFFFFF",
         "circle-stroke-width": 0.9,
         "circle-opacity": ["case", ["==", ["get", "visible"], true], 1, 0],

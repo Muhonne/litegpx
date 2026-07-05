@@ -12,9 +12,26 @@ agent-browser wait 1500
 agent-browser click "#editButton"
 
 agent-browser eval '
+(async () => {
 window.__trailLiteTest.setRoute([], "Mouse draw test");
 window.__trailLiteTest.setSnapToLines(false);
+await new Promise((resolve, reject) => {
+  const deadline = Date.now() + 5000;
+  const tick = () => {
+    if (window.__trailLiteMap.getLayer("route-points")) return resolve();
+    if (Date.now() > deadline) return reject(new Error("Route point layer did not load"));
+    setTimeout(tick, 100);
+  };
+  tick();
+});
+const pointColor = window.__trailLiteMap.getPaintProperty("route-points", "circle-color");
+const pointRadius = window.__trailLiteMap.getPaintProperty("route-points", "circle-radius");
+if (pointColor !== "#7C3AED") throw new Error(`Edit route points should be purple, got ${JSON.stringify(pointColor)}`);
+if (JSON.stringify(pointRadius) !== JSON.stringify(["case", ["boolean", ["feature-state", "hover"], false], 9, 3.9])) {
+  throw new Error(`Edit route points should be 50% larger than the previous 2.6/6px sizes, got ${JSON.stringify(pointRadius)}`);
+}
 true;
+})()
 '
 
 agent-browser mouse move 650 380
