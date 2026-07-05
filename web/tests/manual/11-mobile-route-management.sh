@@ -11,6 +11,36 @@ agent-browser wait 1200
 
 agent-browser eval '
 (async () => {
+const routeFixtures = Array.from({ length: 10 }, (_, index) => {
+  const routeNumber = index + 1;
+  return {
+    id: `route-${routeNumber}`,
+    title: `Route ${routeNumber}`,
+    lengthKm: routeNumber,
+    trackPointCount: routeNumber + 10,
+    gpx: `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>Route ${routeNumber}</name><trkseg>
+    <trkpt lat="60.${String(170000 + routeNumber).padStart(6, "0")}" lon="24.930000" />
+    <trkpt lat="60.${String(171000 + routeNumber).padStart(6, "0")}" lon="24.931000" />
+  </trkseg></trk>
+</gpx>`,
+  };
+});
+window.__trailLiteTest.setMobileRoutesForTest(routeFixtures);
+const allCards = Array.from(document.querySelectorAll("#mobileRouteList [data-mobile-route-id]"));
+if (allCards.length !== routeFixtures.length) {
+  throw new Error(`Visible mobile route list should expose all filtered routes, got ${allCards.length} of ${routeFixtures.length}`);
+}
+const lastCard = allCards.at(-1);
+if (lastCard.dataset.mobileRouteId !== "route-10") {
+  throw new Error(`Last visible mobile route should be route-10, got ${lastCard.dataset.mobileRouteId}`);
+}
+lastCard.click();
+if (document.querySelector("#mobileRouteSelect").value !== "route-10") {
+  throw new Error("Clicking the last visible mobile route should select it");
+}
+
 window.__trailLiteTest.setMobileRoutesForTest([
   {
     id: "forest-loop",

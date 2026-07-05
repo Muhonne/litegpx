@@ -1403,7 +1403,7 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
   }
 
   elements.mobileRouteList.replaceChildren(
-    ...filteredRoutes.slice(0, 8).map((route) => {
+    ...filteredRoutes.map((route) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "mobile-route-item";
