@@ -134,6 +134,7 @@ Feature: Web GPX import and editing
     When the user chooses a route and presses "Load route"
     Then the web app loads that route GPX in view mode
     And the route save state shows the loaded route is saved to mobile
+    And the loaded route is visibly marked in the mobile route list
     And pressing "Edit route" creates an editable copy before changes are made
     And route geometry or name edits mark the route as having unsaved mobile edits
     And loading another route, importing GPX, resetting, or clearing asks for confirmation before discarding unsaved route changes

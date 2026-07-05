@@ -1411,10 +1411,23 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", route.id === selectedId ? "true" : "false");
       if (route.id === selectedId) button.classList.add("selected");
+      const routeLoaded = route.id === state.mobileRouteId;
+      if (routeLoaded) {
+        button.classList.add("loaded");
+        button.dataset.loaded = "true";
+      }
 
       const title = document.createElement("span");
       title.className = "mobile-route-title";
-      title.textContent = route.title || route.id;
+      const titleText = document.createElement("span");
+      titleText.textContent = route.title || route.id;
+      title.append(titleText);
+      if (routeLoaded) {
+        const loadedBadge = document.createElement("span");
+        loadedBadge.className = "route-state-badge";
+        loadedBadge.textContent = "Loaded";
+        title.append(loadedBadge);
+      }
       const meta = document.createElement("span");
       meta.className = "mobile-route-meta";
       meta.textContent = mobileRouteMeta(route);

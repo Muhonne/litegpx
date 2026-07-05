@@ -95,6 +95,13 @@ if (state.mode !== "view") throw new Error(`Loaded mobile route should start in 
 if (!state.imported) throw new Error("Loaded mobile route should be treated as imported");
 if (state.points.length !== 2) throw new Error(`Loaded mobile route point count wrong: ${state.points.length}`);
 if (state.routeSaveState !== "Saved to mobile") throw new Error(`Loaded mobile route should start clean, got ${state.routeSaveState}`);
+const loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
+if (!loadedCard?.classList.contains("loaded")) {
+  throw new Error("Loaded mobile route should be visibly marked in the route list");
+}
+if (!loadedCard.textContent.includes("Loaded")) {
+  throw new Error(`Loaded mobile route should show a Loaded badge, got ${loadedCard.textContent.trim()}`);
+}
 true;
 })()
 '
