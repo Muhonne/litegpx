@@ -161,19 +161,25 @@ class TrailStorage(private val context: Context) {
             val id = layer.getString("id").removePrefix(PROVIDER_LAYER_PREFIX)
             when (id) {
                 "background" -> paint.put("background-color", "#101417")
-                "landcover-park" -> {
-                    paint.put("fill-color", "#28452D")
-                    paint.put("fill-opacity", 0.78)
+                "earth" -> paint.put("fill-color", "#161D1B")
+                "landuse-green" -> {
+                    paint.put("fill-color", "#263D2D")
+                    paint.put("fill-opacity", 0.62)
                 }
-                "water" -> paint.put("fill-color", "#155A75")
-                "buildings" -> paint.put("fill-color", "#4E4A43")
-                "waterway" -> paint.put("line-color", "#2D8DB9")
-                "roads-minor-casing" -> paint.put("line-color", "#253136")
-                "roads-minor" -> paint.put("line-color", "#8D9A9D")
-                "roads-major-casing" -> paint.put("line-color", "#202A2E")
-                "roads-major" -> paint.put("line-color", "#C3CDD0")
+                "landcover-park" -> {
+                    paint.put("fill-color", "#2E4A35")
+                    paint.put("fill-opacity", 0.82)
+                }
+                "water" -> paint.put("fill-color", "#0F4A61")
+                "boundaries" -> paint.put("line-color", "#4E5C61")
+                "buildings" -> paint.put("fill-color", "#474239")
+                "waterway" -> paint.put("line-color", "#3BA0C7")
+                "roads-minor-casing" -> paint.put("line-color", "#192225")
+                "roads-minor" -> paint.put("line-color", "#98A6A9")
+                "roads-major-casing" -> paint.put("line-color", "#11191D")
+                "roads-major" -> paint.put("line-color", "#D2DADD")
                 "paths-highlight-casing" -> paint.put("line-color", "#182218")
-                "paths-highlight" -> paint.put("line-color", "#8EAF67")
+                "paths-highlight" -> paint.put("line-color", "#A4C47B")
                 "street-names" -> {
                     paint.put("text-color", "#D8E1E8")
                     paint.put("text-halo-color", "#101417")

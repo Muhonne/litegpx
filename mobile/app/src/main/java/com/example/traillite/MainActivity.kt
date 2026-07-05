@@ -394,6 +394,8 @@ private const val MIN_SCREEN_BRIGHTNESS_PERCENT = 1
 private const val MAX_SCREEN_BRIGHTNESS_PERCENT = 100
 private const val MIN_TRACKING_ZOOM_LEVEL = 8.0
 private const val MAX_TRACKING_ZOOM_LEVEL = 17.0
+private val SETTINGS_STEPPER_BUTTON_WIDTH = 88.dp
+private val SETTINGS_INPUT_WIDTH = 112.dp
 
 @Composable
 private fun TrailLiteTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
@@ -639,7 +641,7 @@ private fun MapSettingsDialog(
                 )
                 DecimalStepper(
                     value = settings.trackingZoomLevel,
-                    label = "Zoom",
+                    inputLabel = "Zoom",
                     step = 0.5,
                     range = MIN_TRACKING_ZOOM_LEVEL..MAX_TRACKING_ZOOM_LEVEL,
                     onChange = { zoom -> onChange(settings.copy(trackingZoomLevel = zoom)) },
@@ -687,39 +689,31 @@ private fun MapSettingsDialog(
 @Composable
 private fun DecimalStepper(
     value: Double,
-    label: String,
+    inputLabel: String,
     step: Double,
     range: ClosedFloatingPointRange<Double>,
     onChange: (Double) -> Unit,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    SettingsStepperRow(
+        decreaseLabel = "-${step.formatStepperValue()}",
+        increaseLabel = "+${step.formatStepperValue()}",
+        decreaseEnabled = value > range.start,
+        increaseEnabled = value < range.endInclusive,
+        onDecrease = { onChange((value - step).coerceIn(range.start, range.endInclusive)) },
+        onIncrease = { onChange((value + step).coerceIn(range.start, range.endInclusive)) },
     ) {
-        OutlinedButton(
-            onClick = { onChange((value - step).coerceIn(range.start, range.endInclusive)) },
-            enabled = value > range.start,
-        ) {
-            Text("-${step.formatStepperValue()}")
-        }
         TextField(
             value = "%.1f".format(Locale.US, value),
             onValueChange = { text ->
                 val parsed = text.replace(',', '.').toDoubleOrNull() ?: return@TextField
                 onChange(parsed.coerceIn(range.start, range.endInclusive))
             },
-            modifier = Modifier.width(96.dp),
+            modifier = Modifier.width(SETTINGS_INPUT_WIDTH),
             singleLine = true,
-            label = { Text(label) },
+            label = { Text(inputLabel) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
         )
-        OutlinedButton(
-            onClick = { onChange((value + step).coerceIn(range.start, range.endInclusive)) },
-            enabled = value < range.endInclusive,
-        ) {
-            Text("+${step.formatStepperValue()}")
-        }
     }
 }
 
@@ -728,34 +722,26 @@ private fun PercentStepper(
     percent: Int,
     onChange: (Int) -> Unit,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    SettingsStepperRow(
+        decreaseLabel = "-5",
+        increaseLabel = "+5",
+        decreaseEnabled = percent > MIN_SCREEN_BRIGHTNESS_PERCENT,
+        increaseEnabled = percent < MAX_SCREEN_BRIGHTNESS_PERCENT,
+        onDecrease = { onChange((percent - 5).coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT)) },
+        onIncrease = { onChange((percent + 5).coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT)) },
     ) {
-        OutlinedButton(
-            onClick = { onChange((percent - 5).coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT)) },
-            enabled = percent > MIN_SCREEN_BRIGHTNESS_PERCENT,
-        ) {
-            Text("-5")
-        }
         TextField(
             value = percent.toString(),
             onValueChange = { value ->
                 val parsed = value.filter { it.isDigit() }.toIntOrNull() ?: return@TextField
                 onChange(parsed.coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT))
             },
-            modifier = Modifier.width(96.dp),
+            modifier = Modifier.width(SETTINGS_INPUT_WIDTH),
             singleLine = true,
             label = { Text("%") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
         )
-        OutlinedButton(
-            onClick = { onChange((percent + 5).coerceIn(MIN_SCREEN_BRIGHTNESS_PERCENT, MAX_SCREEN_BRIGHTNESS_PERCENT)) },
-            enabled = percent < MAX_SCREEN_BRIGHTNESS_PERCENT,
-        ) {
-            Text("+5")
-        }
     }
 }
 
@@ -768,33 +754,62 @@ private fun GpsIntervalStepper(
     seconds: Int,
     onChange: (Int) -> Unit,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    SettingsStepperRow(
+        decreaseLabel = "-1",
+        increaseLabel = "+1",
+        decreaseEnabled = seconds > MIN_GPS_INTERVAL_SECONDS,
+        increaseEnabled = seconds < MAX_GPS_INTERVAL_SECONDS,
+        onDecrease = { onChange((seconds - 1).coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS)) },
+        onIncrease = { onChange((seconds + 1).coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS)) },
     ) {
-        OutlinedButton(
-            onClick = { onChange((seconds - 1).coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS)) },
-            enabled = seconds > MIN_GPS_INTERVAL_SECONDS,
-        ) {
-            Text("-1")
-        }
         TextField(
             value = seconds.toString(),
             onValueChange = { value ->
                 val parsed = value.filter { it.isDigit() }.toIntOrNull() ?: return@TextField
                 onChange(parsed.coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS))
             },
-            modifier = Modifier.width(96.dp),
+            modifier = Modifier.width(SETTINGS_INPUT_WIDTH),
             singleLine = true,
             label = { Text("sec") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
         )
+    }
+}
+
+@Composable
+private fun SettingsStepperRow(
+    decreaseLabel: String,
+    increaseLabel: String,
+    decreaseEnabled: Boolean,
+    increaseEnabled: Boolean,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+    input: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         OutlinedButton(
-            onClick = { onChange((seconds + 1).coerceIn(MIN_GPS_INTERVAL_SECONDS, MAX_GPS_INTERVAL_SECONDS)) },
-            enabled = seconds < MAX_GPS_INTERVAL_SECONDS,
+            onClick = onDecrease,
+            enabled = decreaseEnabled,
+            modifier = Modifier.width(SETTINGS_STEPPER_BUTTON_WIDTH),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
         ) {
-            Text("+1")
+            Text(decreaseLabel, maxLines = 1, textAlign = TextAlign.Center)
+        }
+        input()
+        OutlinedButton(
+            onClick = onIncrease,
+            enabled = increaseEnabled,
+            modifier = Modifier.width(SETTINGS_STEPPER_BUTTON_WIDTH),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+        ) {
+            Text(increaseLabel, maxLines = 1, textAlign = TextAlign.Center)
         }
     }
 }

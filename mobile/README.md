@@ -95,6 +95,7 @@ tests/manual/01-navigation-camera-emulator.md
 tests/manual/02-navigation-camera-no-scrollby.sh
 tests/manual/03-navigation-bearing-policy.sh
 tests/manual/04-display-and-tracking-settings.sh
+tests/manual/05-settings-layout-and-dark-map.sh
 ```
 
 The script uses `adb emu geo fix`, so run it against an emulator, not a physical device.
