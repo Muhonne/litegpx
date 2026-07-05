@@ -15,6 +15,8 @@ const SHARED_DETAIL_MAPS = [
 const MAP_DATASETS_URL = "http://localhost:5174/api/datasets";
 const EXTRACT_BBOX_URL = "http://localhost:5174/api/extract-bbox";
 const MOBILE_SAVE_URL = "http://localhost:5174/api/save-mobile-route";
+const MOBILE_ROUTES_URL = "http://localhost:5174/api/mobile-routes";
+const HISTORY_LIMIT = 10;
 const BASE_MAP_SOURCE_ID = "osm";
 const DETAIL_MAP_STORAGE_KEY = "traillite.detailMaps.v1";
 const SNAP_LINE_LAYER_IDS = ["roads-major", "roads-minor", "paths-highlight"];
@@ -71,11 +73,16 @@ const elements = {
   editButton: document.getElementById("editButton"),
   doneButton: document.getElementById("doneButton"),
   undoButton: document.getElementById("undoButton"),
+  redoButton: document.getElementById("redoButton"),
   clearButton: document.getElementById("clearButton"),
   exportButton: document.getElementById("exportButton"),
   mobileSaveButton: document.getElementById("mobileSaveButton"),
   importButton: document.getElementById("importButton"),
   gpxInput: document.getElementById("gpxInput"),
+  mobileRouteSelect: document.getElementById("mobileRouteSelect"),
+  refreshMobileRoutesButton: document.getElementById("refreshMobileRoutesButton"),
+  loadMobileRouteButton: document.getElementById("loadMobileRouteButton"),
+  mobileRouteStatus: document.getElementById("mobileRouteStatus"),
   searchForm: document.getElementById("searchForm"),
   searchInput: document.getElementById("searchInput"),
   drawAreaButton: document.getElementById("drawAreaButton"),
@@ -105,6 +112,7 @@ const state = {
   routeName: "Untitled route",
   points: [],
   undoStack: [],
+  redoStack: [],
   imported: false,
   importedEditingCopy: false,
   draggingPointIndex: null,
@@ -125,6 +133,9 @@ const state = {
   lastExportedGpx: "",
   mapSourceUrl: FULL_BASE_MAP_URL,
   detailMaps: [],
+  mobileRoutes: [],
+  mobileRoutesLoading: true,
+  mobileRoutesError: "",
   dataset: {
     baseBytes: null,
     baseLoading: true,
@@ -152,6 +163,7 @@ async function init() {
   restorePersistedDetailMaps();
   refreshStoredDetailMaps();
   refreshBaseDatasetSize();
+  refreshMobileRoutes();
   render();
   exposeTestApi();
 }
@@ -323,7 +335,7 @@ function bindUi() {
   elements.newRouteButton.addEventListener("click", () => {
     state.routeName = "Untitled route";
     state.points = [];
-    state.undoStack = [];
+    clearRouteHistory();
     state.imported = false;
     state.importedEditingCopy = false;
     state.mode = "view";
@@ -335,9 +347,10 @@ function bindUi() {
   elements.editButton.addEventListener("click", () => startEditing());
   elements.doneButton.addEventListener("click", () => setMode("view"));
   elements.undoButton.addEventListener("click", () => undoPointEdit());
+  elements.redoButton.addEventListener("click", () => redoPointEdit());
   elements.clearButton.addEventListener("click", () => {
     state.points = [];
-    state.undoStack = [];
+    clearRouteHistory();
     state.imported = false;
     state.importedEditingCopy = false;
     setStatus("Route cleared.");
@@ -345,6 +358,8 @@ function bindUi() {
   });
   elements.exportButton.addEventListener("click", () => downloadGpx());
   elements.mobileSaveButton.addEventListener("click", () => saveRouteToMobileApp());
+  elements.refreshMobileRoutesButton.addEventListener("click", () => refreshMobileRoutes());
+  elements.loadMobileRouteButton.addEventListener("click", () => loadSelectedMobileRoute());
   elements.drawAreaButton.addEventListener("click", () => toggleAreaSelectMode());
   elements.downloadAreaButton.addEventListener("click", () => downloadSelectedAreaMap());
   elements.searchForm.addEventListener("submit", (event) => {
@@ -373,7 +388,7 @@ function bindUi() {
       if (parsed.points.length < 2) throw new Error("No usable GPX track");
       state.routeName = parsed.name || file.name.replace(/\.gpx$/i, "") || "Imported route";
       state.points = parsed.points;
-      state.undoStack = [];
+      clearRouteHistory();
       state.imported = true;
       state.importedEditingCopy = false;
       state.mode = "view";
@@ -396,6 +411,14 @@ function bindKeyboardShortcuts() {
     if (isTypingTarget(event.target) && event.key !== "Escape") return;
 
     const key = event.key.toLowerCase();
+    if ((event.metaKey || event.ctrlKey) && (key === "y" || (key === "z" && event.shiftKey))) {
+      if (state.mode === "edit" && state.redoStack.length > 0) {
+        event.preventDefault();
+        redoPointEdit();
+      }
+      return;
+    }
+
     if ((event.metaKey || event.ctrlKey) && key === "z") {
       if (state.mode === "edit" && state.undoStack.length > 0) {
         event.preventDefault();
@@ -416,7 +439,7 @@ function bindKeyboardShortcuts() {
 
     if (key === "e") {
       event.preventDefault();
-      if (state.mode !== "edit") startEditing();
+      toggleEditing();
       return;
     }
     if (key === "f") {
@@ -869,6 +892,11 @@ function startEditing() {
   setMode("edit");
 }
 
+function toggleEditing() {
+  if (state.mode === "edit") setMode("view");
+  else startEditing();
+}
+
 function setMode(mode) {
   if (state.drawingRoute) finishRouteDraw();
   state.pendingRouteDraw = false;
@@ -924,9 +952,19 @@ function finishPointerEdit() {
   render();
 }
 
+function clearRouteHistory() {
+  state.undoStack = [];
+  state.redoStack = [];
+}
+
+function pushHistory(stack, points) {
+  stack.push(clonePoints(points));
+  if (stack.length > HISTORY_LIMIT) stack.shift();
+}
+
 function pushUndo(previous = null) {
-  state.undoStack.push(previous || clonePoints(state.points));
-  if (state.undoStack.length > 100) state.undoStack.shift();
+  pushHistory(state.undoStack, previous || state.points);
+  state.redoStack = [];
 }
 
 function suppressMapClicks(durationMs = 350) {
@@ -1039,8 +1077,18 @@ function finishAreaDraw() {
 function undoPointEdit() {
   const previous = state.undoStack.pop();
   if (!previous) return;
+  pushHistory(state.redoStack, state.points);
   state.points = previous;
   setStatus("Point edit undone.");
+  render();
+}
+
+function redoPointEdit() {
+  const next = state.redoStack.pop();
+  if (!next) return;
+  pushHistory(state.undoStack, state.points);
+  state.points = next;
+  setStatus("Point edit redone.");
   render();
 }
 
@@ -1066,6 +1114,7 @@ function renderSidebar() {
   elements.editButton.disabled = editing;
   elements.doneButton.disabled = !editing;
   elements.undoButton.disabled = state.undoStack.length === 0;
+  elements.redoButton.disabled = state.redoStack.length === 0;
   elements.clearButton.disabled = !hasRoute;
   elements.exportButton.disabled = !exportable;
   elements.mobileSaveButton.disabled = !exportable;
@@ -1078,6 +1127,7 @@ function renderSidebar() {
   elements.importButton.hidden = editing;
   elements.doneButton.hidden = !editing;
   elements.undoButton.hidden = !editing;
+  elements.redoButton.hidden = !editing;
   elements.clearButton.hidden = !hasRoute;
   elements.exportButton.hidden = !exportable;
   elements.mobileSaveButton.hidden = !exportable;
@@ -1089,13 +1139,17 @@ function renderSidebar() {
   elements.snapToLinesToggle.checked = state.snapToLines;
   elements.snapToLinesOption.hidden = !editing;
   elements.areaStatusText.textContent = areaStatusText();
+  renderMobileRoutes();
   renderDatasetStats();
   renderShortcutContext();
   elements.distanceValue.textContent = formatDistance(totalDistance(state.points));
   elements.pointCountValue.textContent = String(state.points.length);
 
+  const newestFirstPoints = state.points
+    .map((point, index) => ({ point, index }))
+    .reverse();
   elements.pointsList.replaceChildren(
-    ...state.points.map((point, index) => {
+    ...newestFirstPoints.map(({ point, index }) => {
       const item = document.createElement("li");
       const pointText = document.createElement("span");
       const code = document.createElement("code");
@@ -1136,6 +1190,89 @@ function spinnerElement() {
   spinner.className = "spinner";
   spinner.setAttribute("aria-hidden", "true");
   return spinner;
+}
+
+async function refreshMobileRoutes() {
+  state.mobileRoutesLoading = true;
+  state.mobileRoutesError = "";
+  renderMobileRoutes();
+  try {
+    const response = await fetch(MOBILE_ROUTES_URL);
+    if (!response.ok) throw new Error(`Mobile route catalog failed: ${response.status}`);
+    const data = await response.json();
+    state.mobileRoutes = Array.isArray(data.routes) ? data.routes : [];
+    state.mobileRoutesError = "";
+  } catch {
+    state.mobileRoutes = [];
+    state.mobileRoutesError = "Start map data service to load app routes.";
+  } finally {
+    state.mobileRoutesLoading = false;
+    renderSidebar();
+  }
+}
+
+function renderMobileRoutes() {
+  if (!elements.mobileRouteSelect) return;
+  const selectedId = elements.mobileRouteSelect.value;
+  const selectedStillExists = state.mobileRoutes.some((route) => route.id === selectedId);
+  const nextSelectedId = selectedStillExists ? selectedId : state.mobileRoutes[0]?.id || "";
+
+  elements.mobileRouteSelect.replaceChildren(
+    ...(state.mobileRoutesLoading
+      ? [new Option("Loading routes...", "")]
+      : state.mobileRoutes.length > 0
+        ? state.mobileRoutes.map((route) => new Option(mobileRouteLabel(route), route.id))
+        : [new Option("No mobile routes", "")]),
+  );
+  elements.mobileRouteSelect.value = nextSelectedId;
+  elements.mobileRouteSelect.disabled = state.mobileRoutesLoading || state.mobileRoutes.length === 0;
+  elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading || !elements.mobileRouteSelect.value;
+  elements.refreshMobileRoutesButton.disabled = state.mobileRoutesLoading;
+
+  if (state.mobileRoutesLoading) {
+    elements.mobileRouteStatus.textContent = "Loading mobile route catalog.";
+  } else if (state.mobileRoutesError) {
+    elements.mobileRouteStatus.textContent = state.mobileRoutesError;
+  } else {
+    elements.mobileRouteStatus.textContent = `${state.mobileRoutes.length} app routes available.`;
+  }
+}
+
+function mobileRouteLabel(route) {
+  const pointCount = Number.isFinite(route.trackPointCount) ? `, ${route.trackPointCount} pts` : "";
+  const length = Number.isFinite(route.lengthKm) ? ` (${route.lengthKm.toFixed(1)} km${pointCount})` : pointCount ? ` (${pointCount.slice(2)})` : "";
+  return `${route.title || route.id}${length}`;
+}
+
+async function loadSelectedMobileRoute() {
+  const routeId = elements.mobileRouteSelect.value;
+  if (!routeId) return;
+  elements.loadMobileRouteButton.disabled = true;
+  try {
+    const response = await fetch(`${MOBILE_ROUTES_URL}/${encodeURIComponent(routeId)}`);
+    if (!response.ok) throw new Error(`Mobile route load failed: ${response.status}`);
+    applyMobileRoutePayload(await response.json());
+    setStatus("Mobile route loaded for viewing.");
+  } catch {
+    setStatus("Mobile route load failed.", true);
+  } finally {
+    renderSidebar();
+  }
+}
+
+function applyMobileRoutePayload(payload) {
+  const parsed = parseGpx(payload.gpx || "");
+  if (parsed.points.length < 2) throw new Error("No usable GPX track");
+  const route = payload.route || {};
+  state.routeName = route.title || parsed.name || route.id || "Mobile route";
+  state.points = parsed.points;
+  clearRouteHistory();
+  state.imported = true;
+  state.importedEditingCopy = false;
+  state.mode = "view";
+  elements.routeName.value = state.routeName;
+  fitRoute();
+  render();
 }
 
 function renderDatasetStats() {
@@ -1359,6 +1496,7 @@ async function saveRouteToMobileApp() {
     if (!response.ok) throw new Error(payload.error || "Mobile save failed");
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();
+    refreshMobileRoutes();
   } catch (error) {
     setStatus(`Mobile save failed: ${error.message}`, true);
   } finally {
@@ -1660,6 +1798,8 @@ function exposeTestApi() {
       points: clonePoints(state.points),
       distanceMeters: totalDistance(state.points),
       canExport: canExport(),
+      undoDepth: state.undoStack.length,
+      redoDepth: state.redoStack.length,
       imported: state.imported,
       importedEditingCopy: state.importedEditingCopy,
       status: elements.statusText.textContent,
@@ -1678,6 +1818,9 @@ function exposeTestApi() {
       cursor: currentMapCursor(),
       mapSourceUrl: state.mapSourceUrl,
       detailMaps: state.detailMaps.map((detailMap) => ({ ...detailMap })),
+      mobileRoutes: state.mobileRoutes.map((route) => ({ ...route })),
+      mobileRoutesLoading: state.mobileRoutesLoading,
+      mobileRoutesError: state.mobileRoutesError,
       areaSelectMode: state.areaSelectMode,
       selectedAreaBbox: state.selectedAreaBbox ? [...state.selectedAreaBbox] : null,
       mapCenter: map ? [map.getCenter().lng, map.getCenter().lat] : null,
@@ -1687,6 +1830,7 @@ function exposeTestApi() {
       state.points = clonePoints(points);
       state.routeName = name;
       elements.routeName.value = name;
+      clearRouteHistory();
       render();
     },
     setSnapToLines: (enabled) => {
@@ -1700,6 +1844,10 @@ function exposeTestApi() {
     beginRouteDraw: (lon, lat) => beginRouteDraw([lon, lat]),
     appendDrawPoint: (lon, lat) => appendDrawPoint([lon, lat]),
     finishRouteDraw,
+    undoPointEdit,
+    redoPointEdit,
+    applyMobileRoutePayload,
+    refreshMobileRoutes,
     insertPoint: (index, lon, lat) => insertPoint(index, [lon, lat]),
     deletePoint,
     setLayerSetting: (settingKey, value) => {

@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { buildBundledMapManifest, mobileMapGpxInput } from "../server.mjs";
+import {
+  buildBundledMapManifest,
+  mobileMapGpxInput,
+  readMobileRouteCatalog,
+  readMobileRouteGpx,
+} from "../server.mjs";
 
 const tempDir = await mkdtemp(resolve(tmpdir(), "traillite-map-manifest-"));
 
@@ -50,6 +55,37 @@ try {
     resolve(tempDir, "routes/new-route.gpx"),
     "route-scoped map extraction should remain available as an explicit option",
   );
+
+  const routesDir = resolve(tempDir, "routes");
+  await mkdir(routesDir, { recursive: true });
+  const routeGpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg><trkpt lat="60.1" lon="24.1" /><trkpt lat="60.2" lon="24.2" /></trkseg></trk>
+</gpx>`;
+  await writeFile(resolve(routesDir, "test-route.gpx"), routeGpx, "utf8");
+  const catalogPath = resolve(routesDir, "routes.json");
+  await writeFile(catalogPath, JSON.stringify([
+    {
+      id: "test-route",
+      title: "Test route",
+      lengthKm: 1.2,
+      durationText: "--",
+      source: "TrailLite GPX Builder",
+      gpxAsset: "routes/test-route.gpx",
+      bounds: { minLon: 24.1, minLat: 60.1, maxLon: 24.2, maxLat: 60.2 },
+      trackPointCount: 2,
+    },
+  ]), "utf8");
+
+  const routes = await readMobileRouteCatalog({ catalogPath, routesDir });
+  assert.equal(routes.length, 1);
+  assert.equal(routes[0].id, "test-route");
+  assert.equal(routes[0].sizeBytes, Buffer.byteLength(routeGpx));
+  assert.ok(routes[0].updatedAt, "mobile route listing includes file timestamp");
+
+  const loadedRoute = await readMobileRouteGpx({ id: "test-route", catalogPath, routesDir });
+  assert.equal(loadedRoute.route.title, "Test route");
+  assert.equal(loadedRoute.gpx, routeGpx);
 } finally {
   await rm(tempDir, { recursive: true, force: true });
 }

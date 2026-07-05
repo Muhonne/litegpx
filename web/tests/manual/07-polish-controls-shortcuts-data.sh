@@ -36,6 +36,7 @@ agent-browser eval '
 agent-browser eval '
 if (!document.querySelector("#doneButton").hidden) throw new Error("Done should be hidden outside edit mode");
 if (!document.querySelector("#undoButton").hidden) throw new Error("Undo should be hidden outside edit mode");
+if (!document.querySelector("#redoButton").hidden) throw new Error("Redo should be hidden outside edit mode");
 if (!document.querySelector("#newRouteButton").hidden) throw new Error("Reset should be hidden without a route");
 if (!document.querySelector("#clearButton").hidden) throw new Error("Clear should be hidden without a route");
 if (!document.querySelector("#exportButton").hidden) throw new Error("Save route should be hidden until exportable");
@@ -65,21 +66,37 @@ if (!document.querySelector("#editButton").hidden) throw new Error("Edit button 
 if (document.querySelector("#doneButton").hidden) throw new Error("Done button should show while editing");
 if (document.querySelector("#importButton").hidden === false) throw new Error("Import should hide while editing");
 const visible = Array.from(document.querySelectorAll(".shortcut-list div:not([hidden]) kbd")).map((element) => element.textContent.trim());
-for (const key of ["Esc", "Ctrl+Z", "Drag", "Shift"]) {
+for (const key of ["E", "Esc", "Ctrl+Z", "Ctrl+Y", "Drag", "Shift"]) {
   if (!visible.includes(key)) throw new Error(`Missing edit shortcut: ${key}`);
 }
 window.__trailLiteTest.addPoint(24.9384, 60.1699);
 window.__trailLiteTest.addPoint(24.9392, 60.1705);
 state = window.__trailLiteTest.getState();
 if (state.points.length !== 2) throw new Error("Shortcut setup failed to add points");
-if (document.querySelector("#newRouteButton").textContent.trim() !== "Reset route") throw new Error("Existing route reset action missing");
+if (document.querySelector("#newRouteButton").textContent.trim() !== "Reset") throw new Error("Existing route reset action missing");
 if (document.querySelector("#editButton").textContent.trim() !== "Edit route") throw new Error("Existing route action should be Edit route");
 window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
 state = window.__trailLiteTest.getState();
 if (state.points.length !== 1) throw new Error(`Ctrl+Z did not undo a point: ${state.points.length}`);
+if (state.redoDepth !== 1) throw new Error(`Undo did not populate redo stack: ${state.redoDepth}`);
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "y", ctrlKey: true, bubbles: true }));
+state = window.__trailLiteTest.getState();
+if (state.points.length !== 2) throw new Error(`Ctrl+Y did not redo a point: ${state.points.length}`);
+if (state.redoDepth !== 0) throw new Error(`Redo stack should be empty after redo: ${state.redoDepth}`);
+for (let i = 0; i < 12; i += 1) {
+  window.__trailLiteTest.addPoint(24.94 + i * 0.001, 60.17 + i * 0.001);
+}
+state = window.__trailLiteTest.getState();
+if (state.undoDepth !== 10) throw new Error(`Undo history should keep last 10 actions: ${state.undoDepth}`);
 window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 state = window.__trailLiteTest.getState();
 if (state.mode !== "view") throw new Error(`Escape did not leave edit mode: ${state.mode}`);
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
+state = window.__trailLiteTest.getState();
+if (state.mode !== "edit") throw new Error(`E did not re-enter edit mode: ${state.mode}`);
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
+state = window.__trailLiteTest.getState();
+if (state.mode !== "view") throw new Error(`E did not toggle back to view mode: ${state.mode}`);
 true;
 '
 

@@ -57,8 +57,9 @@ Feature: Mobile offline route navigation
 Code starting points:
 
 - Web app state, UI bindings, route drawing, imports, exports, and save-to-mobile calls: `web/src/app.js`
-- Route drawing/editing: `beginRouteDraw`, `appendDrawPoint`, `finishRouteDraw`, `addPoint`, `insertPoint`, `deletePoint`, `undoPointEdit`
+- Route drawing/editing: `beginRouteDraw`, `appendDrawPoint`, `finishRouteDraw`, `addPoint`, `insertPoint`, `deletePoint`, `undoPointEdit`, `redoPointEdit`
 - GPX import/export: `parseGpx`, `exportGpx`, `downloadGpx`
+- Mobile route management: `refreshMobileRoutes`, `loadSelectedMobileRoute`, `applyMobileRoutePayload`
 - Route rendering: `ensureRouteLayers`, `routeFeatureCollection`, `updateMapRoute`
 - Web runtime and manual check commands: `web/README.md`
 
@@ -84,11 +85,13 @@ Feature: Web GPX route creation
     Then the browser downloads a GPX 1.1 file
     And the GPX contains TrailLite-compatible track points in route order
 
-  Scenario: Undo route drawing mistakes
+  Scenario: Undo and redo route drawing mistakes
     Given the user is editing a route
     And route point edits have been made
     When the user presses "Undo"
     Then the most recent point edit is reverted
+    And the reverted edit can be restored with "Redo"
+    And the app keeps the last 10 route edit actions in history
     And the route distance and point count update
 ```
 
@@ -109,6 +112,16 @@ Feature: Web GPX import and editing
     Then the app creates an editable copy
     And edits do not mutate the original imported file
     And the user can drag, insert, delete, draw, or undo route points
+
+  Scenario: Load a bundled mobile route for editing
+    Given the local map data service is running
+    And the Android mobile workspace contains bundled routes
+    When the user refreshes the Mobile routes list
+    Then the web app lists routes from mobile/app/src/main/assets/routes/routes.json
+    When the user chooses a route and presses "Load route"
+    Then the web app loads that route GPX in view mode
+    And pressing "Edit route" creates an editable copy before changes are made
+    And saving to mobile can write the edited route back into the Android workspace
 
   Scenario: Reject a broken GPX file
     Given the user has selected a broken GPX file

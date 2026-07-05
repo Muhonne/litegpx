@@ -47,7 +47,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -68,6 +69,7 @@ input {
 
 .app-header,
 .control-section,
+.mobile-routes-section,
 .map-tools-section,
 .route-section {
   flex: 0 0 auto;
@@ -131,6 +133,11 @@ h2 {
   gap: 8px;
 }
 
+.mobile-routes-section {
+  display: grid;
+  gap: 7px;
+}
+
 button,
 .file-button {
   display: inline-flex;
@@ -146,6 +153,15 @@ button,
   color: var(--text);
   cursor: pointer;
   text-align: center;
+}
+
+select {
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--button-border);
+  border-radius: 6px;
+  background: var(--button);
+  color: var(--text);
 }
 
 .button-icon {
@@ -219,6 +235,19 @@ button:disabled {
 
 .file-button input {
   display: none;
+}
+
+.mobile-route-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mobile-route-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .map-tools-section {

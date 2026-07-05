@@ -48,7 +48,7 @@ Default local URL:
 http://localhost:5173/web/
 ```
 
-The map data service is separate. Start it from the workspace root when testing area downloads or save-to-mobile:
+The map data service is separate. Start it from the workspace root when testing area downloads, save-to-mobile, or loading routes already bundled in the Android workspace:
 
 ```sh
 node mapdataservice/server.mjs
@@ -84,4 +84,8 @@ bash tests/manual/05-map-tools.sh
 bash tests/manual/09-route-draw-mouseup.sh
 ```
 
-`05-map-tools.sh` covers layer toggles, area selection, and the area-download busy button state. These checks use `agent-browser`, so keep the web server running before running individual scripts.
+`03-basic-editing.sh` covers imported route editing and newest-first point list behavior.
+`05-map-tools.sh` covers layer toggles, area selection, and the area-download busy button state.
+`07-polish-controls-shortcuts-data.sh` covers compact route controls, edit-mode shortcuts, and 10-step undo/redo history.
+`09-route-draw-mouseup.sh` covers drag-to-draw and verifies editing can be toggled off/on without breaking drawing.
+These checks use `agent-browser`, so keep the web server running before running individual scripts.

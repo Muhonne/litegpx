@@ -51,6 +51,20 @@ async function handleRequest(request, response) {
       sendJson(response, 200, { datasets: await listDatasets() });
       return;
     }
+    if (request.method === "GET" && url.pathname === "/api/mobile-routes") {
+      sendJson(response, 200, { routes: await readMobileRouteCatalog({ catalogPath: mobileRouteCatalogPath, routesDir: mobileRoutesDir }) });
+      return;
+    }
+    const mobileRouteMatch = url.pathname.match(/^\/api\/mobile-routes\/([^/]+)$/);
+    if (request.method === "GET" && mobileRouteMatch) {
+      const route = await readMobileRouteGpx({
+        id: decodeURIComponent(mobileRouteMatch[1]),
+        catalogPath: mobileRouteCatalogPath,
+        routesDir: mobileRoutesDir,
+      });
+      sendJson(response, 200, route);
+      return;
+    }
     if (request.method === "POST" && url.pathname === "/api/extract-bbox") {
       const body = await readJson(request);
       const result = await extractBbox(body);
@@ -96,6 +110,55 @@ async function listDatasets() {
         url: `${webOrigin}/${relativePath}`,
       };
     }));
+}
+
+async function readMobileRouteCatalog({ catalogPath, routesDir }) {
+  const catalog = await readRouteCatalog(catalogPath);
+  return Promise.all(catalog.map(async (route) => {
+    const gpxPath = route.gpxAsset ? resolveRouteAsset(routesDir, route.gpxAsset) : null;
+    const fileInfo = gpxPath && existsSync(gpxPath) ? await stat(gpxPath) : null;
+    return {
+      id: route.id,
+      title: route.title,
+      lengthKm: route.lengthKm,
+      durationText: route.durationText,
+      source: route.source,
+      gpxAsset: route.gpxAsset,
+      bounds: route.bounds,
+      trackPointCount: route.trackPointCount,
+      sizeBytes: fileInfo?.size ?? null,
+      updatedAt: fileInfo?.mtime?.toISOString() ?? null,
+    };
+  }));
+}
+
+async function readMobileRouteGpx({ id, catalogPath, routesDir }) {
+  const catalog = await readRouteCatalog(catalogPath);
+  const route = catalog.find((entry) => entry.id === id);
+  if (!route) throw new Error(`Unknown mobile route: ${id}`);
+  if (!route.gpxAsset) throw new Error(`Mobile route has no GPX asset: ${id}`);
+  const gpxPath = resolveRouteAsset(routesDir, route.gpxAsset);
+  return {
+    route,
+    gpx: await readFile(gpxPath, "utf8"),
+  };
+}
+
+async function readRouteCatalog(catalogPath) {
+  if (!existsSync(catalogPath)) return [];
+  const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
+  if (!Array.isArray(catalog)) throw new Error("Route catalog must be a JSON array");
+  return catalog;
+}
+
+function resolveRouteAsset(routesDir, gpxAsset) {
+  const normalizedAsset = String(gpxAsset).replace(/^routes\//, "");
+  const resolved = resolve(routesDir, normalizedAsset);
+  const normalizedRoutesDir = resolve(routesDir);
+  if (resolved !== normalizedRoutesDir && !resolved.startsWith(`${normalizedRoutesDir}/`)) {
+    throw new Error(`Route asset escapes route directory: ${gpxAsset}`);
+  }
+  return resolved;
 }
 
 async function readMetadata(path) {
@@ -515,4 +578,6 @@ function parseDotEnvValue(value) {
 export {
   buildBundledMapManifest,
   mobileMapGpxInput,
+  readMobileRouteCatalog,
+  readMobileRouteGpx,
 };

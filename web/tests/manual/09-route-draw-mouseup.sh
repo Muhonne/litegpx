@@ -59,3 +59,27 @@ if (state.points.length !== 0) throw new Error(`Undo after drag drawing should c
 if (!document.querySelector("#undoButton").disabled) throw new Error("Undo button should disable after undoing the only drawn segment");
 true;
 '
+
+agent-browser eval '
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
+let state = window.__trailLiteTest.getState();
+if (state.mode !== "view") throw new Error(`E should toggle edit mode off, got ${state.mode}`);
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
+state = window.__trailLiteTest.getState();
+if (state.mode !== "edit") throw new Error(`E should toggle edit mode back on, got ${state.mode}`);
+true;
+'
+
+agent-browser mouse move 520 360
+agent-browser mouse down
+agent-browser mouse move 590 430
+agent-browser wait 150
+agent-browser mouse up
+agent-browser wait 150
+
+agent-browser eval '
+const state = window.__trailLiteTest.getState();
+if (state.drawingRoute) throw new Error("Route drawing should stop after edit toggle and mouse up");
+if (state.points.length < 2) throw new Error(`Mouse drag should still work after edit toggle, got ${state.points.length}`);
+true;
+'

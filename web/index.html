@@ -24,6 +24,7 @@
           <button id="editButton" type="button" data-shortcut="E">Draw route</button>
           <button id="doneButton" type="button" data-shortcut="Esc" disabled>Done editing</button>
           <button id="undoButton" type="button" data-shortcut="Ctrl+Z" disabled>Undo</button>
+          <button id="redoButton" type="button" data-shortcut="Ctrl+Y" disabled>Redo</button>
           <button id="clearButton" type="button" disabled>Clear</button>
           <label id="importButton" class="file-button">
             Import GPX
@@ -31,6 +32,19 @@
           </label>
           <button id="exportButton" type="button" data-shortcut="D" disabled>Save route</button>
           <button id="mobileSaveButton" type="button" disabled>Save to mobile app</button>
+        </section>
+
+        <section class="mobile-routes-section" aria-label="Mobile routes">
+          <h2 class="section-title">Mobile routes</h2>
+          <label class="field-label" for="mobileRouteSelect">Saved in app</label>
+          <select id="mobileRouteSelect">
+            <option value="">Loading routes...</option>
+          </select>
+          <div class="mobile-route-actions">
+            <button id="refreshMobileRoutesButton" type="button">Refresh</button>
+            <button id="loadMobileRouteButton" type="button" disabled>Load route</button>
+          </div>
+          <p id="mobileRouteStatus" class="mobile-route-status">Checking mobile route catalog.</p>
         </section>
 
         <section class="route-section" aria-label="Route details">
@@ -103,8 +117,10 @@
             <summary id="shortcutSummary">Route shortcuts</summary>
             <dl class="shortcut-list">
               <div data-shortcut-context="view"><dt><kbd>E</kbd></dt><dd>Draw or edit route</dd></div>
+              <div data-shortcut-context="edit"><dt><kbd>E</kbd></dt><dd>Finish editing</dd></div>
               <div data-shortcut-context="edit"><dt><kbd>Esc</kbd></dt><dd>Finish editing</dd></div>
               <div data-shortcut-context="edit"><dt><kbd>Ctrl+Z</kbd></dt><dd>Undo edit</dd></div>
+              <div data-shortcut-context="edit"><dt><kbd>Ctrl+Y</kbd></dt><dd>Redo edit</dd></div>
               <div data-shortcut-context="edit"><dt><kbd>Drag</kbd></dt><dd>Draw route</dd></div>
               <div data-shortcut-context="view"><dt><kbd>F</kbd></dt><dd>Search</dd></div>
               <div data-shortcut-context="route edit"><dt><kbd>D</kbd></dt><dd>Save route</dd></div>

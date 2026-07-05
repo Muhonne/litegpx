@@ -40,11 +40,17 @@ agent-browser click "#undoButton"
 agent-browser eval '
 let state = window.__trailLiteTest.getState();
 if (state.points.length !== 4) throw new Error(`Expected 4 points after undoing insert, got ${state.points.length}`);
+const firstPointText = document.querySelector("#pointsList li:first-child code")?.textContent || "";
+if (firstPointText !== "60.172000, 24.941000") throw new Error(`Latest point should render first, got ${firstPointText}`);
 '
 agent-browser click "#pointsList li:first-child .point-delete"
 agent-browser eval '
 let state = window.__trailLiteTest.getState();
 if (state.points.length !== 3) throw new Error(`Expected 3 points after delete, got ${state.points.length}`);
+const latest = state.points[state.points.length - 1];
+if (latest[0].toFixed(6) === "24.941000" && latest[1].toFixed(6) === "60.172000") {
+  throw new Error("Deleting first visible point deleted the wrong route point");
+}
 '
 agent-browser click "#undoButton"
 agent-browser eval '
