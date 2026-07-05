@@ -118,6 +118,7 @@ Feature: Web GPX import and editing
     And the Android mobile workspace contains bundled routes
     When the user refreshes the Mobile routes list
     Then the web app lists routes from mobile/app/src/main/assets/routes/routes.json
+    And the user can filter the list by route name or route metadata
     When the user chooses a route and presses "Load route"
     Then the web app loads that route GPX in view mode
     And pressing "Edit route" creates an editable copy before changes are made

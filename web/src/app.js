@@ -79,6 +79,7 @@ const elements = {
   mobileSaveButton: document.getElementById("mobileSaveButton"),
   importButton: document.getElementById("importButton"),
   gpxInput: document.getElementById("gpxInput"),
+  mobileRouteSearch: document.getElementById("mobileRouteSearch"),
   mobileRouteSelect: document.getElementById("mobileRouteSelect"),
   refreshMobileRoutesButton: document.getElementById("refreshMobileRoutesButton"),
   loadMobileRouteButton: document.getElementById("loadMobileRouteButton"),
@@ -134,6 +135,8 @@ const state = {
   mapSourceUrl: FULL_BASE_MAP_URL,
   detailMaps: [],
   mobileRoutes: [],
+  mobileRouteGpxById: {},
+  mobileRouteFilter: "",
   mobileRoutesLoading: true,
   mobileRoutesError: "",
   dataset: {
@@ -360,6 +363,11 @@ function bindUi() {
   elements.mobileSaveButton.addEventListener("click", () => saveRouteToMobileApp());
   elements.refreshMobileRoutesButton.addEventListener("click", () => refreshMobileRoutes());
   elements.loadMobileRouteButton.addEventListener("click", () => loadSelectedMobileRoute());
+  elements.mobileRouteSearch.addEventListener("input", () => {
+    state.mobileRouteFilter = elements.mobileRouteSearch.value;
+    renderMobileRoutes();
+  });
+  elements.mobileRouteSelect.addEventListener("change", () => renderMobileRoutes());
   elements.drawAreaButton.addEventListener("click", () => toggleAreaSelectMode());
   elements.downloadAreaButton.addEventListener("click", () => downloadSelectedAreaMap());
   elements.searchForm.addEventListener("submit", (event) => {
@@ -1214,18 +1222,22 @@ async function refreshMobileRoutes() {
 function renderMobileRoutes() {
   if (!elements.mobileRouteSelect) return;
   const selectedId = elements.mobileRouteSelect.value;
-  const selectedStillExists = state.mobileRoutes.some((route) => route.id === selectedId);
-  const nextSelectedId = selectedStillExists ? selectedId : state.mobileRoutes[0]?.id || "";
+  if (elements.mobileRouteSearch.value !== state.mobileRouteFilter) {
+    elements.mobileRouteSearch.value = state.mobileRouteFilter;
+  }
+  const filteredRoutes = filteredMobileRoutes();
+  const selectedStillExists = filteredRoutes.some((route) => route.id === selectedId);
+  const nextSelectedId = selectedStillExists ? selectedId : filteredRoutes[0]?.id || "";
 
   elements.mobileRouteSelect.replaceChildren(
     ...(state.mobileRoutesLoading
       ? [new Option("Loading routes...", "")]
-      : state.mobileRoutes.length > 0
-        ? state.mobileRoutes.map((route) => new Option(mobileRouteLabel(route), route.id))
-        : [new Option("No mobile routes", "")]),
+      : filteredRoutes.length > 0
+        ? filteredRoutes.map((route) => new Option(mobileRouteLabel(route), route.id))
+        : [new Option(state.mobileRoutes.length > 0 ? "No matching routes" : "No mobile routes", "")]),
   );
   elements.mobileRouteSelect.value = nextSelectedId;
-  elements.mobileRouteSelect.disabled = state.mobileRoutesLoading || state.mobileRoutes.length === 0;
+  elements.mobileRouteSelect.disabled = state.mobileRoutesLoading || filteredRoutes.length === 0;
   elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading || !elements.mobileRouteSelect.value;
   elements.refreshMobileRoutesButton.disabled = state.mobileRoutesLoading;
 
@@ -1234,8 +1246,31 @@ function renderMobileRoutes() {
   } else if (state.mobileRoutesError) {
     elements.mobileRouteStatus.textContent = state.mobileRoutesError;
   } else {
-    elements.mobileRouteStatus.textContent = `${state.mobileRoutes.length} app routes available.`;
+    elements.mobileRouteStatus.textContent = mobileRouteStatusText(filteredRoutes);
   }
+}
+
+function filteredMobileRoutes() {
+  const filter = normalizeSearchText(state.mobileRouteFilter);
+  if (!filter) return state.mobileRoutes;
+  return state.mobileRoutes.filter((route) => normalizeSearchText([
+    route.id,
+    route.title,
+    route.source,
+    Number.isFinite(route.lengthKm) ? `${route.lengthKm.toFixed(1)} km` : "",
+  ].filter(Boolean).join(" ")).includes(filter));
+}
+
+function mobileRouteStatusText(filteredRoutes) {
+  if (state.mobileRoutes.length === 0) return "No app routes found.";
+  const selectedRoute = filteredRoutes.find((route) => route.id === elements.mobileRouteSelect.value);
+  const countText = state.mobileRouteFilter
+    ? `${filteredRoutes.length} of ${state.mobileRoutes.length} app routes`
+    : `${state.mobileRoutes.length} app routes`;
+  if (!selectedRoute) return `${countText}.`;
+  const pointCount = Number.isFinite(selectedRoute.trackPointCount) ? `${selectedRoute.trackPointCount} pts` : "unknown points";
+  const length = Number.isFinite(selectedRoute.lengthKm) ? `${selectedRoute.lengthKm.toFixed(1)} km` : "unknown length";
+  return `${countText}. Selected ${length}, ${pointCount}.`;
 }
 
 function mobileRouteLabel(route) {
@@ -1249,9 +1284,14 @@ async function loadSelectedMobileRoute() {
   if (!routeId) return;
   elements.loadMobileRouteButton.disabled = true;
   try {
-    const response = await fetch(`${MOBILE_ROUTES_URL}/${encodeURIComponent(routeId)}`);
-    if (!response.ok) throw new Error(`Mobile route load failed: ${response.status}`);
-    applyMobileRoutePayload(await response.json());
+    if (state.mobileRouteGpxById[routeId]) {
+      const route = state.mobileRoutes.find((entry) => entry.id === routeId) || { id: routeId };
+      applyMobileRoutePayload({ route, gpx: state.mobileRouteGpxById[routeId] });
+    } else {
+      const response = await fetch(`${MOBILE_ROUTES_URL}/${encodeURIComponent(routeId)}`);
+      if (!response.ok) throw new Error(`Mobile route load failed: ${response.status}`);
+      applyMobileRoutePayload(await response.json());
+    }
     setStatus("Mobile route loaded for viewing.");
   } catch {
     setStatus("Mobile route load failed.", true);
@@ -1848,6 +1888,18 @@ function exposeTestApi() {
     redoPointEdit,
     applyMobileRoutePayload,
     refreshMobileRoutes,
+    setMobileRoutesForTest: (routes) => {
+      state.mobileRoutes = routes.map(({ gpx, ...route }) => ({ ...route }));
+      state.mobileRouteGpxById = Object.fromEntries(
+        routes
+          .filter((route) => typeof route.gpx === "string")
+          .map((route) => [route.id, route.gpx]),
+      );
+      state.mobileRouteFilter = "";
+      state.mobileRoutesLoading = false;
+      state.mobileRoutesError = "";
+      renderSidebar();
+    },
     insertPoint: (index, lon, lat) => insertPoint(index, [lon, lat]),
     deletePoint,
     setLayerSetting: (settingKey, value) => {

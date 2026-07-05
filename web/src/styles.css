@@ -155,12 +155,16 @@ button,
   text-align: center;
 }
 
+#searchInput,
+#mobileRouteSearch,
+#routeName,
 select {
+  width: 100%;
   min-height: 30px;
   padding: 5px 8px;
   border: 1px solid var(--button-border);
   border-radius: 6px;
-  background: var(--button);
+  background: var(--panel);
   color: var(--text);
 }
 
@@ -263,16 +267,6 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 74px;
   gap: 8px;
-}
-
-#searchInput {
-  width: 100%;
-  min-height: 30px;
-  padding: 5px 8px;
-  border: 1px solid var(--button-border);
-  border-radius: 6px;
-  background: var(--panel);
-  color: var(--text);
 }
 
 .layer-settings {
@@ -415,16 +409,6 @@ kbd {
   margin-bottom: 6px;
   color: var(--muted);
   font-size: 12px;
-}
-
-#routeName {
-  width: 100%;
-  min-height: 30px;
-  padding: 5px 8px;
-  border: 1px solid var(--button-border);
-  border-radius: 6px;
-  background: var(--panel);
-  color: var(--text);
 }
 
 .stats-grid {
