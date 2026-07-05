@@ -434,6 +434,22 @@ kbd {
   font-weight: 700;
 }
 
+.route-save-state {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.route-save-state[data-state="saved-to-mobile"] {
+  color: var(--primary);
+}
+
+.route-save-state[data-state="unsaved-mobile-edits"],
+.route-save-state[data-state="not-saved-to-mobile"] {
+  color: var(--view-route);
+}
+
 .status-text {
   min-height: 18px;
   margin: 6px 0 0;

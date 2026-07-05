@@ -102,6 +102,7 @@ const elements = {
   snapToLinesToggle: document.getElementById("snapToLinesToggle"),
   distanceValue: document.getElementById("distanceValue"),
   pointCountValue: document.getElementById("pointCountValue"),
+  routeSaveState: document.getElementById("routeSaveState"),
   statusText: document.getElementById("statusText"),
   pointsList: document.getElementById("pointsList"),
   shortcutSummary: document.getElementById("shortcutSummary"),
@@ -113,6 +114,7 @@ const state = {
   routeName: "Untitled route",
   points: [],
   mobileRouteId: null,
+  mobileSavedSignature: null,
   undoStack: [],
   redoStack: [],
   imported: false,
@@ -340,6 +342,7 @@ function bindUi() {
     state.routeName = "Untitled route";
     state.points = [];
     state.mobileRouteId = null;
+    state.mobileSavedSignature = null;
     clearRouteHistory();
     state.imported = false;
     state.importedEditingCopy = false;
@@ -356,6 +359,7 @@ function bindUi() {
   elements.clearButton.addEventListener("click", () => {
     state.points = [];
     state.mobileRouteId = null;
+    state.mobileSavedSignature = null;
     clearRouteHistory();
     state.imported = false;
     state.importedEditingCopy = false;
@@ -400,6 +404,7 @@ function bindUi() {
       state.routeName = parsed.name || file.name.replace(/\.gpx$/i, "") || "Imported route";
       state.points = parsed.points;
       state.mobileRouteId = null;
+      state.mobileSavedSignature = null;
       clearRouteHistory();
       state.imported = true;
       state.importedEditingCopy = false;
@@ -1104,6 +1109,24 @@ function redoPointEdit() {
   render();
 }
 
+function markRouteSavedToMobile() {
+  state.mobileSavedSignature = routeSignature();
+}
+
+function routeSignature() {
+  return JSON.stringify({
+    name: state.routeName.trim(),
+    points: state.points.map(([lon, lat]) => [Number(lon.toFixed(6)), Number(lat.toFixed(6))]),
+  });
+}
+
+function routeSaveStateText() {
+  if (state.points.length === 0) return "No route loaded";
+  if (!canExport()) return "Need 2 points to save";
+  if (state.mobileSavedSignature === routeSignature()) return "Saved to mobile";
+  return state.mobileRouteId ? "Unsaved mobile edits" : "Not saved to mobile";
+}
+
 function render() {
   if (!map?.isStyleLoaded()) {
     renderSidebar();
@@ -1156,6 +1179,9 @@ function renderSidebar() {
   renderShortcutContext();
   elements.distanceValue.textContent = formatDistance(totalDistance(state.points));
   elements.pointCountValue.textContent = String(state.points.length);
+  const routeSaveState = routeSaveStateText();
+  elements.routeSaveState.textContent = routeSaveState;
+  elements.routeSaveState.dataset.state = routeSaveState.toLowerCase().replaceAll(" ", "-");
 
   const newestFirstPoints = state.points
     .map((point, index) => ({ point, index }))
@@ -1316,6 +1342,7 @@ function applyMobileRoutePayload(payload) {
   state.importedEditingCopy = false;
   state.mode = "view";
   elements.routeName.value = state.routeName;
+  markRouteSavedToMobile();
   fitRoute();
   render();
 }
@@ -1540,6 +1567,8 @@ async function saveRouteToMobileApp() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "Mobile save failed");
+    state.mobileRouteId = payload.route?.id || state.mobileRouteId;
+    markRouteSavedToMobile();
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();
     refreshMobileRoutes();
@@ -1842,6 +1871,7 @@ function exposeTestApi() {
       mode: state.mode,
       routeName: state.routeName,
       mobileRouteId: state.mobileRouteId,
+      routeSaveState: routeSaveStateText(),
       points: clonePoints(state.points),
       distanceMeters: totalDistance(state.points),
       canExport: canExport(),
@@ -1877,6 +1907,7 @@ function exposeTestApi() {
       state.points = clonePoints(points);
       state.routeName = name;
       state.mobileRouteId = null;
+      state.mobileSavedSignature = null;
       elements.routeName.value = name;
       clearRouteHistory();
       render();

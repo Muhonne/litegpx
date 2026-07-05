@@ -54,6 +54,7 @@ if (state.routeName !== "Pajamaki Test") throw new Error(`Selected mobile route 
 if (state.mode !== "view") throw new Error(`Loaded mobile route should start in view mode: ${state.mode}`);
 if (!state.imported) throw new Error("Loaded mobile route should be treated as imported");
 if (state.points.length !== 2) throw new Error(`Loaded mobile route point count wrong: ${state.points.length}`);
+if (state.routeSaveState !== "Saved to mobile") throw new Error(`Loaded mobile route should start clean, got ${state.routeSaveState}`);
 true;
 '
 
@@ -79,6 +80,10 @@ window.fetch = async (url, options = {}) => {
 };
 document.querySelector("#routeName").value = "Renamed Pajamaki";
 document.querySelector("#routeName").dispatchEvent(new Event("input", { bubbles: true }));
+let state = window.__trailLiteTest.getState();
+if (state.routeSaveState !== "Unsaved mobile edits") {
+  throw new Error(`Renaming loaded route should mark unsaved edits, got ${state.routeSaveState}`);
+}
 await window.__trailLiteTest.saveRouteToMobileApp();
 window.fetch = originalFetch;
 if (!capturedSaveBody) throw new Error("Save to mobile request was not captured");
@@ -87,6 +92,10 @@ if (capturedSaveBody.routeId !== "pajamaki-test") {
 }
 if (capturedSaveBody.routeName !== "Renamed Pajamaki") {
   throw new Error(`Save should use edited route name, got ${capturedSaveBody.routeName}`);
+}
+state = window.__trailLiteTest.getState();
+if (state.routeSaveState !== "Saved to mobile") {
+  throw new Error(`Save to mobile should clear unsaved state, got ${state.routeSaveState}`);
 }
 true;
 })()
