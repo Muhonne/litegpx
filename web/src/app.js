@@ -1475,7 +1475,7 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
       const title = document.createElement("span");
       title.className = "mobile-route-title";
       const titleText = document.createElement("span");
-      titleText.textContent = routeUnsaved ? state.routeName : (route.title || route.id);
+      titleText.textContent = mobileRouteDisplayTitle(route);
       title.append(titleText);
       if (routeLoaded) {
         const loadedBadge = document.createElement("span");
@@ -1524,10 +1524,17 @@ function filteredMobileRoutes() {
   if (!filter) return state.mobileRoutes;
   return state.mobileRoutes.filter((route) => normalizeSearchText([
     route.id,
+    mobileRouteDisplayTitle(route),
     route.title,
     route.source,
     Number.isFinite(route.lengthKm) ? `${route.lengthKm.toFixed(1)} km` : "",
   ].filter(Boolean).join(" ")).includes(filter));
+}
+
+function mobileRouteDisplayTitle(route) {
+  return route.id === state.mobileRouteId && hasUnsavedRouteChanges()
+    ? state.routeName
+    : (route.title || route.id);
 }
 
 function mobileRouteStatusText(filteredRoutes) {

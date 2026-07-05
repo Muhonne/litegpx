@@ -162,6 +162,16 @@ if (!loadedCard.textContent.includes("Unsaved")) {
 if (!loadedCard.textContent.includes("Renamed Pajamaki") || loadedCard.textContent.includes("Pajamaki TestUnsaved")) {
   throw new Error(`Unsaved loaded route should show the draft route name, got ${loadedCard.textContent.trim()}`);
 }
+const draftSearch = document.querySelector("#mobileRouteSearch");
+draftSearch.value = "renamed";
+draftSearch.dispatchEvent(new Event("input", { bubbles: true }));
+loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
+if (!loadedCard?.classList.contains("unsaved")) {
+  throw new Error("Route filter should find a dirty loaded route by its draft name");
+}
+draftSearch.value = "";
+draftSearch.dispatchEvent(new Event("input", { bubbles: true }));
+loadButton = document.querySelector("#loadMobileRouteButton");
 let revertConfirmCalls = 0;
 const originalConfirmForRevert = window.confirm;
 window.confirm = () => {
