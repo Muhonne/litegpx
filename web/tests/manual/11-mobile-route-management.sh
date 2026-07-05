@@ -162,6 +162,30 @@ if (!loadedCard.textContent.includes("Unsaved")) {
 if (!loadedCard.textContent.includes("Renamed Pajamaki") || loadedCard.textContent.includes("Pajamaki TestUnsaved")) {
   throw new Error(`Unsaved loaded route should show the draft route name, got ${loadedCard.textContent.trim()}`);
 }
+let revertConfirmCalls = 0;
+const originalConfirmForRevert = window.confirm;
+window.confirm = () => {
+  revertConfirmCalls += 1;
+  return true;
+};
+loadButton.click();
+await new Promise((resolve) => setTimeout(resolve, 80));
+window.confirm = originalConfirmForRevert;
+state = window.__trailLiteTest.getState();
+if (revertConfirmCalls !== 1) throw new Error(`Reverting a dirty loaded route should confirm once, got ${revertConfirmCalls}`);
+if (state.routeName !== "Pajamaki Test") throw new Error(`Revert should restore saved route name, got ${state.routeName}`);
+if (state.routeSaveState !== "Saved to mobile") throw new Error(`Revert should restore saved mobile state, got ${state.routeSaveState}`);
+if (state.status !== "Mobile route changes reverted.") throw new Error(`Revert should use a specific status, got ${state.status}`);
+loadButton = document.querySelector("#loadMobileRouteButton");
+if (!loadButton.disabled || loadButton.textContent.trim() !== "Loaded") {
+  throw new Error(`Reverted route should return to Loaded action, got "${loadButton.textContent.trim()}" disabled=${loadButton.disabled}`);
+}
+loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");
+if (loadedCard?.classList.contains("unsaved") || loadedCard?.textContent.includes("Unsaved")) {
+  throw new Error("Reverted route should clear the unsaved route-list marker");
+}
+document.querySelector("#routeName").value = "Renamed Pajamaki";
+document.querySelector("#routeName").dispatchEvent(new Event("input", { bubbles: true }));
 document.querySelector("#refreshMobileRoutesButton").click();
 await new Promise((resolve) => setTimeout(resolve, 80));
 loadedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"pajamaki-test\"]");

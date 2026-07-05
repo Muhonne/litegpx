@@ -1583,6 +1583,7 @@ function upsertSavedMobileRoute(payload, gpx) {
 async function loadSelectedMobileRoute() {
   const routeId = elements.mobileRouteSelect.value;
   if (!routeId) return;
+  const revertingLoadedRoute = routeId === state.mobileRouteId && hasUnsavedRouteChanges();
   if (!confirmDiscardUnsavedRoute()) {
     restoreLoadedMobileRouteSelection();
     return;
@@ -1597,7 +1598,7 @@ async function loadSelectedMobileRoute() {
       if (!response.ok) throw new Error(`Mobile route load failed: ${response.status}`);
       applyMobileRoutePayload(await response.json());
     }
-    setStatus("Mobile route loaded for viewing.");
+    setStatus(revertingLoadedRoute ? "Mobile route changes reverted." : "Mobile route loaded for viewing.");
   } catch {
     setStatus("Mobile route load failed.", true);
   } finally {

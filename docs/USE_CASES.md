@@ -142,6 +142,7 @@ Feature: Web GPX import and editing
     And the loaded route is visibly marked unsaved in the mobile route list
     And the unsaved loaded route card shows the draft route name
     And the selected unsaved loaded route offers "Revert changes" instead of a generic load action
+    And reverting changes restores the saved mobile route name, geometry, and saved state
     And refreshing mobile routes keeps the loaded route visible
     And loading another route, importing GPX, resetting, or clearing asks for confirmation before discarding unsaved route changes
     And cancelling a route load keeps the picker selected on the currently loaded route
