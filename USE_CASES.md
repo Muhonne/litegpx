@@ -124,6 +124,7 @@ Feature: Web GPX import and editing
     And the route save state shows the loaded route is saved to mobile
     And pressing "Edit route" creates an editable copy before changes are made
     And route geometry or name edits mark the route as having unsaved mobile edits
+    And loading another route, importing GPX, resetting, or clearing asks for confirmation before discarding unsaved route changes
     And saving to mobile preserves the loaded mobile route id when writing the edited route back into the Android workspace
     And a successful mobile save clears the unsaved edit state
 

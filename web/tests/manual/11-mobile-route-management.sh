@@ -84,6 +84,21 @@ let state = window.__trailLiteTest.getState();
 if (state.routeSaveState !== "Unsaved mobile edits") {
   throw new Error(`Renaming loaded route should mark unsaved edits, got ${state.routeSaveState}`);
 }
+let confirmCalls = 0;
+const originalConfirm = window.confirm;
+window.confirm = () => {
+  confirmCalls += 1;
+  return false;
+};
+document.querySelector("#mobileRouteSearch").value = "";
+document.querySelector("#mobileRouteSearch").dispatchEvent(new Event("input", { bubbles: true }));
+document.querySelector("#mobileRouteSelect").value = "forest-loop";
+document.querySelector("#loadMobileRouteButton").click();
+await new Promise((resolve) => setTimeout(resolve, 80));
+window.confirm = originalConfirm;
+state = window.__trailLiteTest.getState();
+if (confirmCalls !== 1) throw new Error(`Loading another route should ask once before discarding edits, got ${confirmCalls}`);
+if (state.routeName !== "Renamed Pajamaki") throw new Error(`Cancelled load should keep edited route, got ${state.routeName}`);
 await window.__trailLiteTest.saveRouteToMobileApp();
 window.fetch = originalFetch;
 if (!capturedSaveBody) throw new Error("Save to mobile request was not captured");

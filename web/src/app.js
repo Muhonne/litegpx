@@ -17,6 +17,7 @@ const EXTRACT_BBOX_URL = "http://localhost:5174/api/extract-bbox";
 const MOBILE_SAVE_URL = "http://localhost:5174/api/save-mobile-route";
 const MOBILE_ROUTES_URL = "http://localhost:5174/api/mobile-routes";
 const HISTORY_LIMIT = 10;
+const DISCARD_UNSAVED_ROUTE_MESSAGE = "Discard unsaved route changes?";
 const BASE_MAP_SOURCE_ID = "osm";
 const DETAIL_MAP_STORAGE_KEY = "traillite.detailMaps.v1";
 const SNAP_LINE_LAYER_IDS = ["roads-major", "roads-minor", "paths-highlight"];
@@ -339,6 +340,7 @@ function syncMapOverlays() {
 
 function bindUi() {
   elements.newRouteButton.addEventListener("click", () => {
+    if (!confirmDiscardUnsavedRoute()) return;
     state.routeName = "Untitled route";
     state.points = [];
     state.mobileRouteId = null;
@@ -357,6 +359,7 @@ function bindUi() {
   elements.undoButton.addEventListener("click", () => undoPointEdit());
   elements.redoButton.addEventListener("click", () => redoPointEdit());
   elements.clearButton.addEventListener("click", () => {
+    if (!confirmDiscardUnsavedRoute()) return;
     state.points = [];
     state.mobileRouteId = null;
     state.mobileSavedSignature = null;
@@ -397,6 +400,10 @@ function bindUi() {
   elements.gpxInput.addEventListener("change", async () => {
     const file = elements.gpxInput.files?.[0];
     if (!file) return;
+    if (!confirmDiscardUnsavedRoute()) {
+      elements.gpxInput.value = "";
+      return;
+    }
     try {
       const text = await file.text();
       const parsed = parseGpx(text);
@@ -419,6 +426,11 @@ function bindUi() {
     } finally {
       elements.gpxInput.value = "";
     }
+  });
+  window.addEventListener("beforeunload", (event) => {
+    if (!hasUnsavedRouteChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
   });
 }
 
@@ -1127,6 +1139,15 @@ function routeSaveStateText() {
   return state.mobileRouteId ? "Unsaved mobile edits" : "Not saved to mobile";
 }
 
+function hasUnsavedRouteChanges() {
+  return state.points.length > 0 && state.mobileSavedSignature !== routeSignature();
+}
+
+function confirmDiscardUnsavedRoute() {
+  if (!hasUnsavedRouteChanges()) return true;
+  return window.confirm(DISCARD_UNSAVED_ROUTE_MESSAGE);
+}
+
 function render() {
   if (!map?.isStyleLoaded()) {
     renderSidebar();
@@ -1312,6 +1333,7 @@ function mobileRouteLabel(route) {
 async function loadSelectedMobileRoute() {
   const routeId = elements.mobileRouteSelect.value;
   if (!routeId) return;
+  if (!confirmDiscardUnsavedRoute()) return;
   elements.loadMobileRouteButton.disabled = true;
   try {
     if (state.mobileRouteGpxById[routeId]) {

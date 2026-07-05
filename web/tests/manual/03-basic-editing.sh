@@ -56,10 +56,16 @@ agent-browser click "#undoButton"
 agent-browser eval '
 let state = window.__trailLiteTest.getState();
 if (state.points.length !== 4) throw new Error(`Expected 4 points after undoing delete, got ${state.points.length}`);
+window.__clearConfirmCalls = 0;
+window.confirm = () => {
+  window.__clearConfirmCalls += 1;
+  return true;
+};
 '
 agent-browser click "#clearButton"
 agent-browser eval '
 const state = window.__trailLiteTest.getState();
+if (window.__clearConfirmCalls !== 1) throw new Error(`Clear should confirm before discarding unsaved route, got ${window.__clearConfirmCalls}`);
 if (state.points.length !== 0) throw new Error("Clear did not remove route points");
 if (state.canExport) throw new Error("Cleared route should not export");
 true;
