@@ -1024,10 +1024,22 @@ function shouldSuppressMapClick() {
 }
 
 function addPoint(point) {
+  const snappedPoint = snapToVisibleLines(point);
+  const previous = state.points[state.points.length - 1];
+  if (previous && sameRoutePoint(previous, snappedPoint)) {
+    setStatus("Point unchanged.");
+    renderSidebar();
+    return;
+  }
   pushUndo();
-  state.points = [...state.points, snapToVisibleLines(point)];
+  state.points = [...state.points, snappedPoint];
   setStatus("Point added.");
   render();
+}
+
+function sameRoutePoint(left, right) {
+  return left[0].toFixed(6) === right[0].toFixed(6)
+    && left[1].toFixed(6) === right[1].toFixed(6);
 }
 
 function insertPoint(index, point) {

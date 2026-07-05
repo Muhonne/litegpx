@@ -60,6 +60,14 @@ agent-browser click "#undoButton"
 agent-browser eval '
 let state = window.__trailLiteTest.getState();
 if (state.points.length !== 4) throw new Error(`Expected 4 points after undoing delete, got ${state.points.length}`);
+const undoDepthBeforeDuplicate = state.undoDepth;
+const lastPoint = state.points[state.points.length - 1];
+window.__trailLiteTest.addPoint(lastPoint[0], lastPoint[1]);
+state = window.__trailLiteTest.getState();
+if (state.points.length !== 4) throw new Error(`Duplicate endpoint add should not create a point, got ${state.points.length}`);
+if (state.undoDepth !== undoDepthBeforeDuplicate) {
+  throw new Error(`Duplicate endpoint add should not create undo history, got ${state.undoDepth} from ${undoDepthBeforeDuplicate}`);
+}
 window.__clearConfirmCalls = 0;
 window.confirm = () => {
   window.__clearConfirmCalls += 1;

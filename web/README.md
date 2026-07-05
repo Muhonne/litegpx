@@ -84,7 +84,7 @@ bash tests/manual/05-map-tools.sh
 bash tests/manual/09-route-draw-mouseup.sh
 ```
 
-`03-basic-editing.sh` covers imported route editing, newest-first point list behavior with route-order labels, and confirming before clearing unsaved route edits.
+`03-basic-editing.sh` covers imported route editing, newest-first point list behavior with route-order labels, ignoring duplicate endpoint adds without consuming undo history, and confirming before clearing unsaved route edits.
 `05-map-tools.sh` covers layer toggles, area selection, and the area-download busy button state.
 `07-polish-controls-shortcuts-data.sh` covers compact route controls, the Fit route action, edit-mode shortcuts, and 10-step undo/redo history.
 `09-route-draw-mouseup.sh` covers drag-to-draw and verifies editing can be toggled off/on without breaking drawing.
