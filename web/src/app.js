@@ -1127,6 +1127,7 @@ function beginRouteDraw(point) {
 function appendDrawPoint(point, force = false) {
   const snappedPoint = snapToVisibleLines(point);
   const previous = state.points[state.points.length - 1];
+  if (previous && sameRoutePoint(previous, snappedPoint)) return;
   if (!force && previous && distanceBetween(previous, snappedPoint) < FREEHAND_MIN_DISTANCE_METERS) return;
   state.points = [...state.points, snappedPoint];
   state.drawAddedPointCount += 1;

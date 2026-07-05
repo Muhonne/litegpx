@@ -83,3 +83,25 @@ if (state.drawingRoute) throw new Error("Route drawing should stop after edit to
 if (state.points.length < 2) throw new Error(`Mouse drag should still work after edit toggle, got ${state.points.length}`);
 true;
 '
+
+agent-browser eval '
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
+  [24.931000, 60.171000],
+], "Endpoint continuation");
+window.__trailLiteTest.beginRouteDraw(24.931000, 60.171000);
+window.__trailLiteTest.appendDrawPoint(24.932000, 60.172000);
+window.__trailLiteTest.finishRouteDraw();
+const state = window.__trailLiteTest.getState();
+if (state.points.length !== 3) throw new Error(`Drawing from the current endpoint should append only the new point, got ${state.points.length}`);
+if (state.points[1][0].toFixed(6) !== "24.931000" || state.points[1][1].toFixed(6) !== "60.171000") {
+  throw new Error(`Existing endpoint changed unexpectedly: ${JSON.stringify(state.points[1])}`);
+}
+if (state.points[2][0].toFixed(6) !== "24.932000" || state.points[2][1].toFixed(6) !== "60.172000") {
+  throw new Error(`New endpoint missing after continuation draw: ${JSON.stringify(state.points[2])}`);
+}
+window.__trailLiteTest.undoPointEdit();
+const undone = window.__trailLiteTest.getState();
+if (undone.points.length !== 2) throw new Error(`Undo should remove the continuation segment, got ${undone.points.length}`);
+true;
+'
