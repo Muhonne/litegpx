@@ -38,6 +38,7 @@ if (!document.querySelector("#doneButton").hidden) throw new Error("Done should 
 if (!document.querySelector("#undoButton").hidden) throw new Error("Undo should be hidden outside edit mode");
 if (!document.querySelector("#redoButton").hidden) throw new Error("Redo should be hidden outside edit mode");
 if (!document.querySelector("#newRouteButton").hidden) throw new Error("Reset should be hidden without a route");
+if (!document.querySelector("#fitRouteButton").hidden) throw new Error("Fit route should be hidden without a route");
 if (!document.querySelector("#clearButton").hidden) throw new Error("Clear should be hidden without a route");
 if (!document.querySelector("#exportButton").hidden) throw new Error("Save route should be hidden until exportable");
 if (document.querySelector("#editButton").textContent.trim() !== "Draw route") throw new Error("Blank route action should be Draw route");
@@ -58,6 +59,7 @@ true;
 '
 
 agent-browser eval '
+(async () => {
 window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
 let state = window.__trailLiteTest.getState();
 if (state.mode !== "edit") throw new Error(`E did not enter edit mode: ${state.mode}`);
@@ -75,6 +77,18 @@ state = window.__trailLiteTest.getState();
 if (state.points.length !== 2) throw new Error("Shortcut setup failed to add points");
 if (document.querySelector("#newRouteButton").textContent.trim() !== "Reset") throw new Error("Existing route reset action missing");
 if (document.querySelector("#editButton").textContent.trim() !== "Edit route") throw new Error("Existing route action should be Edit route");
+if (document.querySelector("#fitRouteButton")?.hidden) throw new Error("Fit route should be visible for an existing route");
+const routeCenter = [
+  state.points.reduce((sum, point) => sum + point[0], 0) / state.points.length,
+  state.points.reduce((sum, point) => sum + point[1], 0) / state.points.length,
+];
+window.__trailLiteMap.jumpTo({ center: [26.0, 61.0], zoom: 8 });
+document.querySelector("#fitRouteButton").click();
+await new Promise((resolve) => setTimeout(resolve, 650));
+state = window.__trailLiteTest.getState();
+if (Math.abs(state.mapCenter[0] - routeCenter[0]) > 0.03 || Math.abs(state.mapCenter[1] - routeCenter[1]) > 0.03) {
+  throw new Error(`Fit route did not return near route center: ${state.mapCenter} vs ${routeCenter}`);
+}
 window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
 state = window.__trailLiteTest.getState();
 if (state.points.length !== 1) throw new Error(`Ctrl+Z did not undo a point: ${state.points.length}`);
@@ -98,6 +112,7 @@ window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", bubbles: true }));
 state = window.__trailLiteTest.getState();
 if (state.mode !== "view") throw new Error(`E did not toggle back to view mode: ${state.mode}`);
 true;
+})()
 '
 
 agent-browser eval '

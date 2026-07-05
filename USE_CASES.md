@@ -81,6 +81,7 @@ Feature: Web GPX route creation
     And the route has a name
     When the user presses "Done"
     Then the app returns to view mode
+    And the user can press "Fit route" to refocus the map on the current route
     When the user presses "Save route"
     Then the browser downloads a GPX 1.1 file
     And the GPX contains TrailLite-compatible track points in route order

@@ -72,6 +72,7 @@ const elements = {
   modeBadge: document.getElementById("modeBadge"),
   newRouteButton: document.getElementById("newRouteButton"),
   editButton: document.getElementById("editButton"),
+  fitRouteButton: document.getElementById("fitRouteButton"),
   doneButton: document.getElementById("doneButton"),
   undoButton: document.getElementById("undoButton"),
   redoButton: document.getElementById("redoButton"),
@@ -356,6 +357,7 @@ function bindUi() {
   });
 
   elements.editButton.addEventListener("click", () => startEditing());
+  elements.fitRouteButton.addEventListener("click", () => fitRoute());
   elements.doneButton.addEventListener("click", () => setMode("view"));
   elements.undoButton.addEventListener("click", () => undoPointEdit());
   elements.redoButton.addEventListener("click", () => redoPointEdit());
@@ -1169,6 +1171,7 @@ function renderSidebar() {
   setCommandButtonLabel(elements.newRouteButton, "Reset");
   setCommandButtonLabel(elements.editButton, hasRoute ? "Edit route" : "Draw route");
   elements.editButton.disabled = editing;
+  elements.fitRouteButton.disabled = !hasRoute;
   elements.doneButton.disabled = !editing;
   elements.undoButton.disabled = state.undoStack.length === 0;
   elements.redoButton.disabled = state.redoStack.length === 0;
@@ -1181,6 +1184,7 @@ function renderSidebar() {
   elements.drawAreaButton.classList.toggle("active", state.areaSelectMode || state.drawingArea);
   elements.newRouteButton.hidden = editing || !hasRoute;
   elements.editButton.hidden = editing;
+  elements.fitRouteButton.hidden = !hasRoute;
   elements.importButton.hidden = editing;
   elements.doneButton.hidden = !editing;
   elements.undoButton.hidden = !editing;
