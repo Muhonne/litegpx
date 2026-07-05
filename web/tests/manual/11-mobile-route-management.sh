@@ -47,6 +47,14 @@ const options = Array.from(document.querySelectorAll("#mobileRouteSelect option"
 if (options.length !== 1 || !options[0].includes("Pajamaki Test")) {
   throw new Error(`Mobile route filter should show only Pajamaki Test, got ${options.join(" | ")}`);
 }
+const routeCards = Array.from(document.querySelectorAll("#mobileRouteList [data-mobile-route-id]"));
+if (routeCards.length !== 1 || routeCards[0].dataset.mobileRouteId !== "pajamaki-test") {
+  throw new Error(`Visible mobile route list should show only Pajamaki Test, got ${routeCards.map((card) => card.textContent.trim()).join(" | ")}`);
+}
+routeCards[0].click();
+if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
+  throw new Error("Clicking a mobile route list item should select that route");
+}
 const status = document.querySelector("#mobileRouteStatus")?.textContent || "";
 if (!status.includes("1 of 2")) throw new Error(`Filtered route status missing count: ${status}`);
 search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));

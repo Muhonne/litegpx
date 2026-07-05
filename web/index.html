@@ -40,8 +40,9 @@
           <h2 class="section-title">Mobile routes</h2>
           <label class="field-label" for="mobileRouteSearch">Filter app routes</label>
           <input id="mobileRouteSearch" type="search" placeholder="Route name" autocomplete="off" />
-          <label class="field-label" for="mobileRouteSelect">Saved in app</label>
-          <select id="mobileRouteSelect">
+          <div id="mobileRouteList" class="mobile-route-list" role="listbox" aria-label="Filtered mobile routes"></div>
+          <label class="field-label visually-hidden" for="mobileRouteSelect">Saved in app</label>
+          <select id="mobileRouteSelect" class="route-select-fallback" tabindex="-1" aria-hidden="true">
             <option value="">Loading routes...</option>
           </select>
           <div class="mobile-route-actions">

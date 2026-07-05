@@ -905,6 +905,7 @@ Sidebar content model:
 
 - User controls first.
 - Export action is always visible near the top controls.
+- Mobile routes are managed in the sidebar with a filter, compact selectable list, refresh action, and load action.
 - Map search and map layer settings sit below the primary route controls and stay visible.
 - Map layer settings use simple checkboxes with the same labels as mobile.
 - Route name below controls.

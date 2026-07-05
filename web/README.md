@@ -2,7 +2,7 @@
 
 Technical notes for running, building, and testing the desktop GPX Builder.
 
-Product scope and behavior live at the workspace root:
+Product scope and behavior live under the workspace `docs/` directory:
 
 - [../docs/PRODUCT.md](../docs/PRODUCT.md)
 - [../docs/USE_CASES.md](../docs/USE_CASES.md)
@@ -89,6 +89,6 @@ bash tests/manual/09-route-draw-mouseup.sh
 `07-polish-controls-shortcuts-data.sh` covers compact route controls, the Fit route action, edit-mode shortcuts, and 10-step undo/redo history.
 `09-route-draw-mouseup.sh` covers drag-to-draw and verifies editing can be toggled off/on without breaking drawing.
 `10-mobile-save-button.sh` covers save-to-mobile request payloads and busy button feedback while map data is being generated.
-`11-mobile-route-management.sh` covers filtering bundled mobile routes, loading a selected route with Enter or the load button, preserving mobile route identity on save, showing saved/unsaved mobile edit state, and cancelling a load without moving the picker away from the loaded route.
+`11-mobile-route-management.sh` covers filtering bundled mobile routes, selecting a visible route-list item, loading a selected route with Enter or the load button, preserving mobile route identity on save, showing saved/unsaved mobile edit state, and cancelling a load without moving the picker away from the loaded route.
 `12-simplify-route.sh` covers simplifying dense freehand routes while preserving endpoints and undo behavior.
 These checks use `agent-browser`, so keep the web server running before running individual scripts.

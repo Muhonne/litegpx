@@ -84,6 +84,7 @@ const elements = {
   importButton: document.getElementById("importButton"),
   gpxInput: document.getElementById("gpxInput"),
   mobileRouteSearch: document.getElementById("mobileRouteSearch"),
+  mobileRouteList: document.getElementById("mobileRouteList"),
   mobileRouteSelect: document.getElementById("mobileRouteSelect"),
   refreshMobileRoutesButton: document.getElementById("refreshMobileRoutesButton"),
   loadMobileRouteButton: document.getElementById("loadMobileRouteButton"),
@@ -1377,6 +1378,7 @@ function renderMobileRoutes() {
   elements.mobileRouteSelect.disabled = state.mobileRoutesLoading || filteredRoutes.length === 0;
   elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading || !elements.mobileRouteSelect.value;
   elements.refreshMobileRoutesButton.disabled = state.mobileRoutesLoading;
+  renderMobileRouteList(filteredRoutes, nextSelectedId);
 
   if (state.mobileRoutesLoading) {
     elements.mobileRouteStatus.textContent = "Loading mobile route catalog.";
@@ -1385,6 +1387,53 @@ function renderMobileRoutes() {
   } else {
     elements.mobileRouteStatus.textContent = mobileRouteStatusText(filteredRoutes);
   }
+}
+
+function renderMobileRouteList(filteredRoutes, selectedId) {
+  if (!elements.mobileRouteList) return;
+  if (state.mobileRoutesLoading) {
+    elements.mobileRouteList.replaceChildren(emptyMobileRouteListItem("Loading routes..."));
+    return;
+  }
+  if (filteredRoutes.length === 0) {
+    elements.mobileRouteList.replaceChildren(
+      emptyMobileRouteListItem(state.mobileRoutes.length > 0 ? "No matching routes" : "No mobile routes"),
+    );
+    return;
+  }
+
+  elements.mobileRouteList.replaceChildren(
+    ...filteredRoutes.slice(0, 8).map((route) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "mobile-route-item";
+      button.dataset.mobileRouteId = route.id;
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", route.id === selectedId ? "true" : "false");
+      if (route.id === selectedId) button.classList.add("selected");
+
+      const title = document.createElement("span");
+      title.className = "mobile-route-title";
+      title.textContent = route.title || route.id;
+      const meta = document.createElement("span");
+      meta.className = "mobile-route-meta";
+      meta.textContent = mobileRouteMeta(route);
+      button.append(title, meta);
+      button.addEventListener("click", () => {
+        elements.mobileRouteSelect.value = route.id;
+        renderMobileRoutes();
+      });
+      button.addEventListener("dblclick", () => loadSelectedMobileRoute());
+      return button;
+    }),
+  );
+}
+
+function emptyMobileRouteListItem(message) {
+  const item = document.createElement("p");
+  item.className = "mobile-route-empty";
+  item.textContent = message;
+  return item;
 }
 
 function filteredMobileRoutes() {
@@ -1414,6 +1463,14 @@ function mobileRouteLabel(route) {
   const pointCount = Number.isFinite(route.trackPointCount) ? `, ${route.trackPointCount} pts` : "";
   const length = Number.isFinite(route.lengthKm) ? ` (${route.lengthKm.toFixed(1)} km${pointCount})` : pointCount ? ` (${pointCount.slice(2)})` : "";
   return `${route.title || route.id}${length}`;
+}
+
+function mobileRouteMeta(route) {
+  const parts = [];
+  if (Number.isFinite(route.lengthKm)) parts.push(`${route.lengthKm.toFixed(1)} km`);
+  if (Number.isFinite(route.trackPointCount)) parts.push(`${route.trackPointCount} pts`);
+  if (route.source) parts.push(route.source);
+  return parts.join(" · ") || route.id || "Route";
 }
 
 async function loadSelectedMobileRoute() {
