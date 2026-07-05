@@ -35,7 +35,10 @@ window.fetch = async (url, options = {}) => {
       window.__finishMobileSave = () => resolve(new Response(JSON.stringify({
         route: {
           id: "mobile-save-test",
+          title: "Mobile Save Test",
           file: "mobile/app/src/main/assets/routes/mobile-save-test.gpx",
+          pointCount: 2,
+          lengthKm: 0.1,
         },
         map: {
           mobileFile: "shared/maps/finland.pmtiles",
@@ -44,6 +47,12 @@ window.fetch = async (url, options = {}) => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }));
+    });
+  }
+  if (String(url).includes("/api/mobile-routes")) {
+    return new Response(JSON.stringify({ error: "catalog temporarily unavailable" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
     });
   }
   return originalFetch(url, options);
@@ -77,5 +86,10 @@ if (button.getAttribute("aria-busy") !== "false") throw new Error("Mobile save b
 if (!button.textContent.includes("Save to mobile app")) throw new Error(`Mobile save button label did not restore: ${button.textContent}`);
 const state = window.__trailLiteTest.getState();
 if (!state.status.includes("Saved to mobile app")) throw new Error(`Unexpected status: ${state.status}`);
+if (state.mobileRouteId !== "mobile-save-test") throw new Error(`Saved route id missing from state: ${state.mobileRouteId}`);
+const savedCard = document.querySelector("#mobileRouteList [data-mobile-route-id=\"mobile-save-test\"]");
+if (!savedCard?.classList.contains("loaded")) {
+  throw new Error("Saved route should stay visible and marked loaded even if catalog refresh fails");
+}
 true;
 '

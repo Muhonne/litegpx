@@ -142,6 +142,7 @@ Feature: Web GPX import and editing
     And cancelling a route load keeps the picker selected on the currently loaded route
     And saving to mobile preserves the loaded mobile route id when writing the edited route back into the Android workspace
     And the save-to-mobile button stays disabled and shows progress while route and map data are being written
+    And a newly saved route is immediately visible as the loaded route in the mobile route list
     And a successful mobile save clears the unsaved edit state
 
   Scenario: Reject a broken GPX file
@@ -206,6 +207,7 @@ Feature: Save web-created routes into the mobile workspace
     And the service updates the bundled route catalog
     And the service extracts corridor map data for the route
     And the service writes the Android bundled PMTiles packages under shared/maps
+    And the web route manager immediately reflects the saved mobile route
     And the next Android build can include the route and required offline map data
 ```
 

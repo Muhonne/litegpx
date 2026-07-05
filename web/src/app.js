@@ -1344,7 +1344,7 @@ function spinnerElement() {
   return spinner;
 }
 
-async function refreshMobileRoutes() {
+async function refreshMobileRoutes(options = {}) {
   state.mobileRoutesLoading = true;
   state.mobileRoutesError = "";
   renderMobileRoutes();
@@ -1355,7 +1355,7 @@ async function refreshMobileRoutes() {
     state.mobileRoutes = Array.isArray(data.routes) ? data.routes : [];
     state.mobileRoutesError = "";
   } catch {
-    state.mobileRoutes = [];
+    if (!options.preserveOnError) state.mobileRoutes = [];
     state.mobileRoutesError = "Start map data service to load app routes.";
   } finally {
     state.mobileRoutesLoading = false;
@@ -1505,6 +1505,29 @@ function mobileRouteMeta(route) {
   if (Number.isFinite(route.trackPointCount)) parts.push(`${route.trackPointCount} pts`);
   if (route.source) parts.push(route.source);
   return parts.join(" · ") || route.id || "Route";
+}
+
+function upsertSavedMobileRoute(payload, gpx) {
+  const route = payload.route || {};
+  if (!route.id) return;
+  const savedRoute = {
+    id: route.id,
+    title: route.title || state.routeName,
+    lengthKm: Number.isFinite(route.lengthKm) ? route.lengthKm : undefined,
+    trackPointCount: Number.isFinite(route.trackPointCount)
+      ? route.trackPointCount
+      : Number.isFinite(route.pointCount)
+        ? route.pointCount
+        : state.points.length,
+    source: route.source || "TrailLite GPX Builder",
+    bounds: route.bounds,
+    gpxAsset: route.gpxAsset,
+  };
+  state.mobileRoutes = [
+    ...state.mobileRoutes.filter((entry) => entry.id !== savedRoute.id),
+    savedRoute,
+  ].sort((left, right) => (left.title || left.id).localeCompare(right.title || right.id, "fi"));
+  state.mobileRouteGpxById[savedRoute.id] = gpx;
 }
 
 async function loadSelectedMobileRoute() {
@@ -1779,11 +1802,12 @@ async function saveRouteToMobileApp() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "Mobile save failed");
+    upsertSavedMobileRoute(payload, gpx);
     state.mobileRouteId = payload.route?.id || state.mobileRouteId;
     markRouteSavedToMobile();
     setStatus(`Saved to mobile app: ${payload.route?.file || "route GPX"} and ${payload.map?.mobileFile || "map data"}.`);
     refreshStoredDetailMaps();
-    refreshMobileRoutes();
+    refreshMobileRoutes({ preserveOnError: true });
   } catch (error) {
     setStatus(`Mobile save failed: ${error.message}`, true);
   } finally {
