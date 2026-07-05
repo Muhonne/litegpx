@@ -1024,8 +1024,13 @@ function shouldSuppressMapClick() {
 }
 
 function addPoint(point) {
-  const snappedPoint = snapToVisibleLines(point);
   const previous = state.points[state.points.length - 1];
+  if (previous && sameRoutePoint(previous, point)) {
+    setStatus("Point unchanged.");
+    renderSidebar();
+    return;
+  }
+  const snappedPoint = snapToVisibleLines(point);
   if (previous && sameRoutePoint(previous, snappedPoint)) {
     setStatus("Point unchanged.");
     renderSidebar();
@@ -1043,9 +1048,22 @@ function sameRoutePoint(left, right) {
 }
 
 function insertPoint(index, point) {
+  const previous = state.points[index - 1];
+  const next = state.points[index];
+  if ((previous && sameRoutePoint(previous, point)) || (next && sameRoutePoint(next, point))) {
+    setStatus("Point unchanged.");
+    renderSidebar();
+    return;
+  }
+  const snappedPoint = snapToVisibleLines(point);
+  if ((previous && sameRoutePoint(previous, snappedPoint)) || (next && sameRoutePoint(next, snappedPoint))) {
+    setStatus("Point unchanged.");
+    renderSidebar();
+    return;
+  }
   pushUndo();
   const points = clonePoints(state.points);
-  points.splice(index, 0, snapToVisibleLines(point));
+  points.splice(index, 0, snappedPoint);
   state.points = points;
   setStatus("Point inserted.");
   render();

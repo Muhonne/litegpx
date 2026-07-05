@@ -68,6 +68,14 @@ if (state.points.length !== 4) throw new Error(`Duplicate endpoint add should no
 if (state.undoDepth !== undoDepthBeforeDuplicate) {
   throw new Error(`Duplicate endpoint add should not create undo history, got ${state.undoDepth} from ${undoDepthBeforeDuplicate}`);
 }
+const undoDepthBeforeDuplicateInsert = state.undoDepth;
+const existingMiddlePoint = state.points[1];
+window.__trailLiteTest.insertPoint(2, existingMiddlePoint[0], existingMiddlePoint[1]);
+state = window.__trailLiteTest.getState();
+if (state.points.length !== 4) throw new Error(`Adjacent duplicate insert should not create a point, got ${state.points.length}`);
+if (state.undoDepth !== undoDepthBeforeDuplicateInsert) {
+  throw new Error(`Adjacent duplicate insert should not create undo history, got ${state.undoDepth} from ${undoDepthBeforeDuplicateInsert}`);
+}
 window.__clearConfirmCalls = 0;
 window.confirm = () => {
   window.__clearConfirmCalls += 1;
