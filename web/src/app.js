@@ -1414,7 +1414,10 @@ function mobileRouteLabel(route) {
 async function loadSelectedMobileRoute() {
   const routeId = elements.mobileRouteSelect.value;
   if (!routeId) return;
-  if (!confirmDiscardUnsavedRoute()) return;
+  if (!confirmDiscardUnsavedRoute()) {
+    restoreLoadedMobileRouteSelection();
+    return;
+  }
   elements.loadMobileRouteButton.disabled = true;
   try {
     if (state.mobileRouteGpxById[routeId]) {
@@ -1431,6 +1434,15 @@ async function loadSelectedMobileRoute() {
   } finally {
     renderSidebar();
   }
+}
+
+function restoreLoadedMobileRouteSelection() {
+  if (!state.mobileRouteId) return;
+  const hasLoadedRouteOption = Array.from(elements.mobileRouteSelect.options)
+    .some((option) => option.value === state.mobileRouteId);
+  if (!hasLoadedRouteOption) return;
+  elements.mobileRouteSelect.value = state.mobileRouteId;
+  renderMobileRoutes();
 }
 
 function applyMobileRoutePayload(payload) {

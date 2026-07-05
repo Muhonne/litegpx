@@ -102,6 +102,9 @@ window.confirm = originalConfirm;
 state = window.__trailLiteTest.getState();
 if (confirmCalls !== 1) throw new Error(`Loading another route should ask once before discarding edits, got ${confirmCalls}`);
 if (state.routeName !== "Renamed Pajamaki") throw new Error(`Cancelled load should keep edited route, got ${state.routeName}`);
+if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
+  throw new Error(`Cancelled load should restore selected route, got ${document.querySelector("#mobileRouteSelect").value}`);
+}
 await window.__trailLiteTest.saveRouteToMobileApp();
 window.fetch = originalFetch;
 if (!capturedSaveBody) throw new Error("Save to mobile request was not captured");
