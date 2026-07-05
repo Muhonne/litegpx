@@ -137,8 +137,8 @@ class TrailMapController(
         latestLocationFix = Location(location)
         if (currentStyle == null) return false
 
-        updateLocationDot(latLng)
         updateNavigationCamera(location, latLng)
+        updateLocationDot(latLng)
         lastRenderedLocation = latLng
         return true
     }
@@ -184,15 +184,15 @@ class TrailMapController(
     }
 
     private fun updateNavigationCamera(location: Location, latLng: LatLng, force: Boolean = false) {
+        if (!trackingActive && !force) return
         if (!force && SystemClock.elapsedRealtime() < followPausedUntilMs) return
         val bearing = smoothedBearing(routeLookaheadBearing(location) ?: gpsBearing(location) ?: map.cameraPosition.bearing)
         val camera = CameraPosition.Builder(map.cameraPosition)
             .target(latLng)
             .bearing(bearing)
-            .padding(0.0, 0.0, 0.0, 0.0)
+            .padding(0.0, navigationTopPaddingPx().toDouble(), 0.0, 0.0)
             .build()
         map.moveCamera(CameraUpdateFactory.newCameraPosition(camera))
-        map.scrollBy(0f, navigationCenterOffsetPx(), LOCATION_CAMERA_ANIMATION_MS.toLong())
     }
 
     private fun routeLookaheadBearing(location: Location): Double? {
@@ -224,8 +224,8 @@ class TrailMapController(
         return smoothed
     }
 
-    private fun navigationCenterOffsetPx(): Float {
-        return (mapView.height * NAVIGATION_CENTER_OFFSET_RATIO).coerceAtLeast(0f)
+    private fun navigationTopPaddingPx(): Float {
+        return (mapView.height * NAVIGATION_TOP_PADDING_RATIO).coerceAtLeast(0f)
     }
 
     private fun projectOnRoute(location: GeoPoint): RouteProjection? {
@@ -424,9 +424,8 @@ class TrailMapController(
         const val LOCATION_LAYER_ID = "trail-location-dot"
         const val TRACK_BOUNDS_PADDING_PX = 90
         const val TRACK_CAMERA_ANIMATION_MS = 650
-        const val LOCATION_CAMERA_ANIMATION_MS = 900
         const val DEFAULT_TRAIL_ZOOM = 14.0
-        const val NAVIGATION_CENTER_OFFSET_RATIO = 0.1f
+        const val NAVIGATION_TOP_PADDING_RATIO = 0.2f
         const val ROUTE_LOOKAHEAD_METERS = 50.0
         const val MIN_BEARING_DISTANCE_METERS = 1.0
         const val FOLLOW_PAUSE_AFTER_GESTURE_MS = 10_000L
