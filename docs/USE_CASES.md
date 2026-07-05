@@ -130,7 +130,7 @@ Feature: Web GPX import and editing
     And the Android mobile workspace contains bundled routes
     When the user refreshes the Mobile routes list
     Then the web app lists routes from mobile/app/src/main/assets/routes/routes.json
-    And the user can filter the list by route name or route metadata
+    And the user can filter the list by route name or visible route metadata
     And the filtered routes are visible as a compact selectable list in the sidebar
     And every filtered route remains reachable from the visible list
     And ArrowUp and ArrowDown move selection through the filtered route list

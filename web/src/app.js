@@ -1594,6 +1594,7 @@ function filteredMobileRoutes() {
     route.id,
     mobileRouteDisplayTitle(route),
     route.title,
+    mobileRouteMeta(route),
     route.source,
     Number.isFinite(route.lengthKm) ? `${route.lengthKm.toFixed(1)} km` : "",
   ].filter(Boolean).join(" ")).includes(filter));

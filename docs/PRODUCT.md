@@ -909,6 +909,7 @@ Sidebar content model:
 - User controls first.
 - Export action is always visible near the top controls.
 - Mobile routes are managed in the sidebar with a filter, compact selectable list, refresh action, and load action.
+- Mobile route filtering searches route title and visible card metadata such as distance, point count, and source.
 - The visible mobile route list scrolls rather than hiding matching routes behind an invisible picker.
 - The currently loaded mobile route is marked separately from the selected route pending load.
 - If filtering temporarily hides the loaded route, clearing the filter restores the loaded route as the selected route.

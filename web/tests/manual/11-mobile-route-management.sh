@@ -99,6 +99,14 @@ if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
 }
 const status = document.querySelector("#mobileRouteStatus")?.textContent || "";
 if (!status.includes("1 of 2")) throw new Error(`Filtered route status missing count: ${status}`);
+search.value = "18 pts";
+search.dispatchEvent(new Event("input", { bubbles: true }));
+let metadataCards = Array.from(document.querySelectorAll("#mobileRouteList [data-mobile-route-id]"));
+if (metadataCards.length !== 1 || metadataCards[0].dataset.mobileRouteId !== "forest-loop") {
+  throw new Error(`Mobile route filter should search visible point-count metadata, got ${metadataCards.map((card) => card.textContent.trim()).join(" | ")}`);
+}
+search.value = "paja";
+search.dispatchEvent(new Event("input", { bubbles: true }));
 search.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 await new Promise((resolve) => setTimeout(resolve, 80));
 const state = window.__trailLiteTest.getState();
