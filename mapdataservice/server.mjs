@@ -144,11 +144,43 @@ async function readMobileRouteGpx({ id, catalogPath, routesDir }) {
   };
 }
 
+async function mobileRouteSaveTarget({ routeId, routeName, catalogPath, routesDir }) {
+  const title = cleanName(routeName || "Untitled route");
+  const requestedId = cleanRouteId(routeId);
+  const catalog = await readRouteCatalog(catalogPath);
+  const existingRoute = requestedId ? catalog.find((entry) => entry.id === requestedId) : null;
+  if (existingRoute?.gpxAsset) {
+    const gpxPath = resolveRouteAsset(routesDir, existingRoute.gpxAsset);
+    return {
+      id: existingRoute.id,
+      title,
+      gpxFile: basename(gpxPath),
+      gpxAsset: existingRoute.gpxAsset,
+    };
+  }
+
+  const id = slugify(title);
+  const gpxFile = `${id}.gpx`;
+  return {
+    id,
+    title,
+    gpxFile,
+    gpxAsset: `routes/${gpxFile}`,
+  };
+}
+
 async function readRouteCatalog(catalogPath) {
   if (!existsSync(catalogPath)) return [];
   const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
   if (!Array.isArray(catalog)) throw new Error("Route catalog must be a JSON array");
   return catalog;
+}
+
+function cleanRouteId(value) {
+  if (value == null || value === "") return "";
+  const id = String(value);
+  if (!/^[a-zA-Z0-9._-]+$/.test(id)) throw new Error(`Invalid mobile route id: ${value}`);
+  return id;
 }
 
 function resolveRouteAsset(routesDir, gpxAsset) {
@@ -220,16 +252,20 @@ async function saveMobileRoute(body) {
   const routePoints = parseGpxPoints(gpx);
   if (routePoints.length < 2) throw new Error("route GPX must contain at least two track points");
 
-  const slug = slugify(routeName);
-  const gpxFile = `${slug}.gpx`;
-  const gpxPath = resolve(mobileRoutesDir, gpxFile);
+  const target = await mobileRouteSaveTarget({
+    routeId: body.routeId,
+    routeName,
+    catalogPath: mobileRouteCatalogPath,
+    routesDir: mobileRoutesDir,
+  });
+  const gpxPath = resolve(mobileRoutesDir, target.gpxFile);
   await mkdir(mobileRoutesDir, { recursive: true });
   await writeFile(gpxPath, gpx, "utf8");
 
   const routeEntry = buildRouteCatalogEntry({
-    id: slug,
-    title: routeName,
-    gpxAsset: `routes/${gpxFile}`,
+    id: target.id,
+    title: target.title,
+    gpxAsset: target.gpxAsset,
     points: routePoints,
   });
   await upsertRouteCatalog(routeEntry);
@@ -577,6 +613,7 @@ function parseDotEnvValue(value) {
 
 export {
   buildBundledMapManifest,
+  mobileRouteSaveTarget,
   mobileMapGpxInput,
   readMobileRouteCatalog,
   readMobileRouteGpx,

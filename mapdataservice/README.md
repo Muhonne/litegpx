@@ -252,7 +252,7 @@ The web app can also save the current route directly into the local Android work
 POST /api/save-mobile-route
 ```
 
-The request body contains a route name and GPX text. The service then:
+The request body contains a route name and GPX text. When the web app is saving a route loaded from the Android catalog, it also sends `routeId`; the service reuses that catalog id and GPX asset path so a rename updates the same mobile route instead of creating a duplicate. The service then:
 
 - writes the GPX to `mobile/app/src/main/assets/routes/<route>.gpx`
 - upserts the route in `mobile/app/src/main/assets/routes/routes.json`

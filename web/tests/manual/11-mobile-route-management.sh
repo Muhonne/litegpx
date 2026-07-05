@@ -56,3 +56,38 @@ if (!state.imported) throw new Error("Loaded mobile route should be treated as i
 if (state.points.length !== 2) throw new Error(`Loaded mobile route point count wrong: ${state.points.length}`);
 true;
 '
+
+agent-browser eval '
+(async () => {
+const originalFetch = window.fetch;
+let capturedSaveBody = null;
+window.fetch = async (url, options = {}) => {
+  if (String(url).includes("/api/save-mobile-route")) {
+    capturedSaveBody = JSON.parse(options.body || "{}");
+    return new Response(JSON.stringify({
+      route: { file: "pajamaki-test.gpx" },
+      map: { mobileFile: "finland.pmtiles" },
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+  if (String(url).includes("/api/datasets")) {
+    return new Response(JSON.stringify({ datasets: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+  if (String(url).includes("/api/mobile-routes")) {
+    return new Response(JSON.stringify({ routes: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+  return originalFetch(url, options);
+};
+document.querySelector("#routeName").value = "Renamed Pajamaki";
+document.querySelector("#routeName").dispatchEvent(new Event("input", { bubbles: true }));
+await window.__trailLiteTest.saveRouteToMobileApp();
+window.fetch = originalFetch;
+if (!capturedSaveBody) throw new Error("Save to mobile request was not captured");
+if (capturedSaveBody.routeId !== "pajamaki-test") {
+  throw new Error(`Save should preserve loaded mobile route id, got ${capturedSaveBody.routeId}`);
+}
+if (capturedSaveBody.routeName !== "Renamed Pajamaki") {
+  throw new Error(`Save should use edited route name, got ${capturedSaveBody.routeName}`);
+}
+true;
+})()
+'

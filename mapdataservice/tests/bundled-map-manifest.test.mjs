@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 
 import {
   buildBundledMapManifest,
+  mobileRouteSaveTarget,
   mobileMapGpxInput,
   readMobileRouteCatalog,
   readMobileRouteGpx,
@@ -86,6 +87,17 @@ try {
   const loadedRoute = await readMobileRouteGpx({ id: "test-route", catalogPath, routesDir });
   assert.equal(loadedRoute.route.title, "Test route");
   assert.equal(loadedRoute.gpx, routeGpx);
+
+  const saveTarget = await mobileRouteSaveTarget({
+    routeId: "test-route",
+    routeName: "Renamed Test Route",
+    catalogPath,
+    routesDir,
+  });
+  assert.equal(saveTarget.id, "test-route");
+  assert.equal(saveTarget.title, "Renamed Test Route");
+  assert.equal(saveTarget.gpxFile, "test-route.gpx");
+  assert.equal(saveTarget.gpxAsset, "routes/test-route.gpx");
 } finally {
   await rm(tempDir, { recursive: true, force: true });
 }

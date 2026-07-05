@@ -51,6 +51,7 @@ Handling:
 - The web app exports GPX 1.1 `<trk><trkseg><trkpt lat="..." lon="..." />`.
 - The mobile app parses GPX track points and renders the active route as an overlay line.
 - `POST /api/save-mobile-route` writes a web-created GPX into mobile assets and updates `routes.json`.
+- When the web app loads a bundled mobile route for editing, it keeps that route's catalog id and sends it back as `routeId` on save so renaming the route updates the same catalog entry instead of creating a duplicate.
 
 ### Base Map Layer
 
@@ -180,7 +181,7 @@ Code starting points:
 
 ```text
 web Save to mobile
-  -> POST /api/save-mobile-route
+  -> POST /api/save-mobile-route (routeId is included when editing a loaded mobile route)
   -> mobile/app/src/main/assets/routes/<route>.gpx
   -> mobile/app/src/main/assets/routes/routes.json
   -> shared/maps/finland.pmtiles

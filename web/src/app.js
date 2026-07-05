@@ -112,6 +112,7 @@ const state = {
   mode: "view",
   routeName: "Untitled route",
   points: [],
+  mobileRouteId: null,
   undoStack: [],
   redoStack: [],
   imported: false,
@@ -338,6 +339,7 @@ function bindUi() {
   elements.newRouteButton.addEventListener("click", () => {
     state.routeName = "Untitled route";
     state.points = [];
+    state.mobileRouteId = null;
     clearRouteHistory();
     state.imported = false;
     state.importedEditingCopy = false;
@@ -353,6 +355,7 @@ function bindUi() {
   elements.redoButton.addEventListener("click", () => redoPointEdit());
   elements.clearButton.addEventListener("click", () => {
     state.points = [];
+    state.mobileRouteId = null;
     clearRouteHistory();
     state.imported = false;
     state.importedEditingCopy = false;
@@ -396,6 +399,7 @@ function bindUi() {
       if (parsed.points.length < 2) throw new Error("No usable GPX track");
       state.routeName = parsed.name || file.name.replace(/\.gpx$/i, "") || "Imported route";
       state.points = parsed.points;
+      state.mobileRouteId = null;
       clearRouteHistory();
       state.imported = true;
       state.importedEditingCopy = false;
@@ -1305,6 +1309,7 @@ function applyMobileRoutePayload(payload) {
   if (parsed.points.length < 2) throw new Error("No usable GPX track");
   const route = payload.route || {};
   state.routeName = route.title || parsed.name || route.id || "Mobile route";
+  state.mobileRouteId = route.id || null;
   state.points = parsed.points;
   clearRouteHistory();
   state.imported = true;
@@ -1525,6 +1530,7 @@ async function saveRouteToMobileApp() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        routeId: state.mobileRouteId,
         routeName: state.routeName,
         gpx,
         bufferMeters: 1000,
@@ -1835,6 +1841,7 @@ function exposeTestApi() {
     getState: () => ({
       mode: state.mode,
       routeName: state.routeName,
+      mobileRouteId: state.mobileRouteId,
       points: clonePoints(state.points),
       distanceMeters: totalDistance(state.points),
       canExport: canExport(),
@@ -1869,6 +1876,7 @@ function exposeTestApi() {
     setRoute: (points, name = "Test route") => {
       state.points = clonePoints(points);
       state.routeName = name;
+      state.mobileRouteId = null;
       elements.routeName.value = name;
       clearRouteHistory();
       render();

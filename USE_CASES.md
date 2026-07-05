@@ -122,7 +122,7 @@ Feature: Web GPX import and editing
     When the user chooses a route and presses "Load route"
     Then the web app loads that route GPX in view mode
     And pressing "Edit route" creates an editable copy before changes are made
-    And saving to mobile can write the edited route back into the Android workspace
+    And saving to mobile preserves the loaded mobile route id when writing the edited route back into the Android workspace
 
   Scenario: Reject a broken GPX file
     Given the user has selected a broken GPX file
