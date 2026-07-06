@@ -180,6 +180,26 @@
     "trackPointCount": 233
   },
   {
+    "id": "koivuvaaroittelu",
+    "title": "Koivuvaaroittelu",
+    "lengthKm": 11.6,
+    "durationText": "--",
+    "source": "TrailLite GPX Builder",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Koivuvaaroittelu",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/koivuvaaroittelu.gpx",
+    "bounds": {
+      "minLon": 24.822357,
+      "minLat": 60.218368,
+      "maxLon": 24.873722,
+      "maxLat": 60.253959
+    },
+    "trackPointCount": 444
+  },
+  {
     "id": "kolin-kansallispuistolenkki",
     "title": "Kolin Kansallispuistolenkki",
     "lengthKm": 19,
