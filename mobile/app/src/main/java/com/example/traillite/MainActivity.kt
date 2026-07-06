@@ -644,6 +644,7 @@ private fun MapSettingsDialog(
                     inputLabel = "Zoom",
                     step = 0.5,
                     range = MIN_TRACKING_ZOOM_LEVEL..MAX_TRACKING_ZOOM_LEVEL,
+                    enabled = settings.automaticTrackingZoom,
                     onChange = { zoom -> onChange(settings.copy(trackingZoomLevel = zoom)) },
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -692,13 +693,14 @@ private fun DecimalStepper(
     inputLabel: String,
     step: Double,
     range: ClosedFloatingPointRange<Double>,
+    enabled: Boolean = true,
     onChange: (Double) -> Unit,
 ) {
     SettingsStepperRow(
         decreaseLabel = "-${step.formatStepperValue()}",
         increaseLabel = "+${step.formatStepperValue()}",
-        decreaseEnabled = value > range.start,
-        increaseEnabled = value < range.endInclusive,
+        decreaseEnabled = enabled && value > range.start,
+        increaseEnabled = enabled && value < range.endInclusive,
         onDecrease = { onChange((value - step).coerceIn(range.start, range.endInclusive)) },
         onIncrease = { onChange((value + step).coerceIn(range.start, range.endInclusive)) },
     ) {
@@ -709,6 +711,7 @@ private fun DecimalStepper(
                 onChange(parsed.coerceIn(range.start, range.endInclusive))
             },
             modifier = Modifier.width(SETTINGS_INPUT_WIDTH),
+            enabled = enabled,
             singleLine = true,
             label = { Text(inputLabel) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

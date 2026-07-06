@@ -202,6 +202,7 @@ class TrailMapController(
         }
         val camera = cameraBuilder.build()
         map.moveCamera(CameraUpdateFactory.newCameraPosition(camera))
+        onZoomChanged(camera.zoom)
     }
 
     private fun routeLookaheadBearing(location: Location): Double? {

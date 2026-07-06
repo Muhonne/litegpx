@@ -50,7 +50,8 @@ In the emulator:
 - The map camera follows every played GPS fix while tracking is active.
 - The location dot stays horizontally centered and about 40% from the bottom of the screen.
 - The map rotates so the next route segment, about 50 m ahead, points toward the top of the screen.
-- The current zoom level is preserved; the camera should not force a navigation zoom.
+- If automatic tracking zoom is off, the current zoom level is preserved and manual zoom remains under user control.
+- If automatic tracking zoom is on, the camera applies the configured tracking zoom level while tracking a selected route.
 - The bottom panel shows the current `Zoom: n.n` value so repeated runs can verify different tested zoom levels.
 - The bottom panel keeps updating location and route status.
 - Manually pan or zoom the map during playback. Auto-follow should pause for about 10 seconds, then resume.

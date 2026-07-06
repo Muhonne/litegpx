@@ -81,6 +81,7 @@ The current off-route threshold is 75 meters.
 - The user can enable an app-specific brightness override and choose the brightness percentage used by the Activity window.
 - The user can enable automatic tracking zoom and choose the zoom level applied while GPS tracking is active with a selected route.
 - When automatic tracking zoom is disabled, tracking keeps the current map zoom so manual zoom remains under user control.
+- The tracking zoom stepper is disabled when automatic tracking zoom is off, so the configured zoom value is not mistaken for the active tracking zoom.
 
 ## Data Formats
 
