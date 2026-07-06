@@ -88,6 +88,7 @@ The current off-route threshold is 75 meters.
 - GPS tracking uses Fused Location as the primary provider.
 - Raw GPS provider fallback starts only when fused fixes are stale.
 - Tracking uses a 5 meter minimum update distance to avoid waking the app for tiny GPS jitter.
+- Tracking ignores location fixes worse than 30 meters while a recent accepted fix exists; poor fixes are allowed again after 20 seconds without an accepted fix so the app can recover from weak signal.
 - Location cadence adapts from the configured moving interval to a slower cadence when the rider appears stopped or slow.
 - Ride mode avoids moving the map camera on every fix; the location dot can move inside the viewport and the camera recenters when the dot approaches the screen edge.
 

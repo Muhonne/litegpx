@@ -57,6 +57,13 @@ if ! rg -n 'adaptiveIntervalMs' "$LOCATION" >/dev/null ||
   exit 1
 fi
 
+if ! rg -n 'shouldAcceptLocation' "$LOCATION" >/dev/null ||
+  ! rg -n 'MAX_ACCEPTED_ACCURACY_METERS' "$LOCATION" >/dev/null ||
+  ! rg -n 'STALE_ACCEPTED_FIX_TIMEOUT_MS' "$LOCATION" >/dev/null; then
+  echo "Tracking should ignore poor-accuracy fixes unless the last accepted fix is stale." >&2
+  exit 1
+fi
+
 if ! rg -n 'shouldUpdateRideCamera' "$CONTROLLER" >/dev/null ||
   ! rg -n 'RIDE_CAMERA_EDGE_MARGIN_RATIO' "$CONTROLLER" >/dev/null; then
   echo "Ride mode should skip camera moves until the location approaches the viewport edge." >&2

@@ -33,6 +33,7 @@ class BatteryLocationClient(
     private var baseIntervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
     private var activeIntervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
     private var lastFusedFixElapsedMs: Long = 0L
+    private var lastAcceptedLocationElapsedMs: Long = 0L
     private var gpsFallbackActive = false
     private var running = false
 
@@ -53,6 +54,7 @@ class BatteryLocationClient(
         running = true
         activeIntervalMs = baseIntervalMs
         lastFusedFixElapsedMs = SystemClock.elapsedRealtime()
+        lastAcceptedLocationElapsedMs = 0L
         client.lastLocation.addOnSuccessListener { location ->
             if (location != null) handleFusedLocation(location)
         }
@@ -127,8 +129,21 @@ class BatteryLocationClient(
     }
 
     private fun handleLocation(location: Location) {
+        if (!shouldAcceptLocation(location)) return
+        lastAcceptedLocationElapsedMs = SystemClock.elapsedRealtime()
         onLocation(location)
         updateAdaptiveInterval(location)
+    }
+
+    private fun shouldAcceptLocation(location: Location): Boolean {
+        if (!location.hasAccuracy()) return true
+        if (location.accuracy <= MAX_ACCEPTED_ACCURACY_METERS) return true
+        return acceptedFixIsStale()
+    }
+
+    private fun acceptedFixIsStale(): Boolean {
+        if (lastAcceptedLocationElapsedMs == 0L) return true
+        return SystemClock.elapsedRealtime() - lastAcceptedLocationElapsedMs >= STALE_ACCEPTED_FIX_TIMEOUT_MS
     }
 
     private fun updateAdaptiveInterval(location: Location) {
@@ -197,7 +212,9 @@ class BatteryLocationClient(
         const val MAX_LOCATION_INTERVAL_SECONDS = 30
         const val MAX_LOCATION_INTERVAL_MS = MAX_LOCATION_INTERVAL_SECONDS * 1000L
         const val MIN_LOCATION_DISTANCE_METERS = 5f
+        const val MAX_ACCEPTED_ACCURACY_METERS = 30f
         const val STALE_FUSED_FIX_TIMEOUT_MS = 12_000L
+        const val STALE_ACCEPTED_FIX_TIMEOUT_MS = 20_000L
         const val GPS_FALLBACK_CHECK_INTERVAL_MS = 5_000L
         const val STOPPED_SPEED_METERS_PER_SECOND = 0.8f
         const val SLOW_SPEED_METERS_PER_SECOND = 2.5f
