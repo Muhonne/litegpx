@@ -191,6 +191,7 @@ class TrailMapController(
     private fun updateNavigationCamera(location: Location, latLng: LatLng, force: Boolean = false) {
         if (!trackingActive && !force) return
         if (!force && SystemClock.elapsedRealtime() < followPausedUntilMs) return
+        if (!force && !shouldUpdateRideCamera(latLng)) return
         val bearing = navigationBearing(location)
         val automaticTrackingZoom = layerSettings.automaticTrackingZoom && trackPoints.size >= 2
         val cameraBuilder = CameraPosition.Builder(map.cameraPosition)
@@ -203,6 +204,19 @@ class TrailMapController(
         val camera = cameraBuilder.build()
         map.moveCamera(CameraUpdateFactory.newCameraPosition(camera))
         onZoomChanged(camera.zoom)
+    }
+
+    private fun shouldUpdateRideCamera(latLng: LatLng): Boolean {
+        val width = mapView.width
+        val height = mapView.height
+        if (width <= 0 || height <= 0) return true
+        val screenPoint = map.projection.toScreenLocation(latLng)
+        val horizontalMargin = width * RIDE_CAMERA_EDGE_MARGIN_RATIO
+        val verticalMargin = height * RIDE_CAMERA_EDGE_MARGIN_RATIO
+        return screenPoint.x < horizontalMargin ||
+            screenPoint.x > width - horizontalMargin ||
+            screenPoint.y < verticalMargin ||
+            screenPoint.y > height - verticalMargin
     }
 
     private fun routeLookaheadBearing(location: Location): Double? {
@@ -444,6 +458,7 @@ class TrailMapController(
         const val TRACK_CAMERA_ANIMATION_MS = 650
         const val DEFAULT_TRAIL_ZOOM = 14.0
         const val NAVIGATION_TOP_PADDING_RATIO = 0.2f
+        const val RIDE_CAMERA_EDGE_MARGIN_RATIO = 0.22f
         const val NORTH_UP_BEARING = 0.0
         const val ROUTE_LOOKAHEAD_METERS = 50.0
         const val MIN_BEARING_DISTANCE_METERS = 1.0

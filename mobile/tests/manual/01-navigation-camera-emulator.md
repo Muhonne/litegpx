@@ -47,9 +47,10 @@ In the emulator:
 ## Expected Results
 
 - The blue location dot updates at the GPX playback cadence.
-- The map camera follows every played GPS fix while tracking is active.
-- The location dot stays horizontally centered and about 40% from the bottom of the screen.
-- The map rotates so the next route segment, about 50 m ahead, points toward the top of the screen.
+- The map camera initially enters riding navigation view when tracking starts.
+- After that, the location dot may move inside the viewport; the camera recenters when it approaches the screen edge.
+- When the camera recenters, the location dot returns horizontally centered and about 40% from the bottom of the screen.
+- When the camera recenters, the map rotates so the next route segment, about 50 m ahead, points toward the top of the screen.
 - If automatic tracking zoom is off, the current zoom level is preserved and manual zoom remains under user control.
 - If automatic tracking zoom is on, the camera applies the configured tracking zoom level while tracking a selected route.
 - The bottom panel shows the current `Zoom: n.n` value so repeated runs can verify different tested zoom levels.

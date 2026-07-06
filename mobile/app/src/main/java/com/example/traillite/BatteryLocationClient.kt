@@ -7,7 +7,9 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -27,17 +29,21 @@ class BatteryLocationClient(
     private val locationManager =
         appContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private var currentFixToken: CancellationTokenSource? = null
-    private var intervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var baseIntervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
+    private var activeIntervalMs: Long = DEFAULT_LOCATION_INTERVAL_MS
+    private var lastFusedFixElapsedMs: Long = 0L
+    private var gpsFallbackActive = false
     private var running = false
 
     private val callback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
-            result.lastLocation?.let(onLocation)
+            result.lastLocation?.let(::handleFusedLocation)
         }
     }
 
     private val gpsListener = LocationListener { location ->
-        onLocation(location)
+        handleGpsFallbackLocation(location)
     }
 
     @SuppressLint("MissingPermission")
@@ -45,26 +51,34 @@ class BatteryLocationClient(
         if (!hasPermission()) return
         stop()
         running = true
+        activeIntervalMs = baseIntervalMs
+        lastFusedFixElapsedMs = SystemClock.elapsedRealtime()
         client.lastLocation.addOnSuccessListener { location ->
-            if (location != null) onLocation(location)
+            if (location != null) handleFusedLocation(location)
         }
         currentFixToken = CancellationTokenSource().also { token ->
             client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token)
                 .addOnSuccessListener { location ->
-                    if (location != null) onLocation(location)
+                    if (location != null) handleFusedLocation(location)
                 }
         }
+        requestFusedLocationUpdates()
+        scheduleGpsFallbackCheck()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestFusedLocationUpdates() {
+        if (!running || !hasPermission()) return
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            intervalMs,
+            activeIntervalMs,
         )
-            .setMinUpdateIntervalMillis((intervalMs / 2).coerceAtLeast(MIN_LOCATION_INTERVAL_MS))
-            .setMaxUpdateDelayMillis(intervalMs)
+            .setMinUpdateIntervalMillis((activeIntervalMs / 2).coerceAtLeast(MIN_LOCATION_INTERVAL_MS))
+            .setMaxUpdateDelayMillis(activeIntervalMs)
             .setMinUpdateDistanceMeters(MIN_LOCATION_DISTANCE_METERS)
             .setWaitForAccurateLocation(false)
             .build()
         client.requestLocationUpdates(request, callback, Looper.getMainLooper())
-        startGpsFallback()
     }
 
     fun stop() {
@@ -72,15 +86,16 @@ class BatteryLocationClient(
         currentFixToken?.cancel()
         currentFixToken = null
         client.removeLocationUpdates(callback)
-        locationManager.removeUpdates(gpsListener)
+        stopGpsFallback()
+        mainHandler.removeCallbacksAndMessages(null)
     }
 
     fun setIntervalSeconds(seconds: Int) {
         val nextIntervalMs = seconds.coerceIn(MIN_LOCATION_INTERVAL_SECONDS, MAX_LOCATION_INTERVAL_SECONDS) * 1000L
-        if (intervalMs == nextIntervalMs) return
+        if (baseIntervalMs == nextIntervalMs) return
         val wasRunning = running
         if (wasRunning) stop()
-        intervalMs = nextIntervalMs
+        baseIntervalMs = nextIntervalMs
         if (wasRunning) start()
     }
 
@@ -99,18 +114,80 @@ class BatteryLocationClient(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    private fun handleFusedLocation(location: Location) {
+        if (!running) return
+        lastFusedFixElapsedMs = SystemClock.elapsedRealtime()
+        stopGpsFallback()
+        handleLocation(location)
+    }
+
+    private fun handleGpsFallbackLocation(location: Location) {
+        if (!running) return
+        handleLocation(location)
+    }
+
+    private fun handleLocation(location: Location) {
+        onLocation(location)
+        updateAdaptiveInterval(location)
+    }
+
+    private fun updateAdaptiveInterval(location: Location) {
+        val nextIntervalMs = adaptiveIntervalMs(location)
+        if (!running || activeIntervalMs == nextIntervalMs) return
+        activeIntervalMs = nextIntervalMs
+        client.removeLocationUpdates(callback)
+        requestFusedLocationUpdates()
+        if (gpsFallbackActive) {
+            stopGpsFallback()
+            startGpsFallback()
+        }
+    }
+
+    private fun adaptiveIntervalMs(location: Location): Long {
+        val speed = if (location.hasSpeed()) location.speed else return baseIntervalMs
+        val multiplier = when {
+            speed < STOPPED_SPEED_METERS_PER_SECOND -> STOPPED_INTERVAL_MULTIPLIER
+            speed < SLOW_SPEED_METERS_PER_SECOND -> SLOW_INTERVAL_MULTIPLIER
+            else -> 1
+        }
+        return (baseIntervalMs * multiplier).coerceAtMost(MAX_LOCATION_INTERVAL_MS)
+    }
+
+    private fun scheduleGpsFallbackCheck() {
+        mainHandler.postDelayed(
+            {
+                if (!running) return@postDelayed
+                val fusedFixAgeMs = if (lastFusedFixElapsedMs == 0L) {
+                    Long.MAX_VALUE
+                } else {
+                    SystemClock.elapsedRealtime() - lastFusedFixElapsedMs
+                }
+                if (fusedFixAgeMs >= STALE_FUSED_FIX_TIMEOUT_MS) startGpsFallback()
+                scheduleGpsFallbackCheck()
+            },
+            GPS_FALLBACK_CHECK_INTERVAL_MS,
+        )
+    }
+
     @SuppressLint("MissingPermission")
     private fun startGpsFallback() {
-        if (!hasFinePermission()) return
+        if (!hasFinePermission() || gpsFallbackActive) return
         runCatching {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
-                intervalMs,
+                activeIntervalMs,
                 MIN_LOCATION_DISTANCE_METERS,
                 gpsListener,
                 Looper.getMainLooper(),
             )
+            gpsFallbackActive = true
         }
+    }
+
+    private fun stopGpsFallback() {
+        if (!gpsFallbackActive) return
+        locationManager.removeUpdates(gpsListener)
+        gpsFallbackActive = false
     }
 
     private companion object {
@@ -118,6 +195,13 @@ class BatteryLocationClient(
         const val DEFAULT_LOCATION_INTERVAL_MS = 5_000L
         const val MIN_LOCATION_INTERVAL_SECONDS = 1
         const val MAX_LOCATION_INTERVAL_SECONDS = 30
-        const val MIN_LOCATION_DISTANCE_METERS = 0f
+        const val MAX_LOCATION_INTERVAL_MS = MAX_LOCATION_INTERVAL_SECONDS * 1000L
+        const val MIN_LOCATION_DISTANCE_METERS = 5f
+        const val STALE_FUSED_FIX_TIMEOUT_MS = 12_000L
+        const val GPS_FALLBACK_CHECK_INTERVAL_MS = 5_000L
+        const val STOPPED_SPEED_METERS_PER_SECOND = 0.8f
+        const val SLOW_SPEED_METERS_PER_SECOND = 2.5f
+        const val STOPPED_INTERVAL_MULTIPLIER = 4
+        const val SLOW_INTERVAL_MULTIPLIER = 2
     }
 }

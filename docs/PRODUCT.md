@@ -83,6 +83,14 @@ The current off-route threshold is 75 meters.
 - When automatic tracking zoom is disabled, tracking keeps the current map zoom so manual zoom remains under user control.
 - The tracking zoom stepper is disabled when automatic tracking zoom is off, so the configured zoom value is not mistaken for the active tracking zoom.
 
+### Riding battery behavior
+
+- GPS tracking uses Fused Location as the primary provider.
+- Raw GPS provider fallback starts only when fused fixes are stale.
+- Tracking uses a 5 meter minimum update distance to avoid waking the app for tiny GPS jitter.
+- Location cadence adapts from the configured moving interval to a slower cadence when the rider appears stopped or slow.
+- Ride mode avoids moving the map camera on every fix; the location dot can move inside the viewport and the camera recenters when the dot approaches the screen edge.
+
 ## Data Formats
 
 Use cases are maintained in [USE_CASES.md](USE_CASES.md). Map and route data ownership is maintained in [DATA.md](DATA.md).

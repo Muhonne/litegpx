@@ -38,7 +38,7 @@ Feature: Mobile offline route navigation
     And location permission is granted
     When the user starts GPS tracking
     Then the app updates the current position on the map
-    And the map follows the current position during tracking
+    And the map recenters when the current position approaches the ride-mode viewport edge
     And the navigation readout shows route progress, remaining distance, and on-route/off-route status
 
   Scenario: Adjust tracking settings
