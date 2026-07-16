@@ -15,10 +15,10 @@ Use `build-finnish-map.mjs` when working on Finnish-provider enrichment. It wrap
 The default source map is the full remote Protomaps z15 build:
 
 ```text
-https://build.protomaps.com/20260703.pmtiles
+https://build.protomaps.com/20260716.pmtiles
 ```
 
-This lets the extractor download only the chunks needed for the produced dataset. To force the ignored local workspace map, pass:
+The `protomaps` and `protomaps-latest` source aliases resolve the current build through `https://build-metadata.protomaps.dev/builds.json` and fall back to the URL above if metadata lookup fails. This lets the extractor download only the chunks needed for the produced dataset. To force the ignored local workspace map, pass:
 
 ```sh
 --source local
@@ -114,6 +114,8 @@ The service listens on `http://localhost:5174` and exposes `POST /api/extract-bb
 It also exposes `GET /api/datasets`, which lists all `.pmtiles` packages in `mapdataservice/output/`. The web app uses this endpoint on startup so every stored detail dataset is loaded as a map overlay.
 
 It also exposes `POST /api/save-mobile-route` for the web app's "Save to mobile app" action. That endpoint writes the submitted GPX to `mobile/app/src/main/assets/routes/`, updates `routes.json`, then rebuilds the bundled mobile base and provider PMTiles from all GPX files in that route directory by default. The resulting files are copied to `shared/maps/finland.pmtiles` and `shared/maps/finland.providers.pmtiles` so Android bundles them through the shared asset source set. Pass `"mapScope": "route"` only when intentionally creating a single-route map package. Use `TRAILLITE_FINNISH_PROVIDERS` or `NLS_API_KEY` to control whether the overlay includes only Digiroad or Digiroad plus NLS.
+
+`DELETE /api/mobile-routes/:id` removes a route from the bundled Android route catalog and deletes its GPX asset when no remaining route references that file.
 
 To download Finnish provider data for a route corridor:
 

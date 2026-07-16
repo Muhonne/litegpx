@@ -212,12 +212,20 @@ agent-browser eval '
 (async () => {
 const originalFetch = window.fetch;
 let capturedSaveBody = null;
+let capturedDeleteUrl = null;
 window.fetch = async (url, options = {}) => {
   if (String(url).includes("/api/save-mobile-route")) {
     capturedSaveBody = JSON.parse(options.body || "{}");
     return new Response(JSON.stringify({
       route: { file: "pajamaki-test.gpx" },
       map: { mobileFile: "finland.pmtiles" },
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+  if (String(url).includes("/api/mobile-routes/") && options.method === "DELETE") {
+    capturedDeleteUrl = String(url);
+    return new Response(JSON.stringify({
+      route: { id: "pajamaki-test", title: "Renamed Pajamaki" },
+      deletedGpx: true,
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
   if (String(url).includes("/api/datasets")) {
@@ -340,7 +348,6 @@ if (document.querySelector("#mobileRouteSelect").value !== "pajamaki-test") {
   throw new Error(`Cancelled load should restore selected route, got ${document.querySelector("#mobileRouteSelect").value}`);
 }
 await window.__trailLiteTest.saveRouteToMobileApp();
-window.fetch = originalFetch;
 if (!capturedSaveBody) throw new Error("Save to mobile request was not captured");
 if (capturedSaveBody.routeId !== "pajamaki-test") {
   throw new Error(`Save should preserve loaded mobile route id, got ${capturedSaveBody.routeId}`);
@@ -359,6 +366,27 @@ if (loadedCard?.classList.contains("unsaved") || loadedCard?.textContent.include
 if (!loadedCard?.textContent.includes("Renamed Pajamaki") || loadedCard.textContent.includes("Pajamaki TestLoaded")) {
   throw new Error(`Saved renamed route should keep the new route-list title, got ${loadedCard?.textContent.trim()}`);
 }
+let deleteConfirmCalls = 0;
+window.confirm = () => {
+  deleteConfirmCalls += 1;
+  return true;
+};
+document.querySelector("#deleteMobileRouteButton").click();
+await new Promise((resolve) => setTimeout(resolve, 80));
+window.confirm = originalConfirm;
+if (deleteConfirmCalls !== 1) throw new Error(`Deleting a route should ask once, got ${deleteConfirmCalls}`);
+if (!capturedDeleteUrl?.endsWith("/api/mobile-routes/pajamaki-test")) {
+  throw new Error(`Delete should call the selected mobile route endpoint, got ${capturedDeleteUrl}`);
+}
+state = window.__trailLiteTest.getState();
+if (state.mobileRouteId !== null || state.points.length !== 0) {
+  throw new Error("Deleting the loaded mobile route should clear the loaded route state");
+}
+if (state.mobileRoutes.some((route) => route.id === "pajamaki-test")) {
+  throw new Error("Deleting a mobile route should remove it from the route list");
+}
+if (state.status !== "Mobile route deleted.") throw new Error(`Delete should use a specific status, got ${state.status}`);
+window.fetch = originalFetch;
 true;
 })()
 '

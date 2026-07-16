@@ -5,31 +5,31 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { latestProtomapsSourceUrl } from "./protomaps-source.mjs";
 
 const EARTH_RADIUS_METERS = 6371000;
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, "..");
 const localSource = resolve(workspaceRoot, "shared/maps/finland.pmtiles");
-const protomapsSource = "https://build.protomaps.com/20260703.pmtiles";
 
 const defaults = {
   bufferMeters: 10000,
   coverage: "corridor",
   maxzoom: "15",
-  source: protomapsSource,
+  source: "protomaps-latest",
   outputDir: resolve(workspaceRoot, "mapdataservice/output"),
 };
 
-main();
+main().catch((error) => fail(error.message || String(error)));
 
-function main() {
+async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
     printHelp();
     return;
   }
 
-  const source = resolveSource(options.source || defaults.source);
+  const source = await resolveSource(options.source || defaults.source);
   if (!isRemoteSource(source) && !existsSync(source)) {
     fail(`Source PMTiles file not found: ${source}`);
   }
@@ -449,9 +449,9 @@ function isRemoteSource(source) {
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(source);
 }
 
-function resolveSource(source) {
+async function resolveSource(source) {
   if (source === "local") return localSource;
-  if (source === "protomaps" || source === "protomaps-latest") return protomapsSource;
+  if (source === "protomaps" || source === "protomaps-latest") return latestProtomapsSourceUrl();
   if (isRemoteSource(source)) return source;
   return resolve(source);
 }
@@ -499,8 +499,8 @@ Options:
       --name <name>            Output name prefix for bbox extracts.
   -s, --source <pmtiles|url>   Source PMTiles archive.
                                Use "local" for shared/maps/finland.pmtiles.
-                               Use "protomaps" for the bundled full z15 source URL.
-                               Default: ${protomapsSource}
+                               Use "protomaps" for the current full z15 source URL.
+                               Default: protomaps-latest
   -o, --out <file>             Output PMTiles path.
                                Default: mapdataservice/output/<gpx-name>.pmtiles
       --buffer-meters <n>      Padding around route bounds. Default: 10000

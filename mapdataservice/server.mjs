@@ -3,10 +3,11 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { latestProtomapsSourceUrl } from "./protomaps-source.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, "..");
@@ -51,6 +52,10 @@ async function handleRequest(request, response) {
       sendJson(response, 200, { datasets: await listDatasets() });
       return;
     }
+    if (request.method === "GET" && url.pathname === "/api/base-map-source") {
+      sendJson(response, 200, { url: await latestProtomapsSourceUrl() });
+      return;
+    }
     if (request.method === "GET" && url.pathname === "/api/mobile-routes") {
       sendJson(response, 200, { routes: await readMobileRouteCatalog({ catalogPath: mobileRouteCatalogPath, routesDir: mobileRoutesDir }) });
       return;
@@ -63,6 +68,15 @@ async function handleRequest(request, response) {
         routesDir: mobileRoutesDir,
       });
       sendJson(response, 200, route);
+      return;
+    }
+    if (request.method === "DELETE" && mobileRouteMatch) {
+      const result = await deleteMobileRoute({
+        id: decodeURIComponent(mobileRouteMatch[1]),
+        catalogPath: mobileRouteCatalogPath,
+        routesDir: mobileRoutesDir,
+      });
+      sendJson(response, 200, result);
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/extract-bbox") {
@@ -166,6 +180,37 @@ async function mobileRouteSaveTarget({ routeId, routeName, catalogPath, routesDi
     title,
     gpxFile,
     gpxAsset: `routes/${gpxFile}`,
+  };
+}
+
+async function deleteMobileRoute({ id, catalogPath, routesDir }) {
+  const routeId = cleanRouteId(id);
+  if (!routeId) throw new Error("Missing mobile route id");
+  const catalog = await readRouteCatalog(catalogPath);
+  const route = catalog.find((entry) => entry.id === routeId);
+  if (!route) throw new Error(`Unknown mobile route: ${routeId}`);
+
+  const remainingRoutes = catalog.filter((entry) => entry.id !== routeId);
+  await writeFile(catalogPath, `${JSON.stringify(remainingRoutes, null, 2)}\n`, "utf8");
+
+  let gpx = null;
+  let deletedGpx = false;
+  if (route.gpxAsset) {
+    gpx = resolveRouteAsset(routesDir, route.gpxAsset);
+    const stillReferenced = remainingRoutes.some((entry) => (
+      entry.gpxAsset && resolveRouteAsset(routesDir, entry.gpxAsset) === gpx
+    ));
+    if (!stillReferenced && existsSync(gpx)) {
+      await rm(gpx);
+      deletedGpx = true;
+    }
+  }
+
+  return {
+    route,
+    deletedGpx,
+    gpx,
+    catalog: catalogPath,
   };
 }
 
@@ -572,7 +617,7 @@ function readJson(request) {
 function setCors(response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Headers", "content-type");
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
 }
 
 function sendJson(response, status, body) {
@@ -613,6 +658,8 @@ function parseDotEnvValue(value) {
 
 export {
   buildBundledMapManifest,
+  deleteMobileRoute,
+  listDatasets,
   mobileRouteSaveTarget,
   mobileMapGpxInput,
   readMobileRouteCatalog,

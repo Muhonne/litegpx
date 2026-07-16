@@ -164,6 +164,8 @@ Feature: Web GPX import and editing
     And the newly saved route remains visible if the catalog refresh is stale
     And fresh saved route metadata wins over stale same-id catalog metadata
     And a successful mobile save clears the unsaved edit state
+    And the user can delete a selected mobile route after confirmation
+    And deleting the loaded mobile route clears the loaded route state
 
   Scenario: Keep the sidebar focused while editing a route
     Given the user is viewing the map or managing saved mobile routes

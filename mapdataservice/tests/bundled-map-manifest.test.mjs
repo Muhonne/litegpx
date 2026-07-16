@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
   buildBundledMapManifest,
+  deleteMobileRoute,
   mobileRouteSaveTarget,
   mobileMapGpxInput,
   readMobileRouteCatalog,
@@ -98,6 +99,20 @@ try {
   assert.equal(saveTarget.title, "Renamed Test Route");
   assert.equal(saveTarget.gpxFile, "test-route.gpx");
   assert.equal(saveTarget.gpxAsset, "routes/test-route.gpx");
+
+  const deleteResult = await deleteMobileRoute({ id: "test-route", catalogPath, routesDir });
+  assert.equal(deleteResult.route.id, "test-route");
+  assert.equal(deleteResult.deletedGpx, true);
+  await assert.rejects(
+    () => readFile(resolve(routesDir, "test-route.gpx"), "utf8"),
+    /ENOENT/,
+    "route GPX asset should be removed",
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(catalogPath, "utf8")),
+    [],
+    "route catalog should drop the deleted route",
+  );
 } finally {
   await rm(tempDir, { recursive: true, force: true });
 }

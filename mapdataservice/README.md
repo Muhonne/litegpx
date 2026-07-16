@@ -34,7 +34,7 @@ Current mobile/web packages use two files: the base Protomaps corridor extract a
 
 ## Code Starting Points
 
-- `server.mjs` exposes the local HTTP API: `GET /api/datasets`, `GET /api/mobile-routes`, `GET /api/mobile-routes/:id`, `POST /api/extract-bbox`, and `POST /api/save-mobile-route`.
+- `server.mjs` exposes the local HTTP API: `GET /api/datasets`, `GET /api/base-map-source`, `GET /api/mobile-routes`, `GET /api/mobile-routes/:id`, `DELETE /api/mobile-routes/:id`, `POST /api/extract-bbox`, and `POST /api/save-mobile-route`.
 - `server.mjs` writes `shared/maps/manifest.json` through `buildBundledMapManifest` after a mobile save.
 - `extract-route-map.mjs` wraps `pmtiles extract` for GPX route corridors and bboxes.
 - `build-finnish-map.mjs` downloads/normalizes Finnish provider data and builds provider overlay PMTiles.
@@ -66,10 +66,10 @@ cd ..
 By default the script reads from a full remote Protomaps z15 build:
 
 ```text
-https://build.protomaps.com/20260703.pmtiles
+https://build.protomaps.com/20260716.pmtiles
 ```
 
-This lets the service download only the byte ranges needed for the produced route dataset.
+At runtime, `protomaps` and `protomaps-latest` resolve through `https://build-metadata.protomaps.dev/builds.json` and fall back to the URL above if the metadata lookup fails. This lets the service download only the byte ranges needed for the produced route dataset.
 
 For local extraction from the ignored workspace map file, pass:
 
@@ -233,18 +233,24 @@ The web app also reads:
 
 ```text
 GET /api/datasets
+GET /api/base-map-source
 ```
 
 That endpoint lists every `.pmtiles` package already stored under `mapdataservice/output/` with URL, size, bbox, and cache metadata where available. On startup the web app uses this list so previously downloaded rectangle/corridor datasets are added back to the map as detail overlays. Rectangle downloads now appear as two entries with the same bbox: the base extracted PMTiles and the Finnish provider overlay PMTiles.
+
+`GET /api/base-map-source` returns the current Protomaps build URL from the Protomaps build metadata feed, with the documented fallback URL if the metadata feed is unavailable.
 
 The web app can also load routes already bundled into the local Android workspace:
 
 ```text
 GET /api/mobile-routes
 GET /api/mobile-routes/:id
+DELETE /api/mobile-routes/:id
 ```
 
-Those endpoints let the desktop web app list the bundled Android route catalog and load a selected GPX route from `mobile/app/src/main/assets/routes/` for view/edit workflows. The API only reads files under the mobile routes asset directory.
+Those endpoints let the desktop web app list the bundled Android route catalog and load a selected GPX route from `mobile/app/src/main/assets/routes/` for view/edit workflows. Route loading only reads files under the mobile routes asset directory.
+
+The delete endpoint removes the route from `routes.json` and deletes its GPX asset when no remaining catalog entry references the same file. This mutates the local Android workspace.
 
 The web app can also save the current route directly into the local Android workspace:
 

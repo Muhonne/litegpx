@@ -8,13 +8,14 @@ const FREEHAND_MIN_DISTANCE_METERS = 25;
 const SIMPLIFY_TOLERANCE_METERS = 15;
 const MAX_VISIBLE_ROUTE_POINTS = 300;
 const SNAP_TOLERANCE_PIXELS = 16;
-const FULL_BASE_MAP_URL = "https://build.protomaps.com/20260703.pmtiles";
+const FALLBACK_FULL_BASE_MAP_URL = "https://build.protomaps.com/20260716.pmtiles";
 const LOCAL_BASE_MAP_URL = `${window.location.origin}/shared/maps/finland.pmtiles`;
 const SHARED_DETAIL_MAPS = [
   { url: LOCAL_BASE_MAP_URL, name: "Android bundled map", kind: "base-extract" },
   { url: `${window.location.origin}/shared/maps/finland.providers.pmtiles`, name: "Android provider overlay", kind: "provider" },
 ];
 const MAP_DATASETS_URL = "http://localhost:5174/api/datasets";
+const BASE_MAP_SOURCE_URL = "http://localhost:5174/api/base-map-source";
 const EXTRACT_BBOX_URL = "http://localhost:5174/api/extract-bbox";
 const MOBILE_SAVE_URL = "http://localhost:5174/api/save-mobile-route";
 const MOBILE_ROUTES_URL = "http://localhost:5174/api/mobile-routes";
@@ -90,6 +91,7 @@ const elements = {
   mobileRouteSortButtons: Array.from(document.querySelectorAll("[data-route-sort]")),
   refreshMobileRoutesButton: document.getElementById("refreshMobileRoutesButton"),
   loadMobileRouteButton: document.getElementById("loadMobileRouteButton"),
+  deleteMobileRouteButton: document.getElementById("deleteMobileRouteButton"),
   mobileRouteStatus: document.getElementById("mobileRouteStatus"),
   searchForm: document.getElementById("searchForm"),
   searchInput: document.getElementById("searchInput"),
@@ -141,13 +143,14 @@ const state = {
   selectedAreaBbox: null,
   areaDownloadBusy: false,
   mobileSaveBusy: false,
+  mobileRouteDeleteBusy: false,
   drawStartPoints: null,
   drawAddedPointCount: 0,
   hoveredPointId: null,
   skipNextMapClick: false,
   suppressMapClickUntil: 0,
   lastExportedGpx: "",
-  mapSourceUrl: FULL_BASE_MAP_URL,
+  mapSourceUrl: FALLBACK_FULL_BASE_MAP_URL,
   detailMaps: [],
   mobileRoutes: [],
   mobileRouteGpxById: {},
@@ -191,7 +194,8 @@ async function initMap() {
   const protocol = new pmtiles.Protocol();
   maplibregl.addProtocol("pmtiles", protocol.tile);
 
-  const style = await loadStyle();
+  state.mapSourceUrl = await resolveBaseMapUrl();
+  const style = await loadStyle(state.mapSourceUrl);
   map = new maplibregl.Map({
     container: elements.map,
     style,
@@ -334,11 +338,23 @@ async function initMap() {
   window.addEventListener("blur", () => finishPointerEdit());
 }
 
-async function loadStyle() {
+async function resolveBaseMapUrl() {
+  try {
+    const response = await fetch(BASE_MAP_SOURCE_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Base map source failed: ${response.status}`);
+    const payload = await response.json();
+    if (typeof payload.url === "string" && payload.url.startsWith("https://")) return payload.url;
+  } catch {
+    // The data service is optional for basic GPX editing; keep a known remote fallback.
+  }
+  return FALLBACK_FULL_BASE_MAP_URL;
+}
+
+async function loadStyle(baseMapUrl) {
   const response = await fetch("../shared/styles/style_template.json");
   const style = await response.json();
   style.glyphs = `${window.location.origin}/shared/glyphs/{fontstack}/{range}.pbf`;
-  style.sources[BASE_MAP_SOURCE_ID].url = `pmtiles://${FULL_BASE_MAP_URL}`;
+  style.sources[BASE_MAP_SOURCE_ID].url = `pmtiles://${baseMapUrl}`;
   return style;
 }
 
@@ -389,6 +405,7 @@ function bindUi() {
   elements.mobileSaveButton.addEventListener("click", () => saveRouteToMobileApp());
   elements.refreshMobileRoutesButton.addEventListener("click", () => refreshManagedMobileRoutes());
   elements.loadMobileRouteButton.addEventListener("click", () => loadSelectedMobileRoute());
+  elements.deleteMobileRouteButton.addEventListener("click", () => deleteSelectedMobileRoute());
   elements.mobileRouteSearch.addEventListener("input", () => {
     state.mobileRouteFilter = elements.mobileRouteSearch.value;
     renderMobileRoutes();
@@ -1496,6 +1513,7 @@ function renderMobileRoutes() {
   elements.refreshMobileRoutesButton.disabled = state.mobileRoutesLoading;
   renderMobileRouteSortButtons();
   renderMobileRouteLoadButton(nextSelectedId);
+  renderMobileRouteDeleteButton(nextSelectedId);
   renderMobileRouteList(filteredRoutes, nextSelectedId);
 
   if (state.mobileRoutesLoading) {
@@ -1530,6 +1548,21 @@ function renderMobileRouteLoadButton(selectedRouteId) {
   }
   elements.loadMobileRouteButton.textContent = "Load route";
   elements.loadMobileRouteButton.disabled = state.mobileRoutesLoading || !selectedRouteId;
+}
+
+function renderMobileRouteDeleteButton(selectedRouteId) {
+  elements.deleteMobileRouteButton.disabled = state.mobileRoutesLoading ||
+    state.mobileRouteDeleteBusy ||
+    !selectedRouteId;
+  elements.deleteMobileRouteButton.setAttribute("aria-busy", state.mobileRouteDeleteBusy ? "true" : "false");
+  if (state.mobileRouteDeleteBusy) {
+    elements.deleteMobileRouteButton.replaceChildren(
+      spinnerElement(),
+      document.createTextNode("Deleting"),
+    );
+    return;
+  }
+  elements.deleteMobileRouteButton.textContent = "Delete route";
 }
 
 function renderMobileRouteList(filteredRoutes, selectedId) {
@@ -1763,6 +1796,44 @@ async function loadSelectedMobileRoute(routeId = elements.mobileRouteSelect.valu
   } finally {
     renderSidebar();
   }
+}
+
+async function deleteSelectedMobileRoute(routeId = elements.mobileRouteSelect.value) {
+  if (!routeId || state.mobileRouteDeleteBusy) return;
+  const route = state.mobileRoutes.find((entry) => entry.id === routeId) || { id: routeId };
+  if (!window.confirm(`Delete "${mobileRouteDisplayTitle(route)}" from mobile routes?`)) return;
+
+  state.mobileRouteDeleteBusy = true;
+  renderMobileRoutes();
+  try {
+    const response = await fetch(`${MOBILE_ROUTES_URL}/${encodeURIComponent(routeId)}`, { method: "DELETE" });
+    if (!response.ok) throw new Error(`Mobile route delete failed: ${response.status}`);
+    await response.json();
+
+    state.mobileRoutes = state.mobileRoutes.filter((entry) => entry.id !== routeId);
+    delete state.mobileRouteGpxById[routeId];
+    if (state.mobileRouteId === routeId) {
+      clearLoadedRouteState();
+    }
+    setStatus("Mobile route deleted.");
+  } catch {
+    setStatus("Mobile route delete failed.", true);
+  } finally {
+    state.mobileRouteDeleteBusy = false;
+    renderSidebar();
+  }
+}
+
+function clearLoadedRouteState() {
+  state.routeName = "Untitled route";
+  state.points = [];
+  state.mobileRouteId = null;
+  state.mobileSavedSignature = null;
+  clearRouteHistory();
+  state.imported = false;
+  state.importedEditingCopy = false;
+  state.mode = "view";
+  elements.routeName.value = state.routeName;
 }
 
 function restoreLoadedMobileRouteSelection() {
@@ -2322,6 +2393,7 @@ function exposeTestApi() {
       mobileRouteId: state.mobileRouteId,
       routeSaveState: routeSaveStateText(),
       mobileSaveBusy: state.mobileSaveBusy,
+      mobileRouteDeleteBusy: state.mobileRouteDeleteBusy,
       points: clonePoints(state.points),
       distanceMeters: totalDistance(state.points),
       canExport: canExport(),
@@ -2378,6 +2450,7 @@ function exposeTestApi() {
     simplifyRoute,
     applyMobileRoutePayload,
     refreshMobileRoutes,
+    deleteSelectedMobileRoute,
     setMobileRoutesForTest: (routes) => {
       state.mobileRoutes = routes.map(({ gpx, ...route }) => ({ ...route }));
       state.mobileRouteGpxById = Object.fromEntries(

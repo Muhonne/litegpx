@@ -37,7 +37,7 @@ Code starting points:
 - Mobile route import/storage: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `importRoute`, `routeFromTrackFile`
 - Mobile route picker and active route loading: `mobile/app/src/main/java/com/example/traillite/MainActivity.kt` `RoutePickerDialog`, `routeCatalog`
 - Web route state and GPX import/export: `web/src/app.js` `parseGpx`, `exportGpx`, `downloadGpx`
-- Service route save/catalog update: `mapdataservice/server.mjs` `saveMobileRoute`, `buildRouteCatalogEntry`, `upsertRouteCatalog`
+- Service route save/catalog update/delete: `mapdataservice/server.mjs` `saveMobileRoute`, `deleteMobileRoute`, `buildRouteCatalogEntry`, `upsertRouteCatalog`
 
 Locations:
 
@@ -51,6 +51,7 @@ Handling:
 - The web app exports GPX 1.1 `<trk><trkseg><trkpt lat="..." lon="..." />`.
 - The mobile app parses GPX track points and renders the active route as an overlay line.
 - `POST /api/save-mobile-route` writes a web-created GPX into mobile assets and updates `routes.json`.
+- `DELETE /api/mobile-routes/:id` removes a bundled mobile route from `routes.json` and deletes its GPX asset when no remaining catalog entry references it.
 - When the web app loads a bundled mobile route for editing, it keeps that route's catalog id and sends it back as `routeId` on save so renaming the route updates the same catalog entry instead of creating a duplicate.
 
 ### Base Map Layer
@@ -62,7 +63,7 @@ Code starting points:
 - Shared base style layers: `shared/styles/style_template.json`
 - Android bundled map copy/load: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `ensureBundledMapPackage`, `bundledMapManifestText`, `writeLocalStyle`
 - Android MapLibre style loading: `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt` `loadInitialStyle`, `loadStyle`
-- Web broad planning base URL and style loading: `web/src/app.js` `FULL_BASE_MAP_URL`, `loadStyle`, `initMap`
+- Web broad planning base URL and style loading: `web/src/app.js` `BASE_MAP_SOURCE_URL`, `FALLBACK_FULL_BASE_MAP_URL`, `loadStyle`, `initMap`
 - Base PMTiles extraction: `mapdataservice/extract-route-map.mjs`
 - Bbox/save API base extraction: `mapdataservice/server.mjs` `extractBbox`, `saveMobileRoute`
 
@@ -73,7 +74,7 @@ Locations:
 - Android APK asset path after build: `assets/maps/finland.pmtiles`
 - Android APK manifest asset path after build: `assets/maps/manifest.json`
 - Mobile copied runtime path: app-specific storage under `TrailLite/maps/finland.pmtiles`
-- Web planning base: remote Protomaps PMTiles URL configured in `web/src/app.js`
+- Web planning base: remote Protomaps PMTiles URL resolved through the local data service `GET /api/base-map-source`, with a static fallback in `web/src/app.js`
 - Service base extracts: `mapdataservice/output/*.pmtiles`
 
 Handling:
@@ -175,7 +176,7 @@ Code starting points:
 
 - Web UI action: `web/src/app.js` `saveRouteToMobileApp`
 - Service endpoint: `mapdataservice/server.mjs` `saveMobileRoute`
-- Catalog entry creation: `mapdataservice/server.mjs` `buildRouteCatalogEntry`, `upsertRouteCatalog`
+- Catalog entry creation/deletion: `mapdataservice/server.mjs` `buildRouteCatalogEntry`, `upsertRouteCatalog`, `deleteMobileRoute`
 - Mobile catalog reader: `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt` `BundledRouteCatalog`
 - Android asset merge: `mobile/app/build.gradle.kts` `sourceSets`
 
@@ -191,6 +192,8 @@ web Save to mobile
 ```
 
 This is a local development workflow. It mutates the Android project and shared generated map files so the next APK includes the route and all-route corridor map data. The manifest is required because Android copies bundled PMTiles into app storage; when the manifest changes after an app update, `TrailStorage` refreshes those local copies so newly saved routes get the matching corridor detail.
+
+`DELETE /api/mobile-routes/:id` is the matching local-development removal workflow for route catalog cleanup. It removes the route entry and deletes the route GPX asset if no remaining catalog entry references that file.
 
 By default, the service first writes the submitted GPX and route catalog entry, then rebuilds the bundled base and provider PMTiles from `mobile/app/src/main/assets/routes/` as a directory. This keeps existing routes covered at close zoom levels after adding a new route. Use `mapScope: "route"` only when intentionally producing a single-route package.
 

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/bundled-map-manifest.test.mjs"
+    "test": "node tests/bundled-map-manifest.test.mjs && node tests/protomaps-source.test.mjs"
   },
   "dependencies": {
     "@maplibre/geojson-vt": "^6.1.1",
