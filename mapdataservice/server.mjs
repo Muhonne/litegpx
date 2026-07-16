@@ -30,7 +30,7 @@ const webOrigin = process.env.WEB_ORIGIN || "http://localhost:5173";
 
 if (isMainModule()) {
   createServer(handleRequest).listen(port, "::", () => {
-    console.log(`TrailLite map data service at http://localhost:${port}/api/health`);
+    console.log(`LiteGPX map data service at http://localhost:${port}/api/health`);
   });
 }
 
@@ -521,7 +521,7 @@ function buildRouteCatalogEntry({ id, title, gpxAsset, points }) {
     title,
     lengthKm: Number((routeDistanceMeters(points) / 1000).toFixed(1)),
     durationText: "--",
-    source: "TrailLite GPX Builder",
+    source: "LiteGPX",
     matchScore: 1,
     bikelandId: null,
     matchedTitle: title,

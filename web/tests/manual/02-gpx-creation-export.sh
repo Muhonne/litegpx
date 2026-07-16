@@ -22,6 +22,7 @@ if (state.mode !== "edit") throw new Error("Route is not in edit mode");
 if (state.points.length !== 2) throw new Error(`Expected two clicked points, got ${state.points.length}`);
 if (!state.canExport) throw new Error("Route should be exportable");
 const gpx = window.__trailLiteTest.exportGpx();
+if (!gpx.includes("creator=\"LiteGPX Web\"")) throw new Error("GPX creator should use LiteGPX Web");
 if (!gpx.includes("<name>Created Route</name>")) throw new Error("GPX name missing");
 if (!gpx.includes("<trkpt lat=")) throw new Error("trkpt geometry missing");
 if (gpx.includes("<rtept")) throw new Error("GPX should not use rtept geometry");

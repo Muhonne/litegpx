@@ -1,4 +1,4 @@
-# TrailLite Map Data Service
+# LiteGPX Map Data Service
 
 This directory contains a minimal CLI/API workflow for creating local map packages.
 
@@ -26,7 +26,7 @@ GPX route or bbox
   -> base PMTiles extract
   -> Digiroad WFS download
   -> optional NLS OGC API Features download
-  -> normalized TrailLite GeoJSON layers
+  -> normalized LiteGPX GeoJSON layers
   -> provider overlay PMTiles package
 ```
 
@@ -145,7 +145,7 @@ Both files are ignored by Git because they are generated artifacts.
 
 ## Finnish Provider Builder
 
-Use this when the map service should fetch Finnish source data for the same area as the TrailLite map package:
+Use this when the map service should fetch Finnish source data for the same area as the LiteGPX map package:
 
 ```sh
 node mapdataservice/build-finnish-map.mjs \
@@ -186,7 +186,7 @@ NLS tieviiva                           -> roads
 NLS rakennus                           -> buildings
 ```
 
-The provider GeoJSON and PMTiles use TrailLite/Protomaps-compatible properties such as `kind`, `kind_detail`, `name`, and `name:fi`, so the existing Android and web styles can render the data once the apps load the provider PMTiles as an overlay source.
+The provider GeoJSON and PMTiles use LiteGPX/Protomaps-compatible properties such as `kind`, `kind_detail`, `name`, and `name:fi`, so the existing Android and web styles can render the data once the apps load the provider PMTiles as an overlay source.
 
 Local NLS fixture smoke test:
 

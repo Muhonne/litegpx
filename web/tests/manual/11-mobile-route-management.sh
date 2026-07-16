@@ -18,6 +18,7 @@ const routeFixtures = Array.from({ length: 10 }, (_, index) => {
     title: `Route ${routeNumber}`,
     lengthKm: routeNumber,
     trackPointCount: routeNumber + 10,
+    source: routeNumber === 1 ? "TrailLite GPX Builder" : undefined,
     bounds: {
       minLon: 24.94 + index * 0.01,
       minLat: 60.24 + index * 0.01,
@@ -37,6 +38,9 @@ window.__trailLiteTest.setMobileRoutesForTest(routeFixtures);
 const allCards = Array.from(document.querySelectorAll("#mobileRouteList [data-mobile-route-id]"));
 if (allCards.length !== routeFixtures.length) {
   throw new Error(`Visible mobile route list should expose all filtered routes, got ${allCards.length} of ${routeFixtures.length}`);
+}
+if (!allCards[0].textContent.includes("LiteGPX") || allCards[0].textContent.includes("TrailLite")) {
+  throw new Error(`Legacy route source should display as LiteGPX, got ${allCards[0].textContent.trim()}`);
 }
 const routeSearchForAll = document.querySelector("#mobileRouteSearch");
 routeSearchForAll.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));

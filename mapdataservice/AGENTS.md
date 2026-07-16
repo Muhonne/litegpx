@@ -1,6 +1,6 @@
 # Map Data Service Notes
 
-This directory contains CLI and local API tooling for creating map packages for TrailLite.
+This directory contains CLI and local API tooling for creating map packages for LiteGPX.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Use `extract-route-map.mjs` when a GPX route or selected map rectangle should pr
 
 The current implementation extracts from an existing source PMTiles archive. It does not yet build fresh vector tiles from raw OSM, NLS, or Digiroad data.
 
-Use `build-finnish-map.mjs` when working on Finnish-provider enrichment. It wraps `extract-route-map.mjs`, downloads provider data for the same bbox/corridor, normalizes it into TrailLite-compatible GeoJSON layers, and emits a provider overlay PMTiles package. Web lists the overlay through `/api/datasets`, and Android loads the bundled `finland.providers.pmtiles` overlay beside `finland.pmtiles`.
+Use `build-finnish-map.mjs` when working on Finnish-provider enrichment. It wraps `extract-route-map.mjs`, downloads provider data for the same bbox/corridor, normalizes it into LiteGPX-compatible GeoJSON layers, and emits a provider overlay PMTiles package. Web lists the overlay through `/api/datasets`, and Android loads the bundled `finland.providers.pmtiles` overlay beside `finland.pmtiles`.
 
 ## Required Local Data
 
@@ -30,7 +30,7 @@ That resolves to:
 ../shared/maps/finland.pmtiles
 ```
 
-The source PMTiles must match the TrailLite style schema in `../shared/styles/style_template.json`. Required Protomaps source layers include:
+The source PMTiles must match the LiteGPX style schema in `../shared/styles/style_template.json`. Required Protomaps source layers include:
 
 - `landcover`
 - `water`
@@ -171,7 +171,7 @@ Generated outputs are ignored by Git. Do not stage route-area `.pmtiles` package
 
 ## Mobile App Handoff
 
-The generated `.pmtiles` file can be used through the mobile app's existing map import path. The mobile app stores imported map packages under `TrailLite/maps/` and loads them through MapLibre using local `pmtiles://` URLs.
+The generated `.pmtiles` file can be used through the mobile app's existing map import path. The mobile app stores imported map packages under `LiteGPX/maps/` and loads them through MapLibre using local `pmtiles://` URLs.
 
 ## Future Pipeline
 
@@ -183,6 +183,6 @@ GPX route
   -> OSM Finland extract
   -> Digiroad road/street and path enrichment
   -> NLS topographic enrichment for buildings, land use, water, names, and terrain context
-  -> TrailLite vector tile schema
+  -> LiteGPX vector tile schema
   -> PMTiles
 ```

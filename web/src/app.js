@@ -1743,8 +1743,13 @@ function mobileRouteMeta(route) {
   const parts = [];
   if (Number.isFinite(route.lengthKm)) parts.push(`${route.lengthKm.toFixed(1)} km`);
   if (Number.isFinite(route.trackPointCount)) parts.push(`${route.trackPointCount} pts`);
-  if (route.source) parts.push(route.source);
+  const source = mobileRouteSourceLabel(route.source);
+  if (source) parts.push(source);
   return parts.join(" · ") || route.id || "Route";
+}
+
+function mobileRouteSourceLabel(source) {
+  return source === "TrailLite GPX Builder" ? "LiteGPX" : source;
 }
 
 function upsertSavedMobileRoute(payload, gpx) {
@@ -1760,7 +1765,7 @@ function upsertSavedMobileRoute(payload, gpx) {
       : Number.isFinite(route.pointCount)
         ? route.pointCount
         : state.points.length,
-    source: route.source || "TrailLite GPX Builder",
+    source: route.source || "LiteGPX",
     bounds: route.bounds,
     gpxAsset: route.gpxAsset,
   };
@@ -2033,7 +2038,7 @@ function exportGpx(routeName, points) {
     .map(([lon, lat]) => `      <trkpt lat="${lat.toFixed(6)}" lon="${lon.toFixed(6)}" />`)
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TrailLite Web" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="LiteGPX Web" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>${safeName}</name>
   </metadata>

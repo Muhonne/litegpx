@@ -1,4 +1,4 @@
-# TrailLite Use Cases
+# LiteGPX Use Cases
 
 This document contains the main product behavior in Gherkin-style scenarios so implementation, manual testing, and documentation stay aligned.
 
@@ -22,7 +22,7 @@ Code starting points:
 
 ```gherkin
 Feature: Mobile offline route navigation
-  TrailLite mobile lets the user select an offline GPX route and track their current position against it.
+  LiteGPX mobile lets the user select an offline GPX route and track their current position against it.
 
   Scenario: Select a bundled route
     Given the Android app is installed with bundled GPX routes
@@ -65,7 +65,7 @@ Code starting points:
 
 ```gherkin
 Feature: Web GPX route creation
-  TrailLite GPX Builder lets the user create mobile-compatible GPX routes on desktop.
+  LiteGPX GPX Builder lets the user create mobile-compatible GPX routes on desktop.
 
   Scenario: Draw a new route by dragging on the map
     Given the web app is open in view mode
@@ -84,7 +84,7 @@ Feature: Web GPX route creation
     And the user can press "Fit route" to refocus the map on the current route
     When the user presses "Save route"
     Then the browser downloads a GPX 1.1 file
-    And the GPX contains TrailLite-compatible track points in route order
+    And the GPX contains LiteGPX-compatible track points in route order
 
   Scenario: Undo and redo route drawing mistakes
     Given the user is editing a route
@@ -109,7 +109,7 @@ Feature: Web GPX route creation
 
 ```gherkin
 Feature: Web GPX import and editing
-  TrailLite GPX Builder lets the user inspect existing GPX files and edit a copy.
+  LiteGPX GPX Builder lets the user inspect existing GPX files and edit a copy.
 
   Scenario: Import a valid GPX file for viewing
     Given the web app is open
@@ -198,7 +198,7 @@ Code starting points:
 
 ```gherkin
 Feature: Web map data management
-  TrailLite GPX Builder renders broad map context and can download local detail data for selected areas.
+  LiteGPX GPX Builder renders broad map context and can download local detail data for selected areas.
 
   Scenario: Render full planning map context
     Given the web app is open
@@ -228,7 +228,7 @@ Feature: Web map data management
 
 ```gherkin
 Feature: Save web-created routes into the mobile workspace
-  TrailLite GPX Builder can write a route and its corridor map data into the Android project for local builds.
+  LiteGPX GPX Builder can write a route and its corridor map data into the Android project for local builds.
 
   Scenario: Save route and corridor data to mobile
     Given the user has a named route with at least two points
@@ -286,6 +286,6 @@ Feature: Use Finnish provider enrichment
     When NLS is enabled
     Then the service reads NLS_API_KEY from the workspace root .env, the process environment, or the request/CLI option
     And the service downloads NLS topographic data for the requested area
-    And the service normalizes provider data into TrailLite-compatible roads and buildings layers
+    And the service normalizes provider data into LiteGPX-compatible roads and buildings layers
     And the generated provider PMTiles overlay can be rendered by web and mobile over the base PMTiles map
 ```

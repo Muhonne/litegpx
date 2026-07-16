@@ -1,4 +1,4 @@
-# TrailLite MVP Iteration Log
+# LiteGPX MVP Iteration Log
 
 This log captures 10 product iteration rounds across Product Owner, UI Designer, and Developer roles. The working goal is a marketable low-energy offline route tracking app for cyclists and hikers.
 

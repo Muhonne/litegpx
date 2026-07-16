@@ -1,4 +1,4 @@
-# TrailLite Android
+# LiteGPX Android
 
 Technical notes for building, installing, and testing the Android app.
 

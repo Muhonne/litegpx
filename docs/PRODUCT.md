@@ -1,6 +1,6 @@
-# TrailLite Product Notes
+# LiteGPX Product Notes
 
-TrailLite is a small offline route navigation workspace. The current product is the Android mobile app in `mobile/`. A companion web app is planned as a sibling project for generating GPX route files that can be opened in the mobile app.
+LiteGPX is a small offline route navigation workspace. The current product is the Android mobile app in `mobile/`. A companion web app is planned as a sibling project for generating GPX route files that can be opened in the mobile app.
 
 Related documents:
 
@@ -77,7 +77,7 @@ The current off-route threshold is 75 meters.
 
 ### Riding display settings
 
-- The user can keep the screen awake while TrailLite is open.
+- The user can keep the screen awake while LiteGPX is open.
 - The user can enable an app-specific brightness override and choose the brightness percentage used by the Activity window.
 - The user can enable automatic tracking zoom and choose the zoom level applied while GPS tracking is active with a selected route.
 - When automatic tracking zoom is disabled, tracking keeps the current map zoom so manual zoom remains under user control.
@@ -146,7 +146,7 @@ Recommended minimal export:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="TrailLite Web" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="LiteGPX Web" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>Example Route</name>
   </metadata>
@@ -207,14 +207,14 @@ Supported imported map package extensions:
 - `.pmtiles`
 - `.mbtiles`
 
-Map packages are copied into app-specific storage under `TrailLite/maps/`.
+Map packages are copied into app-specific storage under `LiteGPX/maps/`.
 
 ### Local App Storage
 
 Imported user files are copied to app-specific storage:
 
-- `TrailLite/maps/` for `.pmtiles` and `.mbtiles`
-- `TrailLite/tracks/` for `.gpx`
+- `LiteGPX/maps/` for `.pmtiles` and `.mbtiles`
+- `LiteGPX/tracks/` for `.gpx`
 
 This avoids broad Android storage permissions.
 
@@ -251,7 +251,7 @@ Code starting points:
 
 ### Product Role
 
-The web app is the route creation companion for TrailLite mobile. Its job is to let a user create a route on a larger screen, export a mobile-compatible GPX file, and then use that file offline in the Android app.
+The web app is the route creation companion for LiteGPX mobile. Its job is to let a user create a route on a larger screen, export a mobile-compatible GPX file, and then use that file offline in the Android app.
 
 The web app should not require changes to the mobile app for the first version. It should export GPX files that match the current mobile import contract.
 
@@ -279,7 +279,7 @@ MVP journey assumption:
 5. User names the route.
 6. User reviews route distance and point count.
 7. User downloads a `.gpx` file.
-8. User opens/imports that file in TrailLite mobile.
+8. User opens/imports that file in LiteGPX mobile.
 
 Secondary journey:
 
@@ -292,7 +292,7 @@ Decisions:
 
 - V1 uses manual route drawing, not automatic routing along roads or paths.
 - V1 must support importing and editing existing GPX files.
-- Imported GPX should export as a clean, simplified TrailLite-compatible GPX file.
+- Imported GPX should export as a clean, simplified LiteGPX-compatible GPX file.
 - Imported GPX opens for viewing first. When the user starts editing, the app creates an editable copy rather than treating the imported source as overwritten.
 
 ### MVP Feature Set
@@ -301,7 +301,7 @@ Candidate v1 features:
 
 - Map-first route editor.
 - Simple local map search for common southern Finland places, including Helsinki.
-- Map layer settings matching TrailLite mobile: Street names, POIs, Buildings, and Paths and tracks.
+- Map layer settings matching LiteGPX mobile: Street names, POIs, Buildings, and Paths and tracks.
 - Add route point by clicking/tapping the map.
 - Drag route points to adjust them.
 - Delete route points.
@@ -406,7 +406,7 @@ Current compatible handoff paths:
 
 - Download `.gpx` from the web app, then open/import it on Android.
 - Share or copy the `.gpx` file to the Android device.
-- Open the file in TrailLite through Android document picker or compatible `ACTION_VIEW`.
+- Open the file in LiteGPX through Android document picker or compatible `ACTION_VIEW`.
 - Use the local "Save to mobile app" workflow during development to write the GPX, update the bundled route catalog, and generate corridor map data for the Android project.
 
 Decision:
@@ -421,7 +421,7 @@ Candidate first-release success criteria:
 
 - A user can create a named route in the browser in under five minutes.
 - A user can import an existing GPX, make a basic edit, and export a clean GPX.
-- Exported GPX imports into TrailLite mobile without modification.
+- Exported GPX imports into LiteGPX mobile without modification.
 - The route line appears correctly on the mobile offline map.
 - Mobile navigation readout works against the generated route.
 - The user does not need an account.
@@ -440,7 +440,7 @@ Generated GPX quality threshold:
 - Imports into the mobile app without modification.
 - Draws as the intended route line on the same Finland map dataset.
 - Contains enough points for the mobile app's route progress and off-route calculation to be useful.
-- Avoids preserving source GPX complexity that is not needed by TrailLite mobile.
+- Avoids preserving source GPX complexity that is not needed by LiteGPX mobile.
 
 ## Web App Technical Stack
 
@@ -517,7 +517,7 @@ Map constraints:
 
 Map layer controls:
 
-- The web app exposes the same map-layer settings as TrailLite mobile.
+- The web app exposes the same map-layer settings as LiteGPX mobile.
 - Street names toggles the `street-names` layer.
 - POIs toggles the `poi-dots` and `poi-names` layers.
 - Buildings toggles the `buildings` layer.
@@ -580,7 +580,7 @@ Manual verification:
 - Confirm the Finland PMTiles map renders.
 - Draw a route.
 - Download GPX.
-- Import the GPX into TrailLite mobile.
+- Import the GPX into LiteGPX mobile.
 - Confirm route line and navigation readout work in the mobile app.
 
 ### Deferred Technical Decisions
@@ -655,7 +655,7 @@ Definition of done:
 
 - User can draw a simple route on the map.
 - User can download a `.gpx` file.
-- Exported GPX imports into TrailLite mobile without modification.
+- Exported GPX imports into LiteGPX mobile without modification.
 - Manual `agent-browser` script can draw points, download/export GPX, and inspect that exported XML contains valid `<trkpt>` data.
 
 ### Sprint 3: Basic Editing
@@ -680,9 +680,9 @@ Definition of done:
 - Imported GPX is not treated as overwritten before editing starts.
 - Manual `agent-browser` script can exercise add, drag, insert, delete, undo, and clear.
 
-### Sprint 4: TrailLite Android GPX Compatibility Pass
+### Sprint 4: LiteGPX Android GPX Compatibility Pass
 
-Goal: prove end-to-end GPX/data usefulness with the TrailLite Android app.
+Goal: prove end-to-end GPX/data usefulness with the LiteGPX Android app.
 
 This sprint is about exported data compatibility with the Android application. It is not about making the web app responsive for mobile browsers.
 
@@ -690,7 +690,7 @@ Scope:
 
 - Export routes created from scratch.
 - Export routes created from imported GPX.
-- Import exported files into TrailLite mobile.
+- Import exported files into LiteGPX mobile.
 - Verify route line rendering in mobile.
 - Verify mobile navigation readout works against generated routes.
 - Fix GPX compatibility gaps found during manual testing.
@@ -703,7 +703,7 @@ Definition of done:
 - Mobile progress/off-route readout works while tracking against the generated route.
 - Any remaining limitations are documented in `PRODUCT.md`.
 
-Sprint 4 completes the initial functional skeleton and proves TrailLite Android GPX/data compatibility. It must not be skipped or replaced by polish work.
+Sprint 4 completes the initial functional skeleton and proves LiteGPX Android GPX/data compatibility. It must not be skipped or replaced by polish work.
 
 ### Sprint 5: Polish Sprint 1 - Design Review
 
@@ -779,7 +779,7 @@ Definition of done:
 
 - Functionality review blocking and important issues are resolved or explicitly deferred.
 - Core workflows work repeatedly without state corruption.
-- GPX output remains compatible with TrailLite Android.
+- GPX output remains compatible with LiteGPX Android.
 - Manual browser scripts pass for the agreed critical flows.
 
 ### Sprint 9: Polish Sprint 5 - Release Readiness
@@ -789,7 +789,7 @@ Goal: make the web app ready for actual personal use, not just internal demonstr
 Scope:
 
 - Run full create/import/edit/export verification.
-- Run TrailLite Android GPX/data compatibility verification.
+- Run LiteGPX Android GPX/data compatibility verification.
 - Clean up visible rough edges.
 - Confirm local build/static serving instructions.
 - Document known limitations.
@@ -799,7 +799,7 @@ Definition of done:
 
 - A polished desktop web app is ready for use.
 - The app can create a route, import a GPX, edit route geometry, and export clean GPX.
-- Exported GPX works in TrailLite Android.
+- Exported GPX works in LiteGPX Android.
 - Manual verification steps are documented and repeatable.
 - Remaining limitations are acceptable for personal v1 use.
 
@@ -809,14 +809,14 @@ Definition of done:
 2. GPX rendering.
 3. GPX creation.
 4. Basic editing.
-5. TrailLite Android GPX compatibility pass.
+5. LiteGPX Android GPX compatibility pass.
 6. Polish Sprint 1 - design review.
 7. Polish Sprint 2 - functionality review.
 8. Polish Sprint 3 - design rework.
 9. Polish Sprint 4 - functionality fixes and tweaks.
 10. Polish Sprint 5 - release readiness.
 
-This order intentionally prioritizes visible map confidence before route generation complexity, then verifies TrailLite Android GPX/data compatibility, then reserves five separate polish sprints to turn the skeleton into a polished tool.
+This order intentionally prioritizes visible map confidence before route generation complexity, then verifies LiteGPX Android GPX/data compatibility, then reserves five separate polish sprints to turn the skeleton into a polished tool.
 
 ## Web App Design Direction
 
@@ -875,13 +875,13 @@ Avoid:
 
 Route color communicates mode:
 
-- Viewing route: TrailLite coral, matching the Android app route color.
+- Viewing route: LiteGPX coral, matching the Android app route color.
 - Editing route: blue route treatment to distinguish active editing from passive viewing.
 
 Initial color direction:
 
 - Viewing route: `#FF5733`.
-- Editing route: a clear blue in the TrailLite family, final exact value to be tuned against the map style.
+- Editing route: a clear blue in the LiteGPX family, final exact value to be tuned against the map style.
 
 Route overlays should be prominent enough to read on the map without hiding map details. Point handles should be visible in edit mode and quieter or hidden in view mode.
 

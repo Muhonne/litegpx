@@ -34,7 +34,7 @@ Options:
   --step <n>           Emit every nth GPX point. Default: 1.
   --max-points <n>     Stop after n emitted fixes. Default: all points.
   --install            Build and install the debug APK before playback.
-  --launch             Launch TrailLite before playback.
+  --launch             Launch LiteGPX before playback.
   --no-grant           Do not grant location permissions through adb.
   --no-wait            Do not pause for manual route selection/start.
   --dry-run            Parse and print fixes without calling adb.
@@ -183,7 +183,7 @@ fi
 if [[ "$wait_for_start" == "1" && "$dry_run" == "0" ]]; then
   cat <<EOF
 
-TrailLite is ready for manual setup.
+LiteGPX is ready for manual setup.
 
 1. In the emulator, open Routes.
 2. Select the bundled route matching:

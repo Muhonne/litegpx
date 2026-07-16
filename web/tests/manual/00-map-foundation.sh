@@ -13,7 +13,11 @@ agent-browser wait 5500
 
 agent-browser eval '
 const state = window.__trailLiteTest?.getState();
-if (!state) throw new Error("TrailLite test API missing");
+if (!state) throw new Error("LiteGPX test API missing");
+if (document.title !== "LiteGPX") throw new Error(`Unexpected document title: ${document.title}`);
+if (document.querySelector(".app-header h1")?.textContent.trim() !== "LiteGPX") {
+  throw new Error(`Unexpected app header: ${document.querySelector(".app-header h1")?.textContent.trim()}`);
+}
 if (state.status !== "Map view ready.") throw new Error(`Unexpected status: ${state.status}`);
 const canvas = document.querySelector(".maplibregl-canvas");
 if (!canvas || canvas.width < 500 || canvas.height < 500) throw new Error("Map canvas is not rendered");

@@ -1,6 +1,6 @@
-# TrailLite Android App Notes
+# LiteGPX Android App Notes
 
-This directory is the Android Gradle project root for TrailLite.
+This directory is the Android Gradle project root for LiteGPX.
 
 ## Layout
 

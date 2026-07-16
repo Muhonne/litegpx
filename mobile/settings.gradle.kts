@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TrailLite"
+rootProject.name = "LiteGPX"
 include(":app")

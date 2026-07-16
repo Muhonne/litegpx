@@ -550,7 +550,7 @@ function buildProviderPmtiles({ normalized, bbox, providerAreas, maxzoom, pmtile
     vectorLayers: [
       {
         id: "roads",
-        description: "Finnish provider roads and paths normalized for TrailLite",
+        description: "Finnish provider roads and paths normalized for LiteGPX",
         fields: {
           kind: "String",
           kind_detail: "String",
@@ -561,7 +561,7 @@ function buildProviderPmtiles({ normalized, bbox, providerAreas, maxzoom, pmtile
       },
       {
         id: "buildings",
-        description: "Finnish provider buildings normalized for TrailLite",
+        description: "Finnish provider buildings normalized for LiteGPX",
         fields: {
           kind: "String",
           name: "String",
@@ -620,10 +620,10 @@ function writeMbtiles({ mbtilesPath, tileRecords, bounds, maxzoom, vectorLayers 
   if (existsSync(mbtilesPath)) rmSync(mbtilesPath);
   mkdirSync(dirname(mbtilesPath), { recursive: true });
   const metadata = {
-    name: "TrailLite Finnish provider overlay",
+    name: "LiteGPX Finnish provider overlay",
     type: "overlay",
     version: "1",
-    description: "Finnish Digiroad and NLS provider data normalized for TrailLite",
+    description: "Finnish Digiroad and NLS provider data normalized for LiteGPX",
     format: "pbf",
     minzoom: "0",
     maxzoom: String(maxzoom),
@@ -855,7 +855,7 @@ function toDegrees(value) {
 }
 
 function printHelp() {
-  console.log(`TrailLite Finnish map dataset builder
+  console.log(`LiteGPX Finnish map dataset builder
 
 Usage:
   node mapdataservice/build-finnish-map.mjs --gpx route.gpx [options]
@@ -863,7 +863,7 @@ Usage:
 
 This wraps the base PMTiles extractor and downloads Finnish provider data for the
 same route corridor or bbox. Current provider normalization targets the
-TrailLite style layers:
+LiteGPX style layers:
 
   Digiroad dr_tielinkki_tielinkin_tyyppi -> roads
   NLS tieviiva                           -> roads

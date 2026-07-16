@@ -486,7 +486,7 @@ function toDegrees(value) {
 }
 
 function printHelp() {
-  console.log(`TrailLite route map extractor
+  console.log(`LiteGPX route map extractor
 
 Usage:
   node mapdataservice/extract-route-map.mjs --gpx route.gpx [options]

@@ -1,6 +1,6 @@
-# TrailLite Data Layers And Handling
+# LiteGPX Data Layers And Handling
 
-This document explains TrailLite data ownership across the web app, map data service, shared assets, and Android app.
+This document explains LiteGPX data ownership across the web app, map data service, shared assets, and Android app.
 
 Related documents:
 
@@ -43,7 +43,7 @@ Locations:
 
 - Bundled mobile GPX files: `mobile/app/src/main/assets/routes/*.gpx`
 - Bundled mobile route catalog: `mobile/app/src/main/assets/routes/routes.json`
-- Imported mobile GPX files: app-specific storage under `TrailLite/tracks/`
+- Imported mobile GPX files: app-specific storage under `LiteGPX/tracks/`
 - Web in-memory route state: ordered WGS84 `{ latitude, longitude }` points
 
 Handling:
@@ -73,7 +73,7 @@ Locations:
 - Mobile bundle refresh manifest: `shared/maps/manifest.json`
 - Android APK asset path after build: `assets/maps/finland.pmtiles`
 - Android APK manifest asset path after build: `assets/maps/manifest.json`
-- Mobile copied runtime path: app-specific storage under `TrailLite/maps/finland.pmtiles`
+- Mobile copied runtime path: app-specific storage under `LiteGPX/maps/finland.pmtiles`
 - Web planning base: remote Protomaps PMTiles URL resolved through the local data service `GET /api/base-map-source`, with a static fallback in `web/src/app.js`
 - Service base extracts: `mapdataservice/output/*.pmtiles`
 
@@ -102,7 +102,7 @@ Locations:
 
 - Mobile bundle target: `shared/maps/finland.providers.pmtiles`
 - Android APK asset path after build: `assets/maps/finland.providers.pmtiles`
-- Mobile copied runtime path: app-specific storage under `TrailLite/maps/finland.providers.pmtiles`
+- Mobile copied runtime path: app-specific storage under `LiteGPX/maps/finland.providers.pmtiles`
 - Web/service provider outputs: `mapdataservice/output/*-finnish-*.pmtiles`
 - Service normalized work files: `mapdataservice/output/.work/finnish-providers/`
 - Service provider download cache: `mapdataservice/cache/finnish-providers/`
@@ -115,7 +115,7 @@ Source data:
 
 Handling:
 
-- `mapdataservice/build-finnish-map.mjs` downloads and normalizes provider data into TrailLite-compatible source layers.
+- `mapdataservice/build-finnish-map.mjs` downloads and normalizes provider data into LiteGPX-compatible source layers.
 - `POST /api/extract-bbox` builds a provider overlay for a drawn web rectangle.
 - `POST /api/save-mobile-route` builds a Digiroad provider overlay from all bundled mobile routes by default and copies it to `shared/maps/finland.providers.pmtiles`.
 - Web API provider builds default to `digiroad`. NLS is included only when the request `providers` value or `TRAILLITE_FINNISH_PROVIDERS` explicitly includes `nls`.
@@ -302,7 +302,7 @@ GPX route
   -> OSM Finland extract
   -> Digiroad road/street and path enrichment
   -> NLS topographic enrichment for buildings, land use, water, names, and terrain context
-  -> TrailLite vector tile schema
+  -> LiteGPX vector tile schema
   -> PMTiles
 ```
 

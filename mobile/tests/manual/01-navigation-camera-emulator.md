@@ -1,6 +1,6 @@
 # Manual Test: Navigation Camera With Emulator GPS
 
-Purpose: verify that TrailLite behaves like route navigation when GPS fixes are played through the Android emulator.
+Purpose: verify that LiteGPX behaves like route navigation when GPS fixes are played through the Android emulator.
 
 ## Preconditions
 
@@ -35,7 +35,7 @@ tests/manual/play-gpx-route.sh \
   --step 5
 ```
 
-The script builds and installs the debug APK, launches TrailLite, grants location permissions, then pauses.
+The script builds and installs the debug APK, launches LiteGPX, grants location permissions, then pauses.
 
 In the emulator:
 

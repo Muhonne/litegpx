@@ -96,7 +96,7 @@ try {
       title: "Test route",
       lengthKm: 1.2,
       durationText: "--",
-      source: "TrailLite GPX Builder",
+      source: "LiteGPX",
       gpxAsset: "routes/test-route.gpx",
       bounds: { minLon: 24.1, minLat: 60.1, maxLon: 24.2, maxLat: 60.2 },
       trackPointCount: 2,

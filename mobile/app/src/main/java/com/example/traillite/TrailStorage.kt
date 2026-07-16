@@ -10,9 +10,7 @@ import java.io.FileOutputStream
 import java.util.Locale
 
 class TrailStorage(private val context: Context) {
-    private val root: File =
-        context.getExternalFilesDir(null)?.resolve("TrailLite")
-            ?: context.filesDir.resolve("TrailLite")
+    private val root: File = storageRoot(context)
 
     val mapsDir: File = root.resolve("maps").apply { mkdirs() }
     val tracksDir: File = root.resolve("tracks").apply { mkdirs() }
@@ -118,6 +116,17 @@ class TrailStorage(private val context: Context) {
             if (mapPackage.name == BUNDLED_MAP_NAME) mapsDir.resolve(BUNDLED_PROVIDER_MAP_NAME) else null,
         )
         return candidates.filterNotNull().firstOrNull { it.exists() && it.length() > 0L }
+    }
+
+    private fun storageRoot(context: Context): File {
+        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        val root = baseDir.resolve("LiteGPX")
+        val legacyRoot = baseDir.resolve("TrailLite")
+        if (!root.exists() && legacyRoot.exists()) {
+            runCatching { legacyRoot.renameTo(root) }
+        }
+        root.mkdirs()
+        return root
     }
 
     private fun File.isProviderOverlayPackage(): Boolean {

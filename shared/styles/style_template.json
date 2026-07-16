@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "name": "TrailLite Local OSM",
+  "name": "LiteGPX Local OSM",
   "glyphs": "asset://glyphs/{fontstack}/{range}.pbf",
   "sources": {
     "osm": {

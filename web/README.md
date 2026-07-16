@@ -1,4 +1,4 @@
-# TrailLite Web
+# LiteGPX Web
 
 Technical notes for running, building, and testing the desktop GPX Builder.
 

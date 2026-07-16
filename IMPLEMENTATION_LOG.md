@@ -1,4 +1,4 @@
-# TrailLite GPX Builder Implementation Log
+# LiteGPX GPX Builder Implementation Log
 
 This log records the milestone implementation pass for the desktop GPX web app and the Android data compatibility work.
 
@@ -7,7 +7,7 @@ This log records the milestone implementation pass for the desktop GPX web app a
 - Web app: implemented under `web/` as static HTML, CSS, and plain JavaScript ES modules.
 - Shared assets: map, styles, and glyphs are under `shared/`.
 - Android app: consumes shared map/style/glyph assets through the Android asset source set.
-- Map tools: web exposes the same TrailLite mobile layer toggles and a local place search.
+- Map tools: web exposes the same LiteGPX mobile layer toggles and a local place search.
 - Manual browser scripts: implemented under `web/tests/manual/` and runnable with `npm test` from `web/`.
 - Result: all planned skeleton, polish, map-tools, and usability improvement sprints are complete.
 
@@ -67,7 +67,7 @@ Plan:
 - Export a clean GPX file.
 
 PM notes:
-- The web app now covers the main use case: manually creating a GPX route for TrailLite.
+- The web app now covers the main use case: manually creating a GPX route for LiteGPX.
 
 Designer notes:
 - Creation starts from the visible sidebar controls.
@@ -109,11 +109,11 @@ Review:
 - Reopened because delete was not initially reachable from the UI.
 - Closed after adding edit-only point-row delete controls and extending `03-basic-editing.sh`.
 
-## Sprint 4: TrailLite Android GPX Compatibility Pass
+## Sprint 4: LiteGPX Android GPX Compatibility Pass
 
 Plan:
 - Verify mobile compatibility as data/application compatibility, not responsive web work.
-- Keep GPX output compatible with the Android TrailLite parser.
+- Keep GPX output compatible with the Android LiteGPX parser.
 - Keep Android map assets aligned with shared workspace assets.
 
 PM notes:
@@ -230,12 +230,12 @@ Lead dev notes:
 - Android `./gradlew assembleDebug` passes with shared assets.
 
 Review:
-- Closed. No sprint was skipped, and the TrailLite Android GPX Compatibility Pass was completed before polish.
+- Closed. No sprint was skipped, and the LiteGPX Android GPX Compatibility Pass was completed before polish.
 
 ## Sprint 10: Mobile-Matching Map Tools
 
 Plan:
-- Add the same map-layer controls used by TrailLite mobile.
+- Add the same map-layer controls used by LiteGPX mobile.
 - Add a simple search box to locate common places such as Helsinki.
 - Preserve the desktop sidebar layout where only the point list scrolls.
 
@@ -564,7 +564,7 @@ Plan:
 
 Product round:
 - Renamed the primary GPX export action from `Download GPX` to `Save route`.
-- The saved artifact remains a GPX file for TrailLite Android compatibility.
+- The saved artifact remains a GPX file for LiteGPX Android compatibility.
 
 Design round:
 - Save route remains a primary route action and uses the existing `D` shortcut badge.

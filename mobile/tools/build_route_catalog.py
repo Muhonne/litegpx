@@ -59,13 +59,13 @@ ALIASES = {
 
 
 def fetch_json(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "TrailLite route catalog builder"})
+    request = urllib.request.Request(url, headers={"User-Agent": "LiteGPX route catalog builder"})
     with urllib.request.urlopen(request, timeout=90) as response:
         return json.loads(response.read().decode("utf-8")), response.headers
 
 
 def fetch_bytes(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "TrailLite route catalog builder"})
+    request = urllib.request.Request(url, headers={"User-Agent": "LiteGPX route catalog builder"})
     with urllib.request.urlopen(request, timeout=90) as response:
         return response.read()
 
