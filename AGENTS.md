@@ -42,9 +42,17 @@ Always follow this workflow when making changes:
 
 ## Expected Commands
 
+Use the locally installed Android Studio tooling for Android work:
+
+- Android Studio JBR: `/Applications/Android Studio.app/Contents/jbr/Contents/Home`
+- Android SDK platform tools: `$HOME/Library/Android/sdk/platform-tools`
+
 ```sh
 cd mobile
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug
+cd ..
+"$HOME/Library/Android/sdk/platform-tools/adb" devices -l
+"$HOME/Library/Android/sdk/platform-tools/adb" install -r mobile/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The Android debug APK is produced under `mobile/app/build/outputs/apk/debug/` relative to this workspace root.
