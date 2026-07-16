@@ -227,7 +227,7 @@ Provider options accepted by `POST /api/extract-bbox` and `POST /api/save-mobile
 }
 ```
 
-`nlsGeojsonDir` can also be set for the service process with `TRAILLITE_NLS_GEOJSON_DIR`. `NLS_API_KEY` is read from the workspace root `.env` by both the CLI and local API service.
+The local API service defaults to `digiroad` for interactive web requests. Pass `"providers": "digiroad,nls"` or set `TRAILLITE_FINNISH_PROVIDERS=digiroad,nls` when NLS enrichment is wanted. `nlsGeojsonDir` can also be set for the service process with `TRAILLITE_NLS_GEOJSON_DIR`. `NLS_API_KEY` is read from the workspace root `.env` by both the CLI and local API service, but it does not opt web API requests into NLS by itself.
 
 The web app also reads:
 
@@ -267,7 +267,7 @@ The request body contains a route name and GPX text. When the web app is saving 
 - builds a Finnish provider overlay PMTiles for the same all-route corridor set and copies it to `shared/maps/finland.providers.pmtiles`
 - writes `shared/maps/manifest.json` with file sizes and SHA-256 hashes for both bundled PMTiles files
 
-By default the save endpoint builds the provider overlay with Digiroad. If `NLS_API_KEY` is set, it uses `digiroad,nls`. Override with `TRAILLITE_FINNISH_PROVIDERS=digiroad` or `TRAILLITE_FINNISH_PROVIDERS=digiroad,nls`.
+By default the save endpoint builds the provider overlay with Digiroad and reuses the newly generated bundled base PMTiles as the provider builder source. This keeps the web save action from doing a second remote Protomaps extraction or an all-route NLS build just because `NLS_API_KEY` exists. Override with request `"providers": "digiroad,nls"` or `TRAILLITE_FINNISH_PROVIDERS=digiroad,nls` when the mobile bundle should include NLS data.
 
 The default `mapScope` is `all-routes`, which means the saved route is added first and then the bundled mobile map packages are rebuilt from `mobile/app/src/main/assets/routes/`. This prevents a new saved route from shrinking close-zoom offline map coverage for existing routes. Pass `"mapScope": "route"` only for an intentional single-route extraction.
 

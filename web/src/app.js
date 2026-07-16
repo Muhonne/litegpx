@@ -2079,6 +2079,7 @@ async function saveRouteToMobileApp() {
         bufferMeters: 1000,
         coverage: "corridor",
         maxzoom: 15,
+        providers: "digiroad",
       }),
     });
     const payload = await response.json().catch(() => ({}));

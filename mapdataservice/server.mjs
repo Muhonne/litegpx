@@ -341,9 +341,11 @@ async function saveMobileRoute(body) {
   await mkdir(dirname(bundledMapPath), { recursive: true });
   await copyFile(metadata.output.pmtiles, bundledMapPath);
 
+  const providerConfig = mobileProviderOverlayConfig({ body, bundledMapPath });
   const provider = await buildProviderOverlay({
     body,
-    source,
+    source: providerConfig.source,
+    providers: providerConfig.providers,
     maxzoom,
     minzoom: body.minzoom,
     gpx: mapGpxInput,
@@ -420,8 +422,8 @@ async function sha256File(path) {
   return hash.digest("hex");
 }
 
-async function buildProviderOverlay({ body, source, maxzoom, minzoom, bbox, name, gpx, bufferMeters, coverage }) {
-  const providerArgs = [finnishBuilder, "--source", source, "--maxzoom", maxzoom, "--providers", providerList(body)];
+async function buildProviderOverlay({ body, source, maxzoom, minzoom, bbox, name, gpx, bufferMeters, coverage, providers }) {
+  const providerArgs = [finnishBuilder, "--source", source, "--maxzoom", maxzoom, "--providers", providers || providerList(body)];
   if (bbox) providerArgs.push("--bbox", bbox);
   if (name) providerArgs.push("--name", name);
   if (gpx) providerArgs.push("--gpx", gpx);
@@ -449,8 +451,19 @@ async function buildProviderOverlay({ body, source, maxzoom, minzoom, bbox, name
   };
 }
 
-function providerList(body) {
-  return body.providers || process.env.TRAILLITE_FINNISH_PROVIDERS || (process.env.NLS_API_KEY ? "digiroad,nls" : "digiroad");
+function providerList(body = {}, { env = process.env, defaultProviders = "digiroad" } = {}) {
+  return String(body.providers || env.TRAILLITE_FINNISH_PROVIDERS || defaultProviders)
+    .split(",")
+    .map((provider) => provider.trim())
+    .filter(Boolean)
+    .join(",") || "digiroad";
+}
+
+function mobileProviderOverlayConfig({ body = {}, bundledMapPath: mapPath, env = process.env }) {
+  return {
+    source: resolve(mapPath),
+    providers: providerList(body, { env, defaultProviders: "digiroad" }),
+  };
 }
 
 function normalizeBbox(value) {
@@ -660,8 +673,10 @@ export {
   buildBundledMapManifest,
   deleteMobileRoute,
   listDatasets,
+  mobileProviderOverlayConfig,
   mobileRouteSaveTarget,
   mobileMapGpxInput,
+  providerList,
   readMobileRouteCatalog,
   readMobileRouteGpx,
 };

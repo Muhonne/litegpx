@@ -110,6 +110,7 @@ if (request.body.routeName !== "Mobile Save Test") throw new Error(`Bad route na
 if (!request.body.gpx.includes("<trkpt")) throw new Error("Mobile save request did not include GPX track points");
 if (request.body.bufferMeters !== 1000) throw new Error(`Unexpected buffer: ${request.body.bufferMeters}`);
 if (request.body.coverage !== "corridor") throw new Error(`Unexpected coverage: ${request.body.coverage}`);
+if (request.body.providers !== "digiroad") throw new Error(`Unexpected providers: ${request.body.providers}`);
 window.__finishMobileSave();
 true;
 '

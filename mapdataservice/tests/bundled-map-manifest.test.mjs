@@ -8,8 +8,10 @@ import { resolve } from "node:path";
 import {
   buildBundledMapManifest,
   deleteMobileRoute,
+  mobileProviderOverlayConfig,
   mobileRouteSaveTarget,
   mobileMapGpxInput,
+  providerList,
   readMobileRouteCatalog,
   readMobileRouteGpx,
 } from "../server.mjs";
@@ -56,6 +58,28 @@ try {
     }),
     resolve(tempDir, "routes/new-route.gpx"),
     "route-scoped map extraction should remain available as an explicit option",
+  );
+  assert.equal(
+    providerList({}, { env: { NLS_API_KEY: "secret" } }),
+    "digiroad",
+    "service provider builds should not opt into NLS just because a key is configured",
+  );
+  assert.equal(
+    providerList({}, { env: { NLS_API_KEY: "secret", TRAILLITE_FINNISH_PROVIDERS: "digiroad,nls" } }),
+    "digiroad,nls",
+    "service provider builds should honor explicit provider overrides",
+  );
+  assert.deepEqual(
+    mobileProviderOverlayConfig({
+      body: { source: "protomaps" },
+      bundledMapPath: resolve(tempDir, "finland.pmtiles"),
+      env: { NLS_API_KEY: "secret" },
+    }),
+    {
+      source: resolve(tempDir, "finland.pmtiles"),
+      providers: "digiroad",
+    },
+    "mobile provider overlays should reuse the generated bundled base map and default to Digiroad",
   );
 
   const routesDir = resolve(tempDir, "routes");
