@@ -82,6 +82,7 @@ The current off-route threshold is 75 meters.
 - The user can enable automatic tracking zoom and choose the zoom level applied while GPS tracking is active with a selected route.
 - When automatic tracking zoom is disabled, tracking keeps the current map zoom so manual zoom remains under user control.
 - The tracking zoom stepper is disabled when automatic tracking zoom is off, so the configured zoom value is not mistaken for the active tracking zoom.
+- The user can choose how many GPS updates pass between map camera moves.
 
 ### Riding battery behavior
 
@@ -90,7 +91,7 @@ The current off-route threshold is 75 meters.
 - Tracking uses a 5 meter minimum update distance to avoid waking the app for tiny GPS jitter.
 - Tracking ignores location fixes worse than 30 meters while a recent accepted fix exists; poor fixes are allowed again after 20 seconds without an accepted fix so the app can recover from weak signal.
 - Location cadence adapts from the configured moving interval to a slower cadence when the rider appears stopped or slow.
-- Ride mode avoids moving the map camera on every fix; the location dot can move inside the viewport and the camera recenters when the dot approaches the screen edge.
+- Ride mode updates the location dot on every accepted GPS fix and moves the map camera only on the configured GPS update cadence.
 
 ## Data Formats
 

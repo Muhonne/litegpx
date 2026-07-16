@@ -38,13 +38,14 @@ Feature: Mobile offline route navigation
     And location permission is granted
     When the user starts GPS tracking
     Then the app updates the current position on the map
-    And the map recenters when the current position approaches the ride-mode viewport edge
+    And the map recenters only on the configured GPS update cadence
     And the navigation readout shows route progress, remaining distance, and on-route/off-route status
 
   Scenario: Adjust tracking settings
     Given the app is open
     When the user opens Settings
     Then the user can adjust the GPS refresh interval
+    And the user can choose how many GPS updates pass between map camera moves
     And the user can keep the screen on while riding
     And the user can enable app-specific screen brightness and set the brightness level
     And the user can enable automatic tracking zoom and choose the route-tracking zoom level

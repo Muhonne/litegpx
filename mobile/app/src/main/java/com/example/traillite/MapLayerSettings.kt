@@ -8,6 +8,7 @@ data class MapLayerSettings(
     val buildings: Boolean = true,
     val minorPaths: Boolean = true,
     val locationIntervalSeconds: Int = 5,
+    val moveMapEveryLocationUpdates: Int = 1,
     val automaticTrackingZoom: Boolean = false,
     val trackingZoomLevel: Double = 15.0,
     val keepScreenOn: Boolean = false,
@@ -29,6 +30,7 @@ class MapLayerSettingsStore(context: Context) {
             buildings = preferences.getBoolean(KEY_BUILDINGS, true),
             minorPaths = preferences.getBoolean(KEY_MINOR_PATHS, true),
             locationIntervalSeconds = preferences.getInt(KEY_LOCATION_INTERVAL_SECONDS, 5),
+            moveMapEveryLocationUpdates = preferences.getInt(KEY_MOVE_MAP_EVERY_LOCATION_UPDATES, 1).coerceIn(1, 30),
             automaticTrackingZoom = preferences.getBoolean(KEY_AUTOMATIC_TRACKING_ZOOM, false),
             trackingZoomLevel = preferences.getFloat(KEY_TRACKING_ZOOM_LEVEL, 15f).toDouble().coerceIn(8.0, 17.0),
             keepScreenOn = preferences.getBoolean(KEY_KEEP_SCREEN_ON, false),
@@ -47,6 +49,7 @@ class MapLayerSettingsStore(context: Context) {
             .putBoolean(KEY_BUILDINGS, settings.buildings)
             .putBoolean(KEY_MINOR_PATHS, settings.minorPaths)
             .putInt(KEY_LOCATION_INTERVAL_SECONDS, settings.locationIntervalSeconds)
+            .putInt(KEY_MOVE_MAP_EVERY_LOCATION_UPDATES, settings.moveMapEveryLocationUpdates)
             .putBoolean(KEY_AUTOMATIC_TRACKING_ZOOM, settings.automaticTrackingZoom)
             .putFloat(KEY_TRACKING_ZOOM_LEVEL, settings.trackingZoomLevel.toFloat())
             .putBoolean(KEY_KEEP_SCREEN_ON, settings.keepScreenOn)
@@ -66,6 +69,7 @@ class MapLayerSettingsStore(context: Context) {
         const val KEY_BUILDINGS = "buildings"
         const val KEY_MINOR_PATHS = "minorPaths"
         const val KEY_LOCATION_INTERVAL_SECONDS = "locationIntervalSeconds"
+        const val KEY_MOVE_MAP_EVERY_LOCATION_UPDATES = "moveMapEveryLocationUpdates"
         const val KEY_AUTOMATIC_TRACKING_ZOOM = "automaticTrackingZoom"
         const val KEY_TRACKING_ZOOM_LEVEL = "trackingZoomLevel"
         const val KEY_KEEP_SCREEN_ON = "keepScreenOn"

@@ -4,8 +4,6 @@ import android.content.Context
 import android.graphics.Color
 import android.location.Location
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.os.SystemClock
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -50,7 +48,6 @@ class TrailMapController(
     private val storage: TrailStorage,
     private val onZoomChanged: (Double) -> Unit,
 ) {
-    private val mainHandler = Handler(Looper.getMainLooper())
     private var currentStyle: Style? = null
     private var trackPoints: List<GeoPoint> = emptyList()
     private var latestLocation: LatLng? = null
@@ -59,6 +56,7 @@ class TrailMapController(
     private var currentMapPackage: File? = null
     private var followPausedUntilMs: Long = 0L
     private var lastNavigationBearing: Double? = null
+    private var locationUpdateCount = 0
     private var trackingActive = false
     private var layerSettings = MapLayerSettings()
 
@@ -99,8 +97,12 @@ class TrailMapController(
     }
 
     fun applyLayerSettings(settings: MapLayerSettings) {
+        val previousSettings = layerSettings
         val reloadStyle = settings.darkTheme != layerSettings.darkTheme
         layerSettings = settings
+        if (settings.moveMapEveryLocationUpdates != previousSettings.moveMapEveryLocationUpdates) {
+            locationUpdateCount = 0
+        }
         if (reloadStyle && currentMapPackage != null) {
             loadStyle(currentMapPackage)
             return
@@ -114,7 +116,9 @@ class TrailMapController(
         setLayerVisible(style, PATHS_HIGHLIGHT_LAYER_ID, settings.minorPaths)
         setLayerVisible(style, ROADS_MINOR_CASING_LAYER_ID, settings.minorPaths)
         setLayerVisible(style, ROADS_MINOR_LAYER_ID, settings.minorPaths)
-        if (trackingActive) {
+        val trackingZoomChanged = settings.automaticTrackingZoom != previousSettings.automaticTrackingZoom ||
+            settings.trackingZoomLevel != previousSettings.trackingZoomLevel
+        if (trackingActive && trackingZoomChanged) {
             latestLocationFix?.let { location ->
                 updateNavigationCamera(location, LatLng(location.latitude, location.longitude), force = true)
             }
@@ -124,11 +128,13 @@ class TrailMapController(
     fun setTrack(points: List<GeoPoint>) {
         trackPoints = points
         lastNavigationBearing = null
+        locationUpdateCount = 0
         renderTrack()
         fitTrackIfUseful(points)
     }
 
     fun setTrackingActive(active: Boolean) {
+        if (trackingActive != active) locationUpdateCount = 0
         trackingActive = active
         if (!active) return
         latestLocationFix?.let { location ->
@@ -142,8 +148,10 @@ class TrailMapController(
         latestLocationFix = Location(location)
         if (currentStyle == null) return false
 
-        updateNavigationCamera(location, latLng)
         updateLocationDot(latLng)
+        if (shouldMoveCameraForLocationUpdate()) {
+            updateNavigationCamera(location, latLng)
+        }
         lastRenderedLocation = latLng
         return true
     }
@@ -176,22 +184,12 @@ class TrailMapController(
     }
 
     private fun pauseNavigationFollow() {
-        val resumeAtMs = SystemClock.elapsedRealtime() + FOLLOW_PAUSE_AFTER_GESTURE_MS
-        followPausedUntilMs = resumeAtMs
-        mainHandler.postDelayed(
-            {
-                if (!trackingActive || followPausedUntilMs != resumeAtMs) return@postDelayed
-                val location = latestLocationFix ?: return@postDelayed
-                updateNavigationCamera(location, LatLng(location.latitude, location.longitude), force = true)
-            },
-            FOLLOW_PAUSE_AFTER_GESTURE_MS,
-        )
+        followPausedUntilMs = SystemClock.elapsedRealtime() + FOLLOW_PAUSE_AFTER_GESTURE_MS
     }
 
     private fun updateNavigationCamera(location: Location, latLng: LatLng, force: Boolean = false) {
         if (!trackingActive && !force) return
         if (!force && SystemClock.elapsedRealtime() < followPausedUntilMs) return
-        if (!force && !shouldUpdateRideCamera(latLng)) return
         val bearing = navigationBearing(location)
         val automaticTrackingZoom = layerSettings.automaticTrackingZoom && trackPoints.size >= 2
         val cameraBuilder = CameraPosition.Builder(map.cameraPosition)
@@ -206,17 +204,10 @@ class TrailMapController(
         onZoomChanged(camera.zoom)
     }
 
-    private fun shouldUpdateRideCamera(latLng: LatLng): Boolean {
-        val width = mapView.width
-        val height = mapView.height
-        if (width <= 0 || height <= 0) return true
-        val screenPoint = map.projection.toScreenLocation(latLng)
-        val horizontalMargin = width * RIDE_CAMERA_EDGE_MARGIN_RATIO
-        val verticalMargin = height * RIDE_CAMERA_EDGE_MARGIN_RATIO
-        return screenPoint.x < horizontalMargin ||
-            screenPoint.x > width - horizontalMargin ||
-            screenPoint.y < verticalMargin ||
-            screenPoint.y > height - verticalMargin
+    private fun shouldMoveCameraForLocationUpdate(): Boolean {
+        if (!trackingActive) return false
+        locationUpdateCount += 1
+        return locationUpdateCount % layerSettings.moveMapEveryLocationUpdates == 0
     }
 
     private fun routeLookaheadBearing(location: Location): Double? {
@@ -458,7 +449,6 @@ class TrailMapController(
         const val TRACK_CAMERA_ANIMATION_MS = 650
         const val DEFAULT_TRAIL_ZOOM = 14.0
         const val NAVIGATION_TOP_PADDING_RATIO = 0.2f
-        const val RIDE_CAMERA_EDGE_MARGIN_RATIO = 0.22f
         const val NORTH_UP_BEARING = 0.0
         const val ROUTE_LOOKAHEAD_METERS = 50.0
         const val MIN_BEARING_DISTANCE_METERS = 1.0

@@ -390,6 +390,8 @@ enum class RouteSortMode {
 
 private const val MIN_GPS_INTERVAL_SECONDS = 1
 private const val MAX_GPS_INTERVAL_SECONDS = 30
+private const val MIN_MOVE_MAP_UPDATE_COUNT = 1
+private const val MAX_MOVE_MAP_UPDATE_COUNT = 30
 private const val MIN_SCREEN_BRIGHTNESS_PERCENT = 1
 private const val MAX_SCREEN_BRIGHTNESS_PERCENT = 100
 private const val MIN_TRACKING_ZOOM_LEVEL = 8.0
@@ -628,6 +630,16 @@ private fun MapSettingsDialog(
                     seconds = settings.locationIntervalSeconds,
                     onChange = { seconds -> onChange(settings.copy(locationIntervalSeconds = seconds)) },
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Move map on every",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                MoveMapUpdateStepper(
+                    updates = settings.moveMapEveryLocationUpdates,
+                    onChange = { updates -> onChange(settings.copy(moveMapEveryLocationUpdates = updates)) },
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Tracking camera",
@@ -774,6 +786,34 @@ private fun GpsIntervalStepper(
             modifier = Modifier.width(SETTINGS_INPUT_WIDTH),
             singleLine = true,
             label = { Text("sec") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+        )
+    }
+}
+
+@Composable
+private fun MoveMapUpdateStepper(
+    updates: Int,
+    onChange: (Int) -> Unit,
+) {
+    SettingsStepperRow(
+        decreaseLabel = "-1",
+        increaseLabel = "+1",
+        decreaseEnabled = updates > MIN_MOVE_MAP_UPDATE_COUNT,
+        increaseEnabled = updates < MAX_MOVE_MAP_UPDATE_COUNT,
+        onDecrease = { onChange((updates - 1).coerceIn(MIN_MOVE_MAP_UPDATE_COUNT, MAX_MOVE_MAP_UPDATE_COUNT)) },
+        onIncrease = { onChange((updates + 1).coerceIn(MIN_MOVE_MAP_UPDATE_COUNT, MAX_MOVE_MAP_UPDATE_COUNT)) },
+    ) {
+        TextField(
+            value = updates.toString(),
+            onValueChange = { value ->
+                val parsed = value.filter { it.isDigit() }.toIntOrNull() ?: return@TextField
+                onChange(parsed.coerceIn(MIN_MOVE_MAP_UPDATE_COUNT, MAX_MOVE_MAP_UPDATE_COUNT))
+            },
+            modifier = Modifier.width(SETTINGS_INPUT_WIDTH),
+            singleLine = true,
+            label = { Text("updates") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
         )

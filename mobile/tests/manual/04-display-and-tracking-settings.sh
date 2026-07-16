@@ -64,8 +64,8 @@ if ! rg -n 'shouldAcceptLocation' "$LOCATION" >/dev/null ||
   exit 1
 fi
 
-if ! rg -n 'shouldUpdateRideCamera' "$CONTROLLER" >/dev/null ||
-  ! rg -n 'RIDE_CAMERA_EDGE_MARGIN_RATIO' "$CONTROLLER" >/dev/null; then
-  echo "Ride mode should skip camera moves until the location approaches the viewport edge." >&2
+if ! rg -n 'moveMapEveryLocationUpdates' "$SETTINGS" "$MAIN" "$CONTROLLER" >/dev/null ||
+  ! rg -n 'locationUpdateCount % layerSettings\.moveMapEveryLocationUpdates' "$CONTROLLER" >/dev/null; then
+  echo "Ride mode should move the map on the configured GPS update cadence." >&2
   exit 1
 fi

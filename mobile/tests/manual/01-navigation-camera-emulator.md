@@ -48,7 +48,7 @@ In the emulator:
 
 - The blue location dot updates at the GPX playback cadence.
 - The map camera initially enters riding navigation view when tracking starts.
-- After that, the location dot may move inside the viewport; the camera recenters when it approaches the screen edge.
+- After that, the location dot updates on every accepted GPS fix; the camera recenters on the configured move-map update cadence.
 - When the camera recenters, the location dot returns horizontally centered and about 40% from the bottom of the screen.
 - When the camera recenters, the map rotates so the next route segment, about 50 m ahead, points toward the top of the screen.
 - If automatic tracking zoom is off, the current zoom level is preserved and manual zoom remains under user control.
