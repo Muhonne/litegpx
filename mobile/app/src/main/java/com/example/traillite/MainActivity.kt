@@ -1063,53 +1063,120 @@ private fun TopInfoCards(
             }
         }
         if (state.mapLayerSettings.showRouteInfo) {
-            FloatingInfoCard {
-                Text(
-                    text = "Route",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${state.trackName ?: "none"} (${state.trackPointCount} pts)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = state.locationText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                state.navigation?.let { navigation ->
+            RouteRideCard(state)
+        }
+    }
+}
+
+@Composable
+private fun RouteRideCard(state: TrailLiteUiState) {
+    val navigation = state.navigation
+    val statusText = when {
+        navigation == null -> "NO ROUTE"
+        navigation.isOffRoute -> "OFF ROUTE"
+        else -> "ON ROUTE"
+    }
+    val statusColor = when {
+        navigation == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        navigation.isOffRoute -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val primaryDistance = navigation?.distanceToRouteMeters?.formatDistance() ?: "--"
+    val primaryLabel = when {
+        navigation == null -> "select a route"
+        navigation.isOffRoute -> "from route"
+        else -> "from line"
+    }
+    val remaining = navigation?.remainingDistanceMeters?.formatDistance() ?: "--"
+    val progress = navigation?.let { "${it.progressPercent}%" } ?: "--"
+    val routeName = state.trackName ?: "No route selected"
+    val pointCount = if (state.trackPointCount > 0) "${state.trackPointCount} pts" else "No points"
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 6.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = routeName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (navigation.isOffRoute) {
-                            "Off route by ${navigation.distanceToRouteMeters.formatDistance()}"
-                        } else {
-                            "On route (${navigation.distanceToRouteMeters.formatDistance()} from line)"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (navigation.isOffRoute) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                        text = statusText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = statusColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "Progress ${navigation.progressPercent}% | remaining ${navigation.remainingDistanceMeters.formatDistance()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = primaryLabel,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                Text(
+                    text = primaryDistance,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = statusColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MetricTile(label = "Remaining", value = remaining, modifier = Modifier.weight(1f))
+                MetricTile(label = "Progress", value = progress, modifier = Modifier.weight(1f))
+                MetricTile(label = "Points", value = pointCount, modifier = Modifier.weight(1f))
             }
         }
+    }
+}
+
+@Composable
+private fun MetricTile(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label.uppercase(Locale.US),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

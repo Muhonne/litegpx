@@ -39,7 +39,7 @@ Feature: Mobile offline route navigation
     When the user starts GPS tracking
     Then the app updates the current position on the map
     And the map recenters only on the configured GPS update cadence
-    And the navigation readout shows route progress, remaining distance, and on-route/off-route status
+    And the route card shows large glanceable on-route/off-route status, route distance, progress, and remaining distance
 
   Scenario: Adjust tracking settings
     Given the app is open

@@ -72,6 +72,7 @@ When GPS tracking is active and a route is loaded, the app calculates:
 - Whether the user is off route.
 - Progress percentage along the route.
 - Remaining route distance.
+- A glanceable route card with large on-route/off-route status, distance from route, remaining distance, progress, and point count.
 
 The current off-route threshold is 75 meters.
 
