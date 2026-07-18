@@ -1,12 +1,12 @@
 const FINLAND_CENTER = [24.94, 60.24];
-const VIEW_ROUTE_COLOR = "#D83A1D";
-const EDIT_ROUTE_COLOR = "#1D73D4";
-const EDIT_POINT_COLOR = "#7C3AED";
+const VIEW_ROUTE_COLOR = "#FF5733";
+const EDIT_ROUTE_COLOR = "#A855F7";
+const ROUTE_HALO_COLOR = "#111827";
 const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
 const SIMPLIFY_TOLERANCE_METERS = 15;
-const MAX_VISIBLE_ROUTE_POINTS = 300;
+const MAX_VISIBLE_ROUTE_POINTS = 180;
 const SNAP_TOLERANCE_PIXELS = 16;
 const FALLBACK_FULL_BASE_MAP_URL = "https://build.protomaps.com/20260716.pmtiles";
 const LOCAL_BASE_MAP_URL = `${window.location.origin}/shared/maps/finland.pmtiles`;
@@ -273,6 +273,15 @@ async function initMap() {
 
   map.on("mouseup", () => finishPointerEdit());
 
+  map.on("click", "route-line-hit", (event) => {
+    if (shouldSuppressMapClick()) return;
+    if (state.mode !== "edit" || state.points.length < 2 || !event.lngLat) return;
+    state.skipNextMapClick = true;
+    const point = snapToVisibleLines([event.lngLat.lng, event.lngLat.lat]);
+    const index = nearestSegmentIndex(point, state.points);
+    insertPoint(index + 1, point);
+  });
+
   map.on("click", (event) => {
     if (shouldSuppressMapClick()) return;
     if (state.skipNextMapClick) {
@@ -286,15 +295,6 @@ async function initMap() {
     state.drawAddedPointCount = 0;
     if (state.mode !== "edit") return;
     addPoint([event.lngLat.lng, event.lngLat.lat]);
-  });
-
-  map.on("click", "route-line-hit", (event) => {
-    if (shouldSuppressMapClick()) return;
-    if (state.mode !== "edit" || state.points.length < 2 || !event.lngLat) return;
-    state.skipNextMapClick = true;
-    const point = snapToVisibleLines([event.lngLat.lng, event.lngLat.lat]);
-    const index = nearestSegmentIndex(point, state.points);
-    insertPoint(index + 1, point);
   });
 
   map.on("mouseenter", "route-points", (event) => {
@@ -849,7 +849,7 @@ function classifyDetailMapKind(url, name = "") {
 }
 
 function firstOverlayLayerId() {
-  return ["route-line-casing", "route-line", "route-line-hit", "route-points"]
+  return ["route-line-casing", "route-line", "route-line-hit", "route-point-halo", "route-points"]
     .find((layerId) => map.getLayer(layerId));
 }
 
@@ -867,9 +867,9 @@ function ensureRouteLayers() {
       source: "route",
       filter: ["==", ["geometry-type"], "LineString"],
       paint: {
-        "line-color": "#FFFFFF",
-        "line-width": ["case", ["==", ["get", "mode"], "edit"], 4.2, 7],
-        "line-opacity": 0.82,
+        "line-color": ROUTE_HALO_COLOR,
+        "line-width": ["case", ["==", ["get", "mode"], "edit"], 9, 10],
+        "line-opacity": 0.72,
       },
       layout: {
         "line-cap": "round",
@@ -883,8 +883,8 @@ function ensureRouteLayers() {
       filter: ["==", ["geometry-type"], "LineString"],
       paint: {
         "line-color": ["case", ["==", ["get", "mode"], "edit"], EDIT_ROUTE_COLOR, VIEW_ROUTE_COLOR],
-        "line-width": ["case", ["==", ["get", "mode"], "edit"], 2.6, 4],
-        "line-opacity": 0.96,
+        "line-width": ["case", ["==", ["get", "mode"], "edit"], 5, 6],
+        "line-opacity": 0.98,
       },
       layout: {
         "line-cap": "round",
@@ -905,6 +905,19 @@ function ensureRouteLayers() {
       },
     });
   }
+  if (!map.getLayer("route-point-halo")) {
+    map.addLayer({
+      id: "route-point-halo",
+      type: "circle",
+      source: "route",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: {
+        "circle-color": ROUTE_HALO_COLOR,
+        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 12, 8],
+        "circle-opacity": ["case", ["==", ["get", "visible"], true], 0.72, 0],
+      },
+    });
+  }
   if (!map.getLayer("route-points")) {
     map.addLayer({
       id: "route-points",
@@ -912,10 +925,10 @@ function ensureRouteLayers() {
       source: "route",
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
-        "circle-color": EDIT_POINT_COLOR,
-        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 9, 3.9],
+        "circle-color": EDIT_ROUTE_COLOR,
+        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 9.5, 5.6],
         "circle-stroke-color": "#FFFFFF",
-        "circle-stroke-width": 0.9,
+        "circle-stroke-width": 2,
         "circle-opacity": ["case", ["==", ["get", "visible"], true], 1, 0],
       },
     });
@@ -1922,7 +1935,7 @@ function updateAreaOverlay() {
 
 function routeFeatureCollection() {
   const features = [];
-  if (state.mode !== "edit" && state.points.length >= 2) {
+  if (state.points.length >= 2) {
     features.push({
       type: "Feature",
       properties: { mode: state.mode },

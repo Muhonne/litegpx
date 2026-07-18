@@ -11,6 +11,7 @@ agent-browser wait 1500
 agent-browser upload "#gpxInput" "$ROOT/web/tests/fixtures/simple-route.gpx"
 agent-browser wait 800
 agent-browser click "#editButton"
+agent-browser eval 'window.__trailLiteTest.setSnapToLines(false); true;'
 agent-browser eval '
 let state = window.__trailLiteTest.getState();
 if (!state.importedEditingCopy) throw new Error("Imported route did not create editable copy on first edit");

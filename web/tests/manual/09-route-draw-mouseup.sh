@@ -24,11 +24,19 @@ await new Promise((resolve, reject) => {
   };
   tick();
 });
+const lineColor = window.__trailLiteMap.getPaintProperty("route-line", "line-color");
+const casingColor = window.__trailLiteMap.getPaintProperty("route-line-casing", "line-color");
 const pointColor = window.__trailLiteMap.getPaintProperty("route-points", "circle-color");
+const pointHaloColor = window.__trailLiteMap.getPaintProperty("route-point-halo", "circle-color");
 const pointRadius = window.__trailLiteMap.getPaintProperty("route-points", "circle-radius");
-if (pointColor !== "#7C3AED") throw new Error(`Edit route points should be purple, got ${JSON.stringify(pointColor)}`);
-if (JSON.stringify(pointRadius) !== JSON.stringify(["case", ["boolean", ["feature-state", "hover"], false], 9, 3.9])) {
-  throw new Error(`Edit route points should be 50% larger than the previous 2.6/6px sizes, got ${JSON.stringify(pointRadius)}`);
+if (JSON.stringify(lineColor) !== JSON.stringify(["case", ["==", ["get", "mode"], "edit"], "#A855F7", "#FF5733"])) {
+  throw new Error(`Route line should use a high-contrast active color, got ${JSON.stringify(lineColor)}`);
+}
+if (casingColor !== "#111827") throw new Error(`Route line casing should be dark, got ${JSON.stringify(casingColor)}`);
+if (pointColor !== "#A855F7") throw new Error(`Edit route point centers should match the route color, got ${JSON.stringify(pointColor)}`);
+if (pointHaloColor !== "#111827") throw new Error(`Route point halos should be dark, got ${JSON.stringify(pointHaloColor)}`);
+if (JSON.stringify(pointRadius) !== JSON.stringify(["case", ["boolean", ["feature-state", "hover"], false], 9.5, 5.6])) {
+  throw new Error(`Edit route points should be large enough to read on a moving map, got ${JSON.stringify(pointRadius)}`);
 }
 true;
 })()
@@ -48,8 +56,8 @@ const state = window.__trailLiteTest.getState();
 if (state.drawingRoute) throw new Error("Route drawing should stop on mouse up");
 if (state.points.length < 2) throw new Error(`Mouse drag should add route points, got ${state.points.length}`);
 const renderedRouteLines = window.__trailLiteMap.queryRenderedFeatures(undefined, { layers: ["route-line"] });
-if (renderedRouteLines.length !== 0) {
-  throw new Error(`Edit mode should draw route points only, got ${renderedRouteLines.length} rendered route line features`);
+if (renderedRouteLines.length === 0) {
+  throw new Error("Edit mode should render a continuous high-contrast route line behind point handles");
 }
 window.__pointsAfterMouseUp = state.points.length;
 true;
@@ -153,5 +161,33 @@ if (moved < 0.001) {
   throw new Error(`Shift+drag should move the map center, got delta ${moved}`);
 }
 if (state.cursor !== "crosshair") throw new Error(`Releasing Shift in edit mode should restore draw cursor, got ${state.cursor}`);
+true;
+'
+
+agent-browser eval '
+(async () => {
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
+  [24.940000, 60.180000],
+], "Line insert click");
+window.__trailLiteTest.setSnapToLines(false);
+window.__trailLiteTest.startEditing();
+window.__trailLiteMap.jumpTo({ center: [24.935000, 60.175000], zoom: 14, bearing: 0 });
+await new Promise((resolve) => window.__trailLiteMap.once("idle", resolve));
+true;
+})()
+'
+
+agent-browser mouse move 780 400
+agent-browser mouse down
+agent-browser mouse up
+agent-browser wait 150
+
+agent-browser eval '
+const state = window.__trailLiteTest.getState();
+if (state.points.length !== 3) throw new Error(`Clicking the visible route line should insert one point, got ${state.points.length}`);
+if (state.points[1][0].toFixed(6) !== "24.935000" || state.points[1][1].toFixed(6) !== "60.175000") {
+  throw new Error(`Line click should insert into the segment, got ${JSON.stringify(state.points)}`);
+}
 true;
 '

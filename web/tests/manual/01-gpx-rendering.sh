@@ -21,7 +21,7 @@ const lineLayer = window.maplibregl && document.querySelector(".maplibregl-canva
 if (!lineLayer) throw new Error("Map canvas missing after GPX import");
 true;
 '
-agent-browser eval 'window.__lastAlert = ""; window.alert = (message) => { window.__lastAlert = message; }; true;'
+agent-browser eval 'window.__lastAlert = ""; window.alert = (message) => { window.__lastAlert = message; }; window.confirm = () => true; true;'
 agent-browser upload "#gpxInput" "$ROOT/web/tests/fixtures/broken-route.gpx"
 agent-browser wait 500
 agent-browser eval '

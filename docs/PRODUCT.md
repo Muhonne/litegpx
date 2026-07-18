@@ -878,21 +878,21 @@ Avoid:
 Route color communicates mode:
 
 - Viewing route: LiteGPX coral, matching the Android app route color.
-- Editing route: blue route treatment to distinguish active editing from passive viewing.
+- Editing route: high-contrast violet treatment to distinguish active editing from passive viewing.
 
 Initial color direction:
 
 - Viewing route: `#FF5733`.
-- Editing route: a clear blue in the LiteGPX family, final exact value to be tuned against the map style.
+- Editing route: `#A855F7` with a dark halo so it stays legible over roads, paths, parks, and labels.
 
-Route overlays should be prominent enough to read on the map without hiding map details. Point handles should be visible in edit mode and quieter or hidden in view mode.
+Route overlays should be prominent enough to read on the map without hiding map details. The continuous route line is the primary visual object in both view and edit mode. Point handles should be visible in edit mode, but remain secondary to the line so dense routes do not turn into unreadable beads.
 
 Route point handles:
 
-- Purple dots in edit mode so points are distinct from the blue route editing line.
-- Medium precise dots by default, about 50% larger than the first edit-handle pass.
+- Violet dots in edit mode with a dark outer halo and white inner stroke so handles remain visible on light roads and green paths.
+- Medium precise dots by default, larger than the first edit-handle pass.
 - Enlarge further on hover for easier grabbing.
-- Stay visually subordinate to the route line unless selected or hovered.
+- Dense routes sample intermediate handles while preserving the route shape with the continuous line.
 
 ### Interaction Model
 
