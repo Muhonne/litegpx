@@ -300,6 +300,26 @@
     "trackPointCount": 648
   },
   {
+    "id": "lepuski-tour",
+    "title": "Lepuski tour",
+    "lengthKm": 19,
+    "durationText": "--",
+    "source": "LiteGPX",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Lepuski tour",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/lepuski-tour.gpx",
+    "bounds": {
+      "minLon": 24.784503,
+      "minLat": 60.218442,
+      "maxLon": 24.862866,
+      "maxLat": 60.253825
+    },
+    "trackPointCount": 677
+  },
+  {
     "id": "lintusyrjanharjun-luontopolku-mtb",
     "title": "Lintusyrjänharjun luontopolku mtb",
     "lengthKm": 5,
@@ -658,6 +678,26 @@
       "maxLat": 62.946687
     },
     "trackPointCount": 383
+  },
+  {
+    "id": "silvolan-tekojarvi",
+    "title": "Silvolan tekojärvi",
+    "lengthKm": 23.1,
+    "durationText": "--",
+    "source": "LiteGPX",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Silvolan tekojärvi",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/silvolan-tekojarvi.gpx",
+    "bounds": {
+      "minLon": 24.854953,
+      "minLat": 60.218731,
+      "maxLon": 24.910852,
+      "maxLat": 60.28175
+    },
+    "trackPointCount": 863
   },
   {
     "id": "sorapolkaisu-puu-juukaan",
