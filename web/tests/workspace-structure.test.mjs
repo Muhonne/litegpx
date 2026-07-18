@@ -8,6 +8,7 @@ const workspace = resolve(new URL("../..", import.meta.url).pathname);
 
 const featureDocs = [
   "mobile-offline-navigation.md",
+  "data-service-provider-enrichment.md",
   "web-route-creation.md",
   "web-gpx-import-editing.md",
   "web-mobile-route-management.md",

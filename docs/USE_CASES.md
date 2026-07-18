@@ -1,6 +1,6 @@
 # LiteGPX Use Cases
 
-This file is the use-case index. Feature behavior lives in focused docs under `docs/features/` so each workflow stays short and grounded in implementation files.
+This file is the active use-case index, not a deprecated scenario source. Feature behavior lives in focused docs under `docs/features/` so each workflow stays short and grounded in implementation files.
 
 Related documents:
 
@@ -11,6 +11,7 @@ Related documents:
 ## Features
 
 - [Mobile offline navigation](features/mobile-offline-navigation.md)
+- [Data service provider enrichment](features/data-service-provider-enrichment.md)
 - [Web route creation](features/web-route-creation.md)
 - [Web GPX import and editing](features/web-gpx-import-editing.md)
 - [Web mobile route management](features/web-mobile-route-management.md)
