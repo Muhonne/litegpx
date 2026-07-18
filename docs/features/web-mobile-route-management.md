@@ -13,6 +13,11 @@ The web route manager reads the Android workspace route catalog through the loca
 - `mobile/app/src/main/assets/routes/routes.json` is the bundled Android route catalog.
 - `web/tests/manual/11-mobile-route-management.sh` covers filtering, sorting, loading, dirty state, saving, refresh preservation, and deletion.
 
+## Verification
+
+- Start `node mapdataservice/server.mjs`.
+- Run `bash web/tests/manual/11-mobile-route-management.sh`.
+
 ## Scenario
 
 ```gherkin

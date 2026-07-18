@@ -13,6 +13,12 @@ The web app lets the user draw a map rectangle and ask the local data service to
 - `mapdataservice/build-finnish-map.mjs` builds Finnish provider overlays when provider data is enabled.
 - `web/tests/manual/05-map-tools.sh` covers rectangle selection and download busy state.
 
+## Verification
+
+- Start `node mapdataservice/server.mjs`.
+- Run `bash web/tests/manual/05-map-tools.sh`.
+- Generated PMTiles under `mapdataservice/output/` should remain untracked.
+
 ## Scenario
 
 ```gherkin

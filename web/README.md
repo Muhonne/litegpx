@@ -1,10 +1,11 @@
 # LiteGPX Web
 
-Technical notes for running, building, and testing the desktop GPX Builder.
+Technical notes for running, building, and testing the desktop LiteGPX route builder.
 
 Product scope and behavior live under the workspace `docs/` directory:
 
 - [../docs/PRODUCT.md](../docs/PRODUCT.md)
+- [../docs/FEATURES.md](../docs/FEATURES.md)
 - [../docs/USE_CASES.md](../docs/USE_CASES.md)
 - [../docs/DATA.md](../docs/DATA.md)
 

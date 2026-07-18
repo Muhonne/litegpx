@@ -14,6 +14,12 @@ The web app can write a drawn or imported route into the Android workspace, upda
 - `shared/maps` receives local map packages used by development builds.
 - `web/tests/manual/10-mobile-save-button.sh` covers save payloads, busy state, catalog refresh, and stale refresh handling.
 
+## Verification
+
+- Start `node mapdataservice/server.mjs`.
+- Run `bash web/tests/manual/10-mobile-save-button.sh`.
+- Inspect generated Android route assets before committing route-data changes.
+
 ## Scenario
 
 ```gherkin

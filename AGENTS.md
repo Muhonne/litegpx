@@ -13,7 +13,8 @@ This repository is being organized as a small multi-app workspace.
 ## Documentation Index
 
 - `docs/PRODUCT.md` is the top-level product overview, feature scope, and data-format contract.
-- `docs/USE_CASES.md` is the use-case index. Feature docs live under `docs/features/` with a short description, concrete code references, and one Gherkin scenario each.
+- `docs/FEATURES.md` is the active feature/use-case index. Feature docs live under `docs/features/` with a short description, concrete code references, verification, and one Gherkin scenario each.
+- `docs/USE_CASES.md` is a compatibility pointer to `docs/FEATURES.md`.
 - `docs/DATA.md` explains route/map data layers, storage locations, generated artifacts, credentials, and service ownership.
 - `mapdataservice/README.md` documents map data service commands and local API endpoints.
 - `mobile/README.md` documents Android build/runtime behavior and bundled map/route assets.

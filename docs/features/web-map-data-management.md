@@ -13,6 +13,12 @@ The web app loads broad planning map context, overlays available local detail PM
 - `web/tests/manual/05-map-tools.sh` covers layer toggles and area-selection UI.
 - `web/tests/manual/07-polish-controls-shortcuts-data.sh` covers map controls, shortcuts, and dataset stats.
 
+## Verification
+
+- Run `bash web/tests/manual/00-map-foundation.sh` for map rendering.
+- Run `bash web/tests/manual/05-map-tools.sh` for layer toggles and area UI.
+- Run `bash web/tests/manual/08-snap-to-visible-lines.sh` for snapping against visible map lines.
+
 ## Scenario
 
 ```gherkin

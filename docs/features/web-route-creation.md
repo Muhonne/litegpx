@@ -13,6 +13,12 @@ The web app lets the user draw a GPX route on desktop, refine the points, inspec
 - `web/tests/manual/02-gpx-creation-export.sh` covers drawing and browser GPX export.
 - `web/tests/manual/09-route-draw-mouseup.sh` covers drag-to-draw, pan override, and point deletion shortcuts.
 
+## Verification
+
+- Run `bash web/tests/manual/02-gpx-creation-export.sh`.
+- Run `bash web/tests/manual/09-route-draw-mouseup.sh`.
+- Run `npm run test:unit` from `web/` for doc/module structure checks.
+
 ## Scenario
 
 ```gherkin

@@ -13,6 +13,11 @@ The map data service owns external map-data work. It extracts base PMTiles packa
 - `mapdataservice/tests/fixtures/nls/tieviiva.geojson` and `mapdataservice/tests/fixtures/nls/rakennus.geojson` provide local NLS fixture data for smoke checks.
 - `shared/styles/style_template.json` defines the source-layer names the generated provider overlays must match.
 
+## Verification
+
+- Run service unit checks with `cd mapdataservice && npm test`.
+- For local provider smoke work, run `mapdataservice/build-finnish-map.mjs` with `--nls-geojson-dir mapdataservice/tests/fixtures/nls`.
+
 ## Scenario
 
 ```gherkin

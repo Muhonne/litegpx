@@ -13,6 +13,12 @@ The Android app lets a rider select a bundled GPX route, view it on the offline 
 - `mobile/app/src/main/java/com/example/traillite/BatteryLocationClient.kt` controls location update cadence.
 - `mobile/app/src/main/java/com/example/traillite/MapLayerSettings.kt` persists map and route display settings.
 
+## Verification
+
+- Build with `cd mobile && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`.
+- Use `mobile/tests/manual/06-tracking-camera-update-cadence.sh` for camera cadence behavior.
+- Use `mobile/tests/manual/07-route-card-readability.sh` for riding route-card readability.
+
 ## Scenario
 
 ```gherkin

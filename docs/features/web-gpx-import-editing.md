@@ -13,6 +13,12 @@ The web app imports existing GPX tracks for viewing, creates an editable copy wh
 - `web/tests/manual/03-basic-editing.sh` covers imported route editing and point-list behavior.
 - `web/tests/manual/12-simplify-route.sh` covers route simplification and undo.
 
+## Verification
+
+- Run `bash web/tests/manual/01-gpx-rendering.sh` for import and broken-GPX behavior.
+- Run `bash web/tests/manual/03-basic-editing.sh` for editing safeguards.
+- Run `bash web/tests/manual/12-simplify-route.sh` for simplification.
+
 ## Scenario
 
 ```gherkin

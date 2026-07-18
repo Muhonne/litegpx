@@ -1,165 +1,167 @@
-# LiteGPX Data Layers And Handling
+# LiteGPX Data Contract
 
-This document explains LiteGPX data ownership across the web app, map data service, shared assets, and Android app.
+This document explains route and map data ownership across `web/`, `mapdataservice/`, `shared/`, and `mobile/`.
 
-Related documents:
+## Ownership Rules
 
-- [PRODUCT.md](PRODUCT.md) for product scope and format contracts.
-- [USE_CASES.md](USE_CASES.md) for user-facing scenarios.
-- [../mapdataservice/README.md](../mapdataservice/README.md) for service commands and API details.
-- [../AGENTS.md](../AGENTS.md) for workspace-level operating notes.
-
-## Principles
-
-Code starting points:
-
-- Android offline/no-network posture: `mobile/app/src/main/AndroidManifest.xml`
-- Shared map asset inclusion: `mobile/app/build.gradle.kts` `sourceSets`
-- Local service API surface: `mapdataservice/server.mjs`
-- Generated artifact ignore policy: `.gitignore`
-
-- The Android app is offline-first and must not download map datasets at runtime.
-- The web app can call the local map data service during development.
+- Android is offline-first and consumes local files only.
+- The web app may call the local map data service during development.
 - The map data service is the only component that downloads external map/provider data.
-- Generated PMTiles files are local artifacts and are ignored by Git.
-- Secrets live in the workspace root `.env`, which is ignored by Git.
+- `shared/maps/` and `mapdataservice/output/` are generated local artifact locations and stay out of Git.
+- Secrets live in the workspace root `.env`, which stays out of Git.
 
-## Data Layers
+Code references:
 
-### Route Layer
+- `mobile/app/src/main/AndroidManifest.xml`
+- `mobile/app/build.gradle.kts`
+- `mapdataservice/server.mjs`
+- `.gitignore`
 
-Purpose: GPX route geometry and route catalog metadata.
+## Route Data
 
-Code starting points:
-
-- Mobile route model/catalog: `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt`
-- Mobile GPX parser: `mobile/app/src/main/java/com/example/traillite/GpxParser.kt`
-- Mobile route import/storage: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `importRoute`, `routeFromTrackFile`
-- Mobile route picker and active route loading: `mobile/app/src/main/java/com/example/traillite/MainActivity.kt` `RoutePickerDialog`, `routeCatalog`
-- Web route state and GPX import/export: `web/src/app.js` `parseGpx`, `exportGpx`, `downloadGpx`
-- Service route save/catalog update/delete: `mapdataservice/server.mjs` `saveMobileRoute`, `deleteMobileRoute`, `buildRouteCatalogEntry`, `upsertRouteCatalog`
+Purpose: route geometry plus catalog metadata for bundled Android routes and web-created routes.
 
 Locations:
 
-- Bundled mobile GPX files: `mobile/app/src/main/assets/routes/*.gpx`
-- Bundled mobile route catalog: `mobile/app/src/main/assets/routes/routes.json`
-- Imported mobile GPX files: app-specific storage under `LiteGPX/tracks/`
-- Web in-memory route state: ordered WGS84 `{ latitude, longitude }` points
+- Bundled Android GPX files: `mobile/app/src/main/assets/routes/*.gpx`
+- Bundled Android route catalog: `mobile/app/src/main/assets/routes/routes.json`
+- Imported Android GPX files: app-specific storage under `LiteGPX/tracks/`
+- Web route state: ordered WGS84 `[lon, lat]` points in memory
 
-Handling:
+Code references:
 
-- The web app exports GPX 1.1 `<trk><trkseg><trkpt lat="..." lon="..." />`.
-- The mobile app parses GPX track points and renders the active route as an overlay line.
-- `POST /api/save-mobile-route` writes a web-created GPX into mobile assets and updates `routes.json`.
-- `DELETE /api/mobile-routes/:id` removes a bundled mobile route from `routes.json` and deletes its GPX asset when no remaining catalog entry references it.
-- When the web app loads a bundled mobile route for editing, it keeps that route's catalog id and sends it back as `routeId` on save so renaming the route updates the same catalog entry instead of creating a duplicate.
+- `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt`
+- `mobile/app/src/main/java/com/example/traillite/GpxParser.kt`
+- `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt`
+- `mobile/app/src/main/java/com/example/traillite/MainActivity.kt`
+- `web/src/app.js`
+- `web/src/lib/gpx.js`
+- `mapdataservice/server.mjs`
 
-### Base Map Layer
+Contract:
 
-Purpose: broad offline map context: land, water, boundaries, major/minor roads, buildings, POIs, and place names according to the shared style.
+- Web exports GPX 1.1 using `<trk><trkseg><trkpt lat="..." lon="..." />`.
+- Android parses GPX track points and renders the active route as an overlay line.
+- `POST /api/save-mobile-route` writes a web-created GPX into Android route assets and upserts `routes.json`.
+- `DELETE /api/mobile-routes/:id` removes a bundled route entry and deletes its GPX asset only when no remaining route references the same file.
+- When the web app edits a route loaded from the Android catalog, it sends `routeId` back on save so the existing route is updated instead of duplicated.
 
-Code starting points:
+## Route Catalog JSON
 
-- Shared base style layers: `shared/styles/style_template.json`
-- Android bundled map copy/load: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `ensureBundledMapPackage`, `bundledMapManifestText`, `writeLocalStyle`
-- Android MapLibre style loading: `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt` `loadInitialStyle`, `loadStyle`
-- Web broad planning base URL and style loading: `web/src/app.js` `BASE_MAP_SOURCE_URL`, `FALLBACK_FULL_BASE_MAP_URL`, `loadStyle`, `initMap`
-- Base PMTiles extraction: `mapdataservice/extract-route-map.mjs`
-- Bbox/save API base extraction: `mapdataservice/server.mjs` `extractBbox`, `saveMobileRoute`
+Each catalog item is shaped like:
+
+```json
+{
+  "id": "route-slug",
+  "title": "Route title",
+  "lengthKm": 57,
+  "durationText": "2 - 5 tuntia",
+  "source": "LiteGPX",
+  "gpxAsset": "routes/example.gpx",
+  "bounds": {
+    "minLon": 25.85,
+    "minLat": 61.57,
+    "maxLon": 26.02,
+    "maxLat": 61.75
+  },
+  "trackPointCount": 427
+}
+```
+
+Android currently reads `id`, `title`, `lengthKm`, `durationText`, `gpxAsset`, and source metadata where present. Other fields are retained for web/service workflows.
+
+## Base Map Data
+
+Purpose: broad offline map context: land, water, boundaries, roads, buildings, POIs, and labels according to the shared style.
 
 Locations:
 
-- Mobile bundle target: `shared/maps/finland.pmtiles`
-- Mobile bundle refresh manifest: `shared/maps/manifest.json`
-- Android APK asset path after build: `assets/maps/finland.pmtiles`
-- Android APK manifest asset path after build: `assets/maps/manifest.json`
-- Mobile copied runtime path: app-specific storage under `LiteGPX/maps/finland.pmtiles`
-- Web planning base: remote Protomaps PMTiles URL resolved through the local data service `GET /api/base-map-source`, with a static fallback in `web/src/app.js`
-- Service base extracts: `mapdataservice/output/*.pmtiles`
+- Generated Android base map target: `shared/maps/finland.pmtiles`
+- Android APK asset path: `assets/maps/finland.pmtiles`
+- Android copied runtime path: app-specific `LiteGPX/maps/finland.pmtiles`
+- Web planning base: Protomaps PMTiles URL from `GET /api/base-map-source`, with fallback in `web/src/features/map-style.js`
+- Service extracts: `mapdataservice/output/*.pmtiles`
 
-Handling:
+Code references:
+
+- `shared/styles/style_template.json`
+- `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt`
+- `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt`
+- `web/src/app.js`
+- `web/src/features/map-style.js`
+- `mapdataservice/extract-route-map.mjs`
+- `mapdataservice/server.mjs`
+
+Contract:
 
 - `shared/maps/finland.pmtiles` is generated by `mapdataservice/extract-route-map.mjs` or `POST /api/save-mobile-route`.
-- `POST /api/save-mobile-route` also writes `shared/maps/manifest.json` with hashes for the bundled base and provider PMTiles.
-- Android loads this map offline from app assets or app-specific storage.
-- Android compares the bundled manifest with its local copied manifest and refreshes copied bundled PMTiles when the manifest changes.
-- The web app uses a broad Protomaps base so the full viewport always renders, even when local mobile data only covers route corridors.
-- Web-stored base extracts are retained for reuse/accounting, but should not be rendered as clipped land/water detail overlays.
+- Android loads the bundled or imported map from local storage.
+- Web uses a broad Protomaps base so the whole planning viewport renders even when Android maps are route-corridor extracts.
+- Web-stored base extracts are retained for reuse/accounting but are not rendered as clipped land/water overlays.
 
-### Finnish Provider Overlay Layer
+## Finnish Provider Overlay
 
-Purpose: higher-detail Finnish data rendered over the base map, currently focused on roads/paths and buildings.
-
-Code starting points:
-
-- Provider download/normalization/build: `mapdataservice/build-finnish-map.mjs`
-- Provider API invocation: `mapdataservice/server.mjs` `buildProviderOverlay`, `providerList`
-- Android provider overlay copy/injection: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `copyBundledProviderMapIfAvailable`, `providerOverlayPackage`, `addProviderOverlay`
-- Web provider overlay rendering: `web/src/app.js` `classifyDetailMapKind`, `detailLayerForMap`, `providerLayerPaintOverrides`
-- Shared style layers expected by the provider overlay: `shared/styles/style_template.json`
+Purpose: higher-detail Finnish roads, paths, and buildings rendered over the base map.
 
 Locations:
 
-- Mobile bundle target: `shared/maps/finland.providers.pmtiles`
-- Android APK asset path after build: `assets/maps/finland.providers.pmtiles`
-- Mobile copied runtime path: app-specific storage under `LiteGPX/maps/finland.providers.pmtiles`
+- Generated Android provider target: `shared/maps/finland.providers.pmtiles`
+- Android APK asset path: `assets/maps/finland.providers.pmtiles`
+- Android copied runtime path: app-specific `LiteGPX/maps/finland.providers.pmtiles`
 - Web/service provider outputs: `mapdataservice/output/*-finnish-*.pmtiles`
-- Service normalized work files: `mapdataservice/output/.work/finnish-providers/`
-- Service provider download cache: `mapdataservice/cache/finnish-providers/`
+- Raw provider cache: `mapdataservice/cache/finnish-providers/`
+- Normalized provider work files: `mapdataservice/output/.work/finnish-providers/`
 
 Source data:
 
-- Digiroad WFS: road/path data, no authentication.
-- NLS Topographic Database OGC API Features: topographic data, requires `NLS_API_KEY`.
-- Local NLS GeoJSON fixture/export mode: `tieviiva.geojson` and `rakennus.geojson`.
+- Digiroad WFS: roads and paths, no authentication.
+- NLS Topographic Database OGC API Features: roads and buildings, requires `NLS_API_KEY`.
+- Local NLS fixture/export mode uses `tieviiva.geojson` and `rakennus.geojson`.
 
-Handling:
+Code references:
 
-- `mapdataservice/build-finnish-map.mjs` downloads and normalizes provider data into LiteGPX-compatible source layers.
-- `POST /api/extract-bbox` builds a provider overlay for a drawn web rectangle.
+- `mapdataservice/build-finnish-map.mjs`
+- `mapdataservice/server.mjs`
+- `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt`
+- `web/src/features/map-style.js`
+- `shared/styles/style_template.json`
+
+Contract:
+
+- `mapdataservice/build-finnish-map.mjs` downloads or reads provider data and normalizes it into LiteGPX/Protomaps-compatible source layers.
+- `POST /api/extract-bbox` builds a provider overlay for a selected web rectangle.
 - `POST /api/save-mobile-route` builds a Digiroad provider overlay from all bundled mobile routes by default and copies it to `shared/maps/finland.providers.pmtiles`.
-- Web API provider builds default to `digiroad`. NLS is included only when the request `providers` value or `TRAILLITE_FINNISH_PROVIDERS` explicitly includes `nls`.
-- Route-only mobile map extraction remains available for service/API tests with `mapScope: "route"`, but the normal web save flow uses all bundled routes so one saved route does not shrink the app's offline map coverage.
+- NLS is included only when `providers` or `TRAILLITE_FINNISH_PROVIDERS` explicitly includes `nls`.
 - Web renders provider overlays as detail layers.
-- Android loads `finland.providers.pmtiles` beside `finland.pmtiles` when present.
+- Android loads a provider overlay beside the base PMTiles when present.
 
-### Style Layer
+## Shared Style
 
-Purpose: MapLibre style shared by web and mobile so PMTiles data renders consistently.
-
-Code starting points:
-
-- Source style template: `shared/styles/style_template.json`
-- Android style URL rewriting and dark-theme mutation: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `writeLocalStyle`, `applyDarkMapStyle`
-- Android layer visibility controls: `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt` `applyLayerSettings`, `setLayerVisible`
-- Web style loading and layer controls: `web/src/app.js` `loadStyle`, `applyLayerSettings`, `layerIdsForSetting`
-- Web CSS around the map UI: `web/src/styles.css`
+Purpose: one MapLibre style contract used by web and mobile.
 
 Locations:
 
-- Shared template: `shared/styles/style_template.json`
-- Android APK asset path after build: `assets/styles/style_template.json`
-- Android runtime generated style: app-specific `style-local.json`
-- Web style loading/adaptation: `web/src/app.js`
+- Source style: `shared/styles/style_template.json`
+- Android APK asset path: `assets/styles/style_template.json`
+- Android generated runtime style: app-specific `style-local.json`
 
-Handling:
+Code references:
 
-- The style expects Protomaps-compatible source-layer names such as `earth`, `landuse`, `landcover`, `water`, `boundaries`, `roads`, `buildings`, `pois`, and `places`.
-- Android rewrites `TRAILLITE_TILE_URL` to a local `pmtiles://` or `mbtiles://` URL.
-- Android injects the provider overlay source/layers when a matching provider PMTiles file exists.
-- The web app injects local/provider overlay sources and only clones detail layers that are safe to render as overlays.
+- `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt`
+- `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt`
+- `web/src/features/map-style.js`
+- `web/src/app.js`
 
-## Service Workflows
+Contract:
 
-### Web Rectangle Download
+- The style expects Protomaps-compatible source layers: `earth`, `landuse`, `landcover`, `water`, `boundaries`, `roads`, `buildings`, `pois`, and `places`.
+- Android rewrites `TRAILLITE_TILE_URL` to local `pmtiles://` or `mbtiles://` URLs.
+- Android injects provider overlay source/layers when a provider PMTiles file exists.
+- Web clones only safe detail layers for provider overlays and avoids broad clipped fill overlays.
 
-Code starting points:
+## Local Service Flows
 
-- Web UI action: `web/src/app.js` `downloadSelectedAreaMap`
-- Web area geometry: `web/src/app.js` `areaFeatureCollection`, `bboxFromPoints`, `bboxAreaIsUsable`
-- Service endpoint: `mapdataservice/server.mjs` `extractBbox`
-- Base extraction: `mapdataservice/extract-route-map.mjs`
-- Provider overlay build: `mapdataservice/server.mjs` `buildProviderOverlay`
+Rectangle planning detail:
 
 ```text
 web Draw area
@@ -169,95 +171,43 @@ web Draw area
   -> GET /api/datasets on later web starts
 ```
 
-The base extract and provider overlay are stored under `mapdataservice/output/`. The web app reloads stored datasets through `GET /api/datasets`; provider overlays are rendered, while base extracts are retained for reuse/accounting.
-
-### Save Route To Mobile
-
-Code starting points:
-
-- Web UI action: `web/src/app.js` `saveRouteToMobileApp`
-- Service endpoint: `mapdataservice/server.mjs` `saveMobileRoute`
-- Catalog entry creation/deletion: `mapdataservice/server.mjs` `buildRouteCatalogEntry`, `upsertRouteCatalog`, `deleteMobileRoute`
-- Mobile catalog reader: `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt` `BundledRouteCatalog`
-- Android asset merge: `mobile/app/build.gradle.kts` `sourceSets`
+Save route to Android workspace:
 
 ```text
-web Save to mobile
-  -> POST /api/save-mobile-route (routeId is included when editing a loaded mobile route)
+web Save to mobile app
+  -> POST /api/save-mobile-route
   -> mobile/app/src/main/assets/routes/<route>.gpx
   -> mobile/app/src/main/assets/routes/routes.json
   -> shared/maps/finland.pmtiles
   -> shared/maps/finland.providers.pmtiles
   -> shared/maps/manifest.json
-  -> Android Gradle asset merge
+  -> next Android Gradle asset merge
 ```
 
-This is a local development workflow. It mutates the Android project and shared generated map files so the next APK includes the route and all-route corridor map data. The manifest is required because Android copies bundled PMTiles into app storage; when the manifest changes after an app update, `TrailStorage` refreshes those local copies so newly saved routes get the matching corridor detail.
-
-`DELETE /api/mobile-routes/:id` is the matching local-development removal workflow for route catalog cleanup. It removes the route entry and deletes the route GPX asset if no remaining catalog entry references that file.
-
-By default, the service first writes the submitted GPX and route catalog entry, then rebuilds the bundled base and provider PMTiles from `mobile/app/src/main/assets/routes/` as a directory. The provider overlay uses the newly generated bundled base PMTiles as its source and defaults to Digiroad, so a normal web save does not do a second remote Protomaps extraction or all-route NLS build. This keeps existing routes covered at close zoom levels after adding a new route. Use `mapScope: "route"` only when intentionally producing a single-route package.
-
-### Manual CLI Generation
-
-Code starting points:
-
-- Base CLI: `mapdataservice/extract-route-map.mjs`
-- Provider CLI: `mapdataservice/build-finnish-map.mjs`
-- Service command runner: `mapdataservice/server.mjs` `runNode`
-
-Base map corridor:
-
-```sh
-node mapdataservice/extract-route-map.mjs \
-  --gpx mobile/app/src/main/assets/routes \
-  --buffer-meters 1000 \
-  --coverage corridor \
-  --maxzoom 15 \
-  --out shared/maps/finland.pmtiles
-```
-
-Finnish provider overlay:
-
-```sh
-NODE_OPTIONS=--max-old-space-size=12288 node mapdataservice/build-finnish-map.mjs \
-  --gpx mobile/app/src/main/assets/routes \
-  --buffer-meters 1000 \
-  --coverage corridor \
-  --source local \
-  --maxzoom 15 \
-  --providers digiroad,nls \
-  --out shared/maps/finland.providers.pmtiles
-```
+By default, save-to-mobile rebuilds bundled map packages from the full Android route directory after writing the submitted GPX. Use `mapScope: "route"` only for an intentional single-route package.
 
 ## Credentials
 
 `.env` may contain:
 
-Code starting points:
-
-- Service `.env` loader: `mapdataservice/server.mjs` `loadDotEnv`, `parseDotEnvValue`
-- Provider selection and key handling: `mapdataservice/server.mjs` `providerList`, `buildProviderOverlay`
-- Provider CLI key handling: `mapdataservice/build-finnish-map.mjs`
-
 ```sh
 NLS_API_KEY=<key>
 ```
 
-Lookup order for NLS credentials:
+Lookup order:
 
-- explicit API request or CLI option, such as `nlsApiKey` or `--nls-api-key`
+- explicit API request or CLI option
 - process environment variable `NLS_API_KEY`
 - workspace root `.env`
 
-Do not commit `.env`. The current `.gitignore` excludes it.
+Do not commit `.env`.
+
+Code references:
+
+- `mapdataservice/server.mjs`
+- `mapdataservice/build-finnish-map.mjs`
 
 ## Git Policy
-
-Code starting points:
-
-- Ignore rules: `.gitignore`
-- Workspace operating notes: `AGENTS.md`
 
 Ignored generated data:
 
@@ -268,42 +218,14 @@ Ignored generated data:
 
 Committed data:
 
-- GPX route assets under `mobile/app/src/main/assets/routes/`
-- Route catalog JSON under `mobile/app/src/main/assets/routes/routes.json`
-- Style template under `shared/styles/style_template.json`
-- Documentation and service source code
+- Android GPX route assets under `mobile/app/src/main/assets/routes/`
+- Android route catalog `mobile/app/src/main/assets/routes/routes.json`
+- Shared style template `shared/styles/style_template.json`
+- Source, tests, and documentation
 
-## Known Risks
+## Risks
 
-Code starting points:
-
-- Web overlay filtering: `web/src/app.js` `RENDERED_DETAIL_KINDS`, `detailOverlayBaseLayers`
-- Android provider presence detection: `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` `providerOverlayPackage`
-- PMTiles metadata inspection during debugging: `pmtiles show shared/maps/finland.pmtiles` and `pmtiles show shared/maps/finland.providers.pmtiles`
-
-- If `shared/maps/finland.pmtiles` or `shared/maps/finland.providers.pmtiles` is stale, the APK can include stale/off-route map detail.
-- If the provider overlay is missing, the map can render but lack detailed paths/buildings from Finnish providers.
-- If clipped base extracts are rendered as overlays, land/water polygons can create visual artifacts; the web app should render broad base context from the full planning source and only render provider overlays as detail.
-- If `NLS_API_KEY` is absent and NLS is requested, NLS enrichment cannot be downloaded. Digiroad can still run without a key.
-
-## Future Data Pipeline Direction
-
-Code starting points:
-
-- Current base extractor: `mapdataservice/extract-route-map.mjs`
-- Current Finnish provider builder: `mapdataservice/build-finnish-map.mjs`
-- Current shared style/schema contract: `shared/styles/style_template.json`
-
-The intended future service shape remains a server/tooling concern, not an Android runtime concern:
-
-```text
-GPX route
-  -> route corridor or bbox
-  -> OSM Finland extract
-  -> Digiroad road/street and path enrichment
-  -> NLS topographic enrichment for buildings, land use, water, names, and terrain context
-  -> LiteGPX vector tile schema
-  -> PMTiles
-```
-
-The Android app should only consume the resulting offline `.pmtiles` package or bundled assets.
+- Stale `shared/maps/finland.pmtiles` or `shared/maps/finland.providers.pmtiles` can make a debug APK miss close-zoom route detail.
+- Missing provider overlay still allows base map rendering, but paths/buildings can be less detailed.
+- Rendering clipped base extracts as web overlays can create land/water artifacts.
+- Requesting NLS without credentials fails NLS enrichment; Digiroad can still run without a key.
