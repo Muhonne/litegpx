@@ -21,6 +21,7 @@ GPX route or bbox
 - `build-finnish-map.mjs` builds Finnish provider overlays from Digiroad and optional NLS data.
 - `server.mjs` exposes the local API used by the web app.
 - The service writes generated data under `mapdataservice/output/`; those files are ignored by Git.
+- The save-to-mobile API rebuilds Android route corridor packages under `shared/maps/` and updates `shared/maps/manifest.json`.
 
 ## Requirements
 

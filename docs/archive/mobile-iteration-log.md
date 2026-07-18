@@ -1,5 +1,7 @@
 # LiteGPX MVP Iteration Log
 
+Archived historical note. Current behavior lives in `docs/FEATURES.md`, `docs/PRODUCT.md`, and `docs/DATA.md`.
+
 This log captures 10 product iteration rounds across Product Owner, UI Designer, and Developer roles. The working goal is a marketable low-energy offline route tracking app for cyclists and hikers.
 
 ## Round 1: Product Positioning

@@ -14,6 +14,7 @@ LiteGPX is a small offline route navigation workspace for planning GPX routes on
 - `docs/FEATURES.md` is the active feature/use-case index.
 - `docs/features/` contains one short behavior doc per feature. Each feature doc has description, code references, verification, and one Gherkin scenario.
 - `docs/DATA.md` owns route/map data contracts, storage locations, generated artifacts, and credentials.
+- `docs/archive/` contains historical notes that are not active product contracts.
 - `mobile/README.md`, `web/README.md`, and `mapdataservice/README.md` own run/build/test commands for each subproject.
 
 ## Hard Constraints
@@ -43,7 +44,7 @@ Current behavior:
 - Imports GPX through Android document/share flows.
 - Renders a local PMTiles map and optional provider overlay from bundled or imported map files.
 - Shows the route line, current position, progress, remaining distance, and on-route/off-route status.
-- Lets the user control GPS refresh interval, map camera update cadence, route tracking zoom, screen-on behavior, brightness, map theme, and info-card visibility.
+- Settings cover Street names, POIs, Buildings, Paths and tracks, GPS refresh, Move map on every, Automatic tracking zoom, Zoom, Keep screen on, App brightness, Dark theme, Map info card, and Route info card.
 - Moves the location dot on every accepted GPS fix and moves the map camera according to the configured map update cadence.
 
 ## Web App
@@ -88,7 +89,7 @@ Current behavior:
 - Builds Finnish provider overlay PMTiles from Digiroad and optional NLS data.
 - Lists generated datasets for the web app.
 - Reads and mutates the Android route catalog for local development.
-- Saves web-created routes and regenerates shared Android map packages for the next build.
+- Saves web-created routes and regenerates shared Android route corridor base/provider map packages plus `shared/maps/manifest.json` for the next build.
 
 ## Data Contracts
 

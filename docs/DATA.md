@@ -161,6 +161,13 @@ Contract:
 
 ## Local Service Flows
 
+Route corridor generation:
+
+- `coverage: "corridor"` buffers route geometry and extracts only nearby map tiles.
+- Route input can be one GPX file or the Android routes directory.
+- `POST /api/save-mobile-route` defaults to all bundled routes; `mapScope: "route"` intentionally limits coverage to the saved route.
+- The mobile build consumes `shared/maps/finland.pmtiles`, `shared/maps/finland.providers.pmtiles`, and `shared/maps/manifest.json`.
+
 Rectangle planning detail:
 
 ```text

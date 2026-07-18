@@ -27,6 +27,18 @@ Code starting points:
 - `app/src/main/java/com/example/traillite/BatteryLocationClient.kt` for location update cadence and permissions.
 - `app/src/main/java/com/example/traillite/MapLayerSettings.kt` for persisted map/settings state.
 
+## Settings
+
+The Settings dialog in `app/src/main/java/com/example/traillite/MainActivity.kt` exposes:
+
+- Map layers: Street names, POIs, Buildings, Paths and tracks.
+- Location cadence: GPS refresh.
+- Camera cadence: Move map on every.
+- Tracking camera: Automatic tracking zoom and Zoom.
+- Display: Keep screen on, App brightness, Dark theme, Map info card, Route info card.
+
+Settings persist through `app/src/main/java/com/example/traillite/MapLayerSettings.kt`. Map-layer, theme, camera, and route-card changes are applied by `app/src/main/java/com/example/traillite/TrailMapController.kt`; GPS refresh is applied by `app/src/main/java/com/example/traillite/BatteryLocationClient.kt`.
+
 ## Build
 
 From this directory:
