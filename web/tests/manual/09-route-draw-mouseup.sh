@@ -29,6 +29,9 @@ const casingColor = window.__trailLiteMap.getPaintProperty("route-line-casing", 
 const pointColor = window.__trailLiteMap.getPaintProperty("route-points", "circle-color");
 const pointHaloColor = window.__trailLiteMap.getPaintProperty("route-point-halo", "circle-color");
 const pointRadius = window.__trailLiteMap.getPaintProperty("route-points", "circle-radius");
+const drawRouteButton = document.querySelector("#drawRouteButton");
+if (!drawRouteButton || drawRouteButton.hidden) throw new Error("Draw line button should be visible in edit mode");
+if (drawRouteButton.textContent.trim() !== "Draw line") throw new Error(`Draw line button label wrong: ${drawRouteButton?.textContent.trim()}`);
 if (JSON.stringify(lineColor) !== JSON.stringify(["case", ["==", ["get", "mode"], "edit"], "#A855F7", "#FF5733"])) {
   throw new Error(`Route line should use a high-contrast active color, got ${JSON.stringify(lineColor)}`);
 }
@@ -40,6 +43,19 @@ if (JSON.stringify(pointRadius) !== JSON.stringify(["case", ["boolean", ["featur
 }
 true;
 })()
+'
+
+agent-browser eval '
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", bubbles: true }));
+let state = window.__trailLiteTest.getState();
+if (state.cursor !== "grab") throw new Error(`Shift should temporarily switch edit mode to map pan, got ${state.cursor}`);
+document.querySelector("#drawRouteButton").click();
+state = window.__trailLiteTest.getState();
+if (state.cursor !== "crosshair") throw new Error(`Draw line should restore route drawing cursor, got ${state.cursor}`);
+if (!document.querySelector("#drawRouteButton").classList.contains("active")) {
+  throw new Error("Draw line button should show the active draw tool");
+}
+true;
 '
 
 agent-browser mouse move 650 380
