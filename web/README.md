@@ -20,7 +20,12 @@ Product scope and behavior live under the workspace `docs/` directory:
 Code starting points:
 
 - `index.html` for the app shell.
-- `src/app.js` for map setup, route editing, GPX import/export, map data service calls, and test hooks.
+- `src/app.js` for app state, event wiring, map interactions, map data service calls, and test hooks.
+- `src/features/route-layers.js` for route map layers and route GeoJSON.
+- `src/features/map-style.js` for base style loading, detail overlays, layer groups, and provider overlay styling.
+- `src/features/mobile-routes.js` for mobile route catalog filtering, sorting, labels, and refresh preservation.
+- `src/features/places.js` for built-in map search locations.
+- `src/lib/geo.js`, `src/lib/gpx.js`, and `src/lib/format.js` for shared pure helpers.
 - `src/styles.css` for the sidebar/map UI.
 - `scripts/serve.mjs` for the local static server.
 - `scripts/build.mjs` for static build output.

@@ -14,7 +14,7 @@ agent-browser eval '
   window.__trailLiteTest.search("Helsinki");
   await new Promise((resolve) => setTimeout(resolve, 1600));
   let candidate = null;
-  for (let attempt = 0; attempt < 20; attempt++) {
+  for (let attempt = 0; attempt < 40; attempt++) {
     candidate = window.__trailLiteTest.findSnapTestCandidate();
     if (candidate) break;
     await new Promise((resolve) => setTimeout(resolve, 250));

@@ -1,20 +1,52 @@
+import {
+  FALLBACK_FULL_BASE_MAP_URL,
+  LAYER_GROUPS,
+  LOCAL_BASE_MAP_URL,
+  RENDERED_DETAIL_KINDS,
+  SHARED_DETAIL_MAPS,
+  SNAP_LINE_LAYER_IDS,
+  classifyDetailMapKind,
+  detailOverlayBaseLayers,
+  detailLayerForMap,
+  detailLayerId,
+  loadStyle,
+} from "./features/map-style.js";
+import {
+  mergePreservedMobileRoutes,
+  mobileRouteComparator,
+  mobileRouteDisplayTitle,
+  mobileRouteLabel,
+  mobileRouteMeta,
+  mobileRouteStatusText,
+  nextMobileRouteSelection,
+  routeMatchesMobileFilter,
+  routesPreservedForRefresh,
+} from "./features/mobile-routes.js";
+import { findPlace } from "./features/places.js";
+import {
+  ensureRouteLayers,
+  firstOverlayLayerId,
+  routeFeatureCollection,
+} from "./features/route-layers.js";
+import { capitalize, formatBytes, formatDistance, slugify } from "./lib/format.js";
+import {
+  bboxAreaIsUsable,
+  bboxFromPoints,
+  clonePoints,
+  distanceBetween,
+  isScreenPointInsideCanvas,
+  nearestScreenPointOnSegment,
+  nearestSegmentIndex,
+  pointToSegmentDistanceMeters,
+  totalDistance,
+} from "./lib/geo.js";
+import { exportGpx, parseGpx } from "./lib/gpx.js";
+
 const FINLAND_CENTER = [24.94, 60.24];
-const VIEW_ROUTE_COLOR = "#FF5733";
-const EDIT_ROUTE_COLOR = "#A855F7";
-const ROUTE_HALO_COLOR = "#111827";
-const SELECTED_POINT_COLOR = "#F59E0B";
-const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
 const SIMPLIFY_TOLERANCE_METERS = 15;
-const MAX_VISIBLE_ROUTE_POINTS = 180;
 const SNAP_TOLERANCE_PIXELS = 16;
-const FALLBACK_FULL_BASE_MAP_URL = "https://build.protomaps.com/20260716.pmtiles";
-const LOCAL_BASE_MAP_URL = `${window.location.origin}/shared/maps/finland.pmtiles`;
-const SHARED_DETAIL_MAPS = [
-  { url: LOCAL_BASE_MAP_URL, name: "Android bundled map", kind: "base-extract" },
-  { url: `${window.location.origin}/shared/maps/finland.providers.pmtiles`, name: "Android provider overlay", kind: "provider" },
-];
 const MAP_DATASETS_URL = "http://localhost:5174/api/datasets";
 const BASE_MAP_SOURCE_URL = "http://localhost:5174/api/base-map-source";
 const EXTRACT_BBOX_URL = "http://localhost:5174/api/extract-bbox";
@@ -22,54 +54,7 @@ const MOBILE_SAVE_URL = "http://localhost:5174/api/save-mobile-route";
 const MOBILE_ROUTES_URL = "http://localhost:5174/api/mobile-routes";
 const HISTORY_LIMIT = 10;
 const DISCARD_UNSAVED_ROUTE_MESSAGE = "Discard unsaved route changes?";
-const BASE_MAP_SOURCE_ID = "osm";
 const DETAIL_MAP_STORAGE_KEY = "traillite.detailMaps.v1";
-const SNAP_LINE_LAYER_IDS = ["roads-major", "roads-minor", "paths-highlight"];
-const BROAD_BASE_LAYER_IDS = new Set([
-  "earth",
-  "landuse-green",
-  "landcover-park",
-  "water",
-  "boundaries",
-  "waterway",
-  "place-names",
-]);
-
-const LAYER_GROUPS = {
-  streetNames: ["street-names"],
-  pois: ["poi-dots", "poi-names"],
-  buildings: ["buildings"],
-  minorPaths: ["paths-highlight-casing", "paths-highlight", "roads-minor-casing", "roads-minor"],
-};
-const DETAIL_OVERLAY_LAYER_IDS = new Set([
-  "buildings",
-  "roads-minor-casing",
-  "roads-minor",
-  "paths-highlight-casing",
-  "paths-highlight",
-  "roads-major-casing",
-  "roads-major",
-  "street-names",
-  "poi-dots",
-  "poi-names",
-]);
-const RENDERED_DETAIL_KINDS = new Set(["provider"]);
-
-const PLACE_INDEX = [
-  { name: "Helsinki", aliases: ["helsingfors"], center: [24.9384, 60.1699] },
-  { name: "Espoo", aliases: ["esbo"], center: [24.6559, 60.2055] },
-  { name: "Vantaa", aliases: ["vanda"], center: [25.0378, 60.2941] },
-  { name: "Turku", aliases: ["abo", "åbo"], center: [22.2666, 60.4518] },
-  { name: "Tampere", aliases: ["tammerfors"], center: [23.7610, 61.4978] },
-  { name: "Lahti", aliases: ["lahtis"], center: [25.6615, 60.9827] },
-  { name: "Hämeenlinna", aliases: ["hameenlinna", "tavastehus"], center: [24.4643, 60.9959] },
-  { name: "Porvoo", aliases: ["borga", "borgå"], center: [25.6651, 60.3932] },
-  { name: "Kotka", aliases: [], center: [26.9459, 60.4664] },
-  { name: "Kouvola", aliases: [], center: [26.7042, 60.8681] },
-  { name: "Salo", aliases: [], center: [23.1290, 60.3831] },
-  { name: "Lohja", aliases: ["lojo"], center: [24.0653, 60.2486] },
-  { name: "Raasepori", aliases: ["raseborg", "tammisaari", "ekenäs", "ekenas"], center: [23.4369, 59.9736] },
-];
 
 const elements = {
   map: document.getElementById("map"),
@@ -185,13 +170,13 @@ async function init() {
   await initMap();
   bindUi();
   bindKeyboardShortcuts();
+  exposeTestApi();
   loadSharedDetailMaps();
   restorePersistedDetailMaps();
   refreshStoredDetailMaps();
   refreshBaseDatasetSize();
   refreshMobileRoutes();
   render();
-  exposeTestApi();
 }
 
 async function initMap() {
@@ -382,19 +367,11 @@ async function resolveBaseMapUrl() {
   return FALLBACK_FULL_BASE_MAP_URL;
 }
 
-async function loadStyle(baseMapUrl) {
-  const response = await fetch("../shared/styles/style_template.json");
-  const style = await response.json();
-  style.glyphs = `${window.location.origin}/shared/glyphs/{fontstack}/{range}.pbf`;
-  style.sources[BASE_MAP_SOURCE_ID].url = `pmtiles://${baseMapUrl}`;
-  return style;
-}
-
 function syncMapOverlays() {
   if (!map?.isStyleLoaded()) return;
   ensureDetailMapLayers();
   applyLayerSettings();
-  ensureRouteLayers();
+  ensureRouteLayers(map, routeFeatureCollection(state));
   ensureAreaLayers();
   updateMapRoute();
   updateAreaOverlay();
@@ -635,14 +612,6 @@ function locateSearchQuery() {
   setStatus(`Located ${place.name}.`);
 }
 
-function findPlace(query) {
-  const normalizedQuery = normalizeSearchText(query);
-  return PLACE_INDEX.find((place) => {
-    const names = [place.name, ...place.aliases].map(normalizeSearchText);
-    return names.some((name) => name === normalizedQuery || name.startsWith(normalizedQuery));
-  }) || null;
-}
-
 function addDetailMap(url, options = {}) {
   const existing = state.detailMaps.find((detailMap) => detailMap.url === url);
   if (existing) {
@@ -785,223 +754,13 @@ function ensureDetailMapLayers() {
         url: `pmtiles://${detailMap.url}`,
       });
     }
-    detailOverlayBaseLayers().forEach((layer) => {
+    detailOverlayBaseLayers(map).forEach((layer) => {
       const layerId = detailLayerId(detailMap.sourceId, layer.id);
       if (map.getLayer(layerId)) return;
       const detailLayer = detailLayerForMap(detailMap, layer, layerId);
-      map.addLayer(detailLayer, firstOverlayLayerId());
+      map.addLayer(detailLayer, firstOverlayLayerId(map));
     });
   });
-}
-
-function baseMapLayers() {
-  return map.getStyle().layers.filter((layer) => layer.source === BASE_MAP_SOURCE_ID);
-}
-
-function detailOverlayBaseLayers() {
-  return baseMapLayers().filter((layer) =>
-    DETAIL_OVERLAY_LAYER_IDS.has(layer.id) && !BROAD_BASE_LAYER_IDS.has(layer.id),
-  );
-}
-
-function detailLayerForMap(detailMap, layer, layerId) {
-  const detailLayer = {
-    ...structuredClone(layer),
-    id: layerId,
-    source: detailMap.sourceId,
-  };
-  if (detailMap.kind !== "provider") return detailLayer;
-  detailLayer.paint = {
-    ...(detailLayer.paint || {}),
-    ...providerLayerPaintOverrides(layer.id),
-  };
-  if (layer.id === "buildings") {
-    detailLayer.minzoom = Math.min(layer.minzoom || 13, 13);
-  }
-  return detailLayer;
-}
-
-function providerLayerPaintOverrides(layerId) {
-  if (layerId === "roads-major-casing") {
-    return {
-      "line-color": "#EAF4FF",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 7, 1.8, 15, 6.6],
-      "line-opacity": 0.88,
-    };
-  }
-  if (layerId === "roads-major") {
-    return {
-      "line-color": "#0B5CAD",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 7, 1.1, 15, 4.8],
-      "line-opacity": 0.9,
-    };
-  }
-  if (layerId === "roads-minor-casing" || layerId === "paths-highlight-casing") {
-    return {
-      "line-color": "#ECFDF5",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.4, 15, 4.5],
-      "line-opacity": 0.86,
-    };
-  }
-  if (layerId === "roads-minor") {
-    return {
-      "line-color": "#047857",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.7, 15, 3.2],
-      "line-opacity": 0.9,
-    };
-  }
-  if (layerId === "paths-highlight") {
-    return {
-      "line-color": "#6B8E23",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 15, 3.0],
-      "line-opacity": 0.95,
-      "line-dasharray": [1.2, 1.0],
-    };
-  }
-  if (layerId === "buildings") {
-    return {
-      "fill-color": "#70675D",
-      "fill-opacity": 0.58,
-    };
-  }
-  if (layerId === "poi-dots") {
-    return {
-      "circle-color": "#7C3AED",
-      "circle-opacity": 0.9,
-    };
-  }
-  if (layerId === "poi-names") {
-    return {
-      "text-color": "#4C1D95",
-      "text-halo-color": "#FFFFFF",
-      "text-halo-width": 1.3,
-    };
-  }
-  return {};
-}
-
-function detailLayerId(sourceId, layerId) {
-  return `${sourceId}-${layerId}`;
-}
-
-function classifyDetailMapKind(url, name = "") {
-  const value = `${url} ${name}`.toLowerCase();
-  if (value.includes("providers.pmtiles") || value.includes("-finnish-")) return "provider";
-  return "base-extract";
-}
-
-function firstOverlayLayerId() {
-  return ["route-line-casing", "route-line", "route-line-hit", "route-point-halo", "route-points", "route-point-hit"]
-    .find((layerId) => map.getLayer(layerId));
-}
-
-function ensureRouteLayers() {
-  if (!map.getSource("route")) {
-    map.addSource("route", {
-      type: "geojson",
-      data: routeFeatureCollection(),
-    });
-  }
-  if (!map.getLayer("route-line")) {
-    map.addLayer({
-      id: "route-line-casing",
-      type: "line",
-      source: "route",
-      filter: ["==", ["geometry-type"], "LineString"],
-      paint: {
-        "line-color": ROUTE_HALO_COLOR,
-        "line-width": ["case", ["==", ["get", "mode"], "edit"], 9, 10],
-        "line-opacity": 0.72,
-      },
-      layout: {
-        "line-cap": "round",
-        "line-join": "round",
-      },
-    });
-    map.addLayer({
-      id: "route-line",
-      type: "line",
-      source: "route",
-      filter: ["==", ["geometry-type"], "LineString"],
-      paint: {
-        "line-color": ["case", ["==", ["get", "mode"], "edit"], EDIT_ROUTE_COLOR, VIEW_ROUTE_COLOR],
-        "line-width": ["case", ["==", ["get", "mode"], "edit"], 5, 6],
-        "line-opacity": 0.98,
-      },
-      layout: {
-        "line-cap": "round",
-        "line-join": "round",
-      },
-    });
-  }
-  if (!map.getLayer("route-line-hit")) {
-    map.addLayer({
-      id: "route-line-hit",
-      type: "line",
-      source: "route",
-      filter: ["==", ["geometry-type"], "LineString"],
-      paint: {
-        "line-color": "#000000",
-        "line-width": 18,
-        "line-opacity": 0,
-      },
-    });
-  }
-  if (!map.getLayer("route-point-halo")) {
-    map.addLayer({
-      id: "route-point-halo",
-      type: "circle",
-      source: "route",
-      filter: ["==", ["geometry-type"], "Point"],
-      paint: {
-        "circle-color": ["case", ["boolean", ["get", "selected"], false], SELECTED_POINT_COLOR, ROUTE_HALO_COLOR],
-        "circle-radius": [
-          "case",
-          ["boolean", ["get", "selected"], false],
-          13,
-          ["boolean", ["feature-state", "hover"], false],
-          12,
-          8,
-        ],
-        "circle-opacity": ["case", ["==", ["get", "visible"], true], 0.72, 0],
-      },
-    });
-  }
-  if (!map.getLayer("route-points")) {
-    map.addLayer({
-      id: "route-points",
-      type: "circle",
-      source: "route",
-      filter: ["==", ["geometry-type"], "Point"],
-      paint: {
-        "circle-color": EDIT_ROUTE_COLOR,
-        "circle-radius": [
-          "case",
-          ["boolean", ["get", "selected"], false],
-          7.4,
-          ["boolean", ["feature-state", "hover"], false],
-          9.5,
-          5.6,
-        ],
-        "circle-stroke-color": "#FFFFFF",
-        "circle-stroke-width": 2,
-        "circle-opacity": ["case", ["==", ["get", "visible"], true], 1, 0],
-      },
-    });
-  }
-  if (!map.getLayer("route-point-hit")) {
-    map.addLayer({
-      id: "route-point-hit",
-      type: "circle",
-      source: "route",
-      filter: ["==", ["geometry-type"], "Point"],
-      paint: {
-        "circle-color": "#000000",
-        "circle-radius": ["case", ["==", ["get", "visible"], true], 18, 0],
-        "circle-opacity": 0,
-      },
-    });
-  }
 }
 
 function ensureAreaLayers() {
@@ -1021,7 +780,7 @@ function ensureAreaLayers() {
         "fill-color": "#1D73D4",
         "fill-opacity": 0.18,
       },
-    }, firstOverlayLayerId());
+    }, firstOverlayLayerId(map));
   }
   if (!map.getLayer("selected-area-outline")) {
     map.addLayer({
@@ -1033,7 +792,7 @@ function ensureAreaLayers() {
         "line-width": 3,
         "line-dasharray": [2.2, 1.1],
       },
-    }, firstOverlayLayerId());
+    }, firstOverlayLayerId(map));
   }
 }
 
@@ -1333,16 +1092,6 @@ function simplifyPoints(points, toleranceMeters) {
   return points.filter((_, index) => keep[index]).map((point) => [...point]);
 }
 
-function pointToSegmentDistanceMeters(point, start, end) {
-  const origin = start;
-  const meanLat = toRadians((point[1] + start[1] + end[1]) / 3);
-  const project = ([lon, lat]) => [
-    toRadians(lon - origin[0]) * EARTH_RADIUS_METERS * Math.cos(meanLat),
-    toRadians(lat - origin[1]) * EARTH_RADIUS_METERS,
-  ];
-  return pointToSegmentDistance(project(point), project(start), project(end));
-}
-
 function beginRouteDraw(point) {
   state.drawingRoute = true;
   state.pendingRouteDraw = false;
@@ -1466,7 +1215,7 @@ function render() {
     renderSidebar();
     return;
   }
-  ensureRouteLayers();
+  ensureRouteLayers(map, routeFeatureCollection(state));
   ensureAreaLayers();
   updateMapRoute();
   updateAreaOverlay();
@@ -1602,7 +1351,7 @@ function spinnerElement() {
 }
 
 async function refreshMobileRoutes(options = {}) {
-  const preservedRoutes = routesPreservedForRefresh(options.preserveRouteIds);
+  const preservedRoutes = routesPreservedForRefresh(state.mobileRoutes, options.preserveRouteIds);
   if (!options.background) state.mobileRoutesLoading = true;
   state.mobileRoutesError = "";
   if (!options.background) renderMobileRoutes();
@@ -1631,22 +1380,6 @@ function refreshManagedMobileRoutes() {
   });
 }
 
-function routesPreservedForRefresh(routeIds = []) {
-  const ids = new Set(routeIds.filter(Boolean));
-  if (ids.size === 0) return [];
-  return state.mobileRoutes.filter((route) => ids.has(route.id));
-}
-
-function mergePreservedMobileRoutes(routes, preservedRoutes) {
-  if (preservedRoutes.length === 0) return routes;
-  const preservedById = new Map(preservedRoutes.map((route) => [route.id, route]));
-  const routeIds = new Set(routes.map((route) => route.id));
-  return [
-    ...routes.map((route) => preservedById.get(route.id) || route),
-    ...preservedRoutes.filter((route) => !routeIds.has(route.id)),
-  ].sort((left, right) => (left.title || left.id).localeCompare(right.title || right.id, "fi"));
-}
-
 function renderMobileRoutes() {
   if (!elements.mobileRouteSelect) return;
   const selectedId = elements.mobileRouteSelect.value;
@@ -1654,7 +1387,7 @@ function renderMobileRoutes() {
     elements.mobileRouteSearch.value = state.mobileRouteFilter;
   }
   const filteredRoutes = filteredMobileRoutes();
-  const nextSelectedId = nextMobileRouteSelection(selectedId, filteredRoutes);
+  const nextSelectedId = nextMobileRouteSelection(selectedId, filteredRoutes, state.mobileRouteId);
 
   elements.mobileRouteSelect.replaceChildren(
     ...(state.mobileRoutesLoading
@@ -1676,16 +1409,12 @@ function renderMobileRoutes() {
   } else if (state.mobileRoutesError) {
     elements.mobileRouteStatus.textContent = state.mobileRoutesError;
   } else {
-    elements.mobileRouteStatus.textContent = mobileRouteStatusText(filteredRoutes);
+    elements.mobileRouteStatus.textContent = mobileRouteStatusText(filteredRoutes, {
+      allRouteCount: state.mobileRoutes.length,
+      filter: state.mobileRouteFilter,
+      selectedRouteId: elements.mobileRouteSelect.value,
+    });
   }
-}
-
-function nextMobileRouteSelection(selectedId, filteredRoutes) {
-  if (filteredRoutes.some((route) => route.id === selectedId)) return selectedId;
-  if (state.mobileRouteId && filteredRoutes.some((route) => route.id === state.mobileRouteId)) {
-    return state.mobileRouteId;
-  }
-  return filteredRoutes[0]?.id || "";
 }
 
 function renderMobileRouteLoadButton(selectedRouteId) {
@@ -1756,7 +1485,11 @@ function renderMobileRouteList(filteredRoutes, selectedId) {
       const title = document.createElement("span");
       title.className = "mobile-route-title";
       const titleText = document.createElement("span");
-      titleText.textContent = mobileRouteDisplayTitle(route);
+      titleText.textContent = mobileRouteDisplayTitle(
+        route,
+        state.mobileRouteId,
+        hasUnsavedRouteChanges() ? state.routeName : null,
+      );
       title.append(titleText);
       if (routeLoaded) {
         const loadedBadge = document.createElement("span");
@@ -1812,99 +1545,14 @@ function renderMobileRouteSortButtons() {
 }
 
 function filteredMobileRoutes() {
-  const filter = normalizeSearchText(state.mobileRouteFilter);
-  const filteredRoutes = filter
-    ? state.mobileRoutes.filter((route) => normalizeSearchText([
-        route.id,
-        mobileRouteDisplayTitle(route),
-        route.title,
-        mobileRouteMeta(route),
-        route.source,
-        Number.isFinite(route.lengthKm) ? `${route.lengthKm.toFixed(1)} km` : "",
-      ].filter(Boolean).join(" ")).includes(filter))
-    : state.mobileRoutes;
-  return [...filteredRoutes].sort(mobileRouteComparator());
-}
-
-function mobileRouteComparator() {
-  if (state.mobileRouteSortMode === "name") {
-    return (left, right) => compareRouteTitle(left, right);
-  }
-  if (state.mobileRouteSortMode === "length") {
-    return (left, right) =>
-      compareNullableNumber(left.lengthKm, right.lengthKm) || compareRouteTitle(left, right);
-  }
-  return (left, right) =>
-    compareNullableNumber(routeDistanceFromMapCenter(left), routeDistanceFromMapCenter(right)) ||
-    compareRouteTitle(left, right);
-}
-
-function compareRouteTitle(left, right) {
-  return (left.title || left.id || "").localeCompare(right.title || right.id || "", "fi", { sensitivity: "base" });
-}
-
-function compareNullableNumber(left, right) {
-  const normalizedLeft = Number.isFinite(left) ? left : Number.POSITIVE_INFINITY;
-  const normalizedRight = Number.isFinite(right) ? right : Number.POSITIVE_INFINITY;
-  return normalizedLeft - normalizedRight;
-}
-
-function routeDistanceFromMapCenter(route) {
-  if (!map || !routeBoundsAreUsable(route?.bounds)) return null;
-  const center = map.getCenter();
-  const nearest = {
-    lng: clamp(center.lng, route.bounds.minLon, route.bounds.maxLon),
-    lat: clamp(center.lat, route.bounds.minLat, route.bounds.maxLat),
-  };
-  return distanceBetween([center.lng, center.lat], [nearest.lng, nearest.lat]);
-}
-
-function routeBoundsAreUsable(bounds) {
-  return Number.isFinite(bounds?.minLon) &&
-    Number.isFinite(bounds?.minLat) &&
-    Number.isFinite(bounds?.maxLon) &&
-    Number.isFinite(bounds?.maxLat);
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function mobileRouteDisplayTitle(route) {
-  return route.id === state.mobileRouteId && hasUnsavedRouteChanges()
-    ? state.routeName
-    : (route.title || route.id);
-}
-
-function mobileRouteStatusText(filteredRoutes) {
-  if (state.mobileRoutes.length === 0) return "No app routes found.";
-  const selectedRoute = filteredRoutes.find((route) => route.id === elements.mobileRouteSelect.value);
-  const countText = state.mobileRouteFilter
-    ? `${filteredRoutes.length} of ${state.mobileRoutes.length} app routes`
-    : `${state.mobileRoutes.length} app routes`;
-  if (!selectedRoute) return `${countText}.`;
-  const pointCount = Number.isFinite(selectedRoute.trackPointCount) ? `${selectedRoute.trackPointCount} pts` : "unknown points";
-  const length = Number.isFinite(selectedRoute.lengthKm) ? `${selectedRoute.lengthKm.toFixed(1)} km` : "unknown length";
-  return `${countText}. Selected ${length}, ${pointCount}.`;
-}
-
-function mobileRouteLabel(route) {
-  const pointCount = Number.isFinite(route.trackPointCount) ? `, ${route.trackPointCount} pts` : "";
-  const length = Number.isFinite(route.lengthKm) ? ` (${route.lengthKm.toFixed(1)} km${pointCount})` : pointCount ? ` (${pointCount.slice(2)})` : "";
-  return `${route.title || route.id}${length}`;
-}
-
-function mobileRouteMeta(route) {
-  const parts = [];
-  if (Number.isFinite(route.lengthKm)) parts.push(`${route.lengthKm.toFixed(1)} km`);
-  if (Number.isFinite(route.trackPointCount)) parts.push(`${route.trackPointCount} pts`);
-  const source = mobileRouteSourceLabel(route.source);
-  if (source) parts.push(source);
-  return parts.join(" · ") || route.id || "Route";
-}
-
-function mobileRouteSourceLabel(source) {
-  return source === "TrailLite GPX Builder" ? "LiteGPX" : source;
+  const filteredRoutes = state.mobileRoutes.filter((route) => routeMatchesMobileFilter(
+    route,
+    state.mobileRouteFilter,
+    mobileRouteDisplayTitle(route, state.mobileRouteId, hasUnsavedRouteChanges() ? state.routeName : null),
+  ));
+  const center = map?.getCenter();
+  const mapCenter = center ? [center.lng, center.lat] : null;
+  return [...filteredRoutes].sort(mobileRouteComparator(state.mobileRouteSortMode, mapCenter));
 }
 
 function upsertSavedMobileRoute(payload, gpx) {
@@ -1961,7 +1609,11 @@ async function loadSelectedMobileRoute(routeId = elements.mobileRouteSelect.valu
 async function deleteSelectedMobileRoute(routeId = elements.mobileRouteSelect.value) {
   if (!routeId || state.mobileRouteDeleteBusy) return;
   const route = state.mobileRoutes.find((entry) => entry.id === routeId) || { id: routeId };
-  if (!window.confirm(`Delete "${mobileRouteDisplayTitle(route)}" from mobile routes?`)) return;
+  if (!window.confirm(`Delete "${mobileRouteDisplayTitle(
+    route,
+    state.mobileRouteId,
+    hasUnsavedRouteChanges() ? state.routeName : null,
+  )}" from mobile routes?`)) return;
 
   state.mobileRouteDeleteBusy = true;
   renderMobileRoutes();
@@ -2069,39 +1721,12 @@ function setStatus(message, error = false) {
 
 function updateMapRoute() {
   if (!map?.getSource("route")) return;
-  map.getSource("route").setData(routeFeatureCollection());
+  map.getSource("route").setData(routeFeatureCollection(state));
 }
 
 function updateAreaOverlay() {
   if (!map?.getSource("selected-area")) return;
   map.getSource("selected-area").setData(areaFeatureCollection());
-}
-
-function routeFeatureCollection() {
-  const features = [];
-  if (state.points.length >= 2) {
-    features.push({
-      type: "Feature",
-      properties: { mode: state.mode },
-      geometry: { type: "LineString", coordinates: state.points },
-    });
-  }
-  const visiblePointIndexes = new Set(visibleRoutePointIndexes(state.points.length));
-  if (state.selectedPointIndex != null) visiblePointIndexes.add(state.selectedPointIndex);
-  [...visiblePointIndexes].sort((left, right) => left - right).forEach((index) => {
-    const point = state.points[index];
-    features.push({
-      type: "Feature",
-      id: index,
-      properties: {
-        index,
-        visible: state.mode === "edit",
-        selected: index === state.selectedPointIndex,
-      },
-      geometry: { type: "Point", coordinates: point },
-    });
-  });
-  return { type: "FeatureCollection", features };
 }
 
 function areaFeatureCollection() {
@@ -2128,39 +1753,11 @@ function areaFeatureCollection() {
   };
 }
 
-function bboxFromPoints(first, second) {
-  return [
-    Math.min(first[0], second[0]),
-    Math.min(first[1], second[1]),
-    Math.max(first[0], second[0]),
-    Math.max(first[1], second[1]),
-  ];
-}
-
-function bboxAreaIsUsable(bbox) {
-  return Array.isArray(bbox) &&
-    bbox.length === 4 &&
-    bbox.every(Number.isFinite) &&
-    Math.abs(bbox[2] - bbox[0]) > 0.00005 &&
-    Math.abs(bbox[3] - bbox[1]) > 0.00005;
-}
-
 function areaStatusText() {
   if (state.areaDownloadBusy) return "Downloading selected map data.";
   if (state.areaSelectMode || state.drawingArea) return "Drag on the map to draw area.";
   if (!state.selectedAreaBbox) return "No area selected.";
   return `BBox ${state.selectedAreaBbox.map((value) => value.toFixed(6)).join(", ")}`;
-}
-
-function visibleRoutePointIndexes(pointCount) {
-  if (pointCount <= MAX_VISIBLE_ROUTE_POINTS) {
-    return Array.from({ length: pointCount }, (_, index) => index);
-  }
-  const step = Math.ceil(pointCount / MAX_VISIBLE_ROUTE_POINTS);
-  const indexes = [];
-  for (let index = 0; index < pointCount; index += step) indexes.push(index);
-  if (indexes[indexes.length - 1] !== pointCount - 1) indexes.push(pointCount - 1);
-  return indexes;
 }
 
 function setHoveredPoint(id) {
@@ -2171,45 +1768,6 @@ function setHoveredPoint(id) {
   if (id != null && map.getSource("route")) {
     map.setFeatureState({ source: "route", id }, { hover: true });
   }
-}
-
-function parseGpx(xmlText) {
-  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
-  if (doc.querySelector("parsererror")) throw new Error("Invalid XML");
-  const trkpts = Array.from(doc.getElementsByTagName("trkpt"));
-  const points = trkpts
-    .map((element) => {
-      const lat = Number.parseFloat(element.getAttribute("lat") || "");
-      const lon = Number.parseFloat(element.getAttribute("lon") || "");
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-      return [lon, lat];
-    })
-    .filter(Boolean);
-  const name = doc.querySelector("metadata > name")?.textContent?.trim() ||
-    doc.querySelector("trk > name")?.textContent?.trim() ||
-    "";
-  return { name, points };
-}
-
-function exportGpx(routeName, points) {
-  const safeName = escapeXml(routeName || "Untitled route");
-  const trkpts = points
-    .map(([lon, lat]) => `      <trkpt lat="${lat.toFixed(6)}" lon="${lon.toFixed(6)}" />`)
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="LiteGPX Web" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata>
-    <name>${safeName}</name>
-  </metadata>
-  <trk>
-    <name>${safeName}</name>
-    <trkseg>
-${trkpts}
-    </trkseg>
-  </trk>
-</gpx>
-`;
 }
 
 function downloadGpx() {
@@ -2388,167 +1946,53 @@ function isCoordinate(value) {
     Number.isFinite(value[1]);
 }
 
-function nearestScreenPointOnSegment(point, start, end) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  if (dx === 0 && dy === 0) {
-    return {
-      x: start.x,
-      y: start.y,
-      distance: Math.hypot(point.x - start.x, point.y - start.y),
-    };
-  }
-  const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)));
-  const x = start.x + dx * t;
-  const y = start.y + dy * t;
-  return {
-    x,
-    y,
-    distance: Math.hypot(point.x - x, point.y - y),
-  };
-}
-
 function findSnapTestCandidate() {
   if (!map?.isStyleLoaded()) return null;
   const layerIds = visibleSnapLayerIds();
   if (layerIds.length === 0) return null;
   const canvas = map.getCanvas();
-  const features = map.queryRenderedFeatures(undefined, { layers: layerIds });
-  for (const feature of features) {
-    for (const line of lineCoordinateSets(feature.geometry)) {
-      for (let index = 0; index < line.length - 1; index++) {
-        const startCoordinate = line[index];
-        const endCoordinate = line[index + 1];
-        if (!isCoordinate(startCoordinate) || !isCoordinate(endCoordinate)) continue;
-        const start = map.project(startCoordinate);
-        const end = map.project(endCoordinate);
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const length = Math.hypot(dx, dy);
-        if (length < 40) continue;
-        const mid = { x: start.x + dx / 2, y: start.y + dy / 2 };
-        const offset = {
-          x: mid.x + (-dy / length) * (SNAP_TOLERANCE_PIXELS / 2),
-          y: mid.y + (dx / length) * (SNAP_TOLERANCE_PIXELS / 2),
-        };
-        if (!isScreenPointInsideCanvas(mid, canvas) || !isScreenPointInsideCanvas(offset, canvas)) continue;
-        const testLngLat = map.unproject([offset.x, offset.y]);
-        const snappedPoint = snapToVisibleLines([testLngLat.lng, testLngLat.lat]);
-        const snappedScreen = map.project(snappedPoint);
-        return {
-          layerId: feature.layer?.id || "",
-          testPoint: [testLngLat.lng, testLngLat.lat],
-          snappedPoint,
-          distanceBeforePixels: Math.hypot(offset.x - mid.x, offset.y - mid.y),
-          distanceAfterPixels: Math.hypot(snappedScreen.x - mid.x, snappedScreen.y - mid.y),
-        };
+  for (const layerId of layerIds) {
+    let features = [];
+    try {
+      features = map.queryRenderedFeatures(undefined, { layers: [layerId] });
+    } catch {
+      continue;
+    }
+    for (const feature of features) {
+      for (const line of lineCoordinateSets(feature.geometry)) {
+        for (let index = 0; index < line.length - 1; index++) {
+          const startCoordinate = line[index];
+          const endCoordinate = line[index + 1];
+          if (!isCoordinate(startCoordinate) || !isCoordinate(endCoordinate)) continue;
+          const start = map.project(startCoordinate);
+          const end = map.project(endCoordinate);
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const length = Math.hypot(dx, dy);
+          if (length < 40) continue;
+          const mid = { x: start.x + dx / 2, y: start.y + dy / 2 };
+          const offset = {
+            x: mid.x + (-dy / length) * (SNAP_TOLERANCE_PIXELS / 2),
+            y: mid.y + (dx / length) * (SNAP_TOLERANCE_PIXELS / 2),
+          };
+          if (!isScreenPointInsideCanvas(mid, canvas) || !isScreenPointInsideCanvas(offset, canvas)) continue;
+          const testLngLat = map.unproject([offset.x, offset.y]);
+          const snappedPoint = snapToVisibleLines([testLngLat.lng, testLngLat.lat]);
+          const snappedScreen = map.project(snappedPoint);
+          const distanceAfterPixels = Math.hypot(snappedScreen.x - mid.x, snappedScreen.y - mid.y);
+          if (distanceAfterPixels > 1.5) continue;
+          return {
+            layerId: feature.layer?.id || layerId,
+            testPoint: [testLngLat.lng, testLngLat.lat],
+            snappedPoint,
+            distanceBeforePixels: Math.hypot(offset.x - mid.x, offset.y - mid.y),
+            distanceAfterPixels,
+          };
+        }
       }
     }
   }
   return null;
-}
-
-function isScreenPointInsideCanvas(point, canvas) {
-  return point.x >= 0 && point.y >= 0 && point.x <= canvas.clientWidth && point.y <= canvas.clientHeight;
-}
-
-function nearestSegmentIndex(point, routePoints) {
-  let bestIndex = 0;
-  let bestDistance = Number.POSITIVE_INFINITY;
-  for (let index = 0; index < routePoints.length - 1; index++) {
-    const distance = pointToSegmentDistance(point, routePoints[index], routePoints[index + 1]);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestIndex = index;
-    }
-  }
-  return bestIndex;
-}
-
-function pointToSegmentDistance(point, start, end) {
-  const [px, py] = point;
-  const [sx, sy] = start;
-  const [ex, ey] = end;
-  const dx = ex - sx;
-  const dy = ey - sy;
-  if (dx === 0 && dy === 0) return Math.hypot(px - sx, py - sy);
-  const t = Math.max(0, Math.min(1, ((px - sx) * dx + (py - sy) * dy) / (dx * dx + dy * dy)));
-  return Math.hypot(px - (sx + t * dx), py - (sy + t * dy));
-}
-
-function totalDistance(points) {
-  let meters = 0;
-  for (let index = 1; index < points.length; index++) {
-    meters += distanceBetween(points[index - 1], points[index]);
-  }
-  return meters;
-}
-
-function distanceBetween(left, right) {
-  const lat1 = toRadians(left[1]);
-  const lat2 = toRadians(right[1]);
-  const deltaLat = toRadians(right[1] - left[1]);
-  const deltaLon = toRadians(right[0] - left[0]);
-  const a = Math.sin(deltaLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return EARTH_RADIUS_METERS * c;
-}
-
-function toRadians(value) {
-  return (value * Math.PI) / 180;
-}
-
-function formatDistance(meters) {
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  return `${(meters / 1000).toFixed(1)} km`;
-}
-
-function formatBytes(bytes) {
-  if (!Number.isFinite(bytes)) return "Unknown";
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = bytes / 1024;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-  return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
-}
-
-function slugify(value) {
-  return (value || "route")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "route";
-}
-
-function escapeXml(value) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function clonePoints(points) {
-  return points.map((point) => [...point]);
-}
-
-function normalizeSearchText(value) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-function capitalize(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function exposeTestApi() {

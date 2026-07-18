@@ -13,7 +13,7 @@ This repository is being organized as a small multi-app workspace.
 ## Documentation Index
 
 - `docs/PRODUCT.md` is the top-level product overview, feature scope, and data-format contract.
-- `docs/USE_CASES.md` contains Gherkin-style user flows and acceptance scenarios.
+- `docs/USE_CASES.md` is the use-case index. Feature docs live under `docs/features/` with a short description, concrete code references, and one Gherkin scenario each.
 - `docs/DATA.md` explains route/map data layers, storage locations, generated artifacts, credentials, and service ownership.
 - `mapdataservice/README.md` documents map data service commands and local API endpoints.
 - `mobile/README.md` documents Android build/runtime behavior and bundled map/route assets.
@@ -36,7 +36,7 @@ Always follow this workflow when making changes:
 3. Write a simple test case that fails because the implementation is not there yet.
 4. Make small, concise edits.
 5. Verify the test case passes. Continue editing if it does not.
-6. Update documentation.
+6. Update documentation in the same change. If behavior changes, update the relevant `docs/features/` page and keep code references current.
 7. Commit with a short message and push.
 8. Check for leftover Playwright/agent-browser processes, kill if found.
 

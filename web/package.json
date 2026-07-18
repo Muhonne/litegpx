@@ -7,7 +7,7 @@
     "prepare:vendor": "node scripts/prepare-vendor.mjs",
     "serve": "npm run prepare:vendor && node scripts/serve.mjs",
     "build": "npm run prepare:vendor && node scripts/build.mjs",
-    "test:unit": "node tests/static-server.test.mjs",
+    "test:unit": "node tests/static-server.test.mjs && node tests/workspace-structure.test.mjs",
     "test": "./tests/manual/run-all.sh"
   },
   "dependencies": {
