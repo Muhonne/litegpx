@@ -97,6 +97,8 @@ Feature: Web GPX route creation
     And pressing a route point without moving it does not consume undo history
     And duplicate endpoint clicks, adjacent inserts, or adjacent moves do not add a route point or consume undo history
     And freehand drawing from the current endpoint does not duplicate that endpoint
+    And holding Space lets the user pan the map without adding route points
+    And clicking a route point selects it so Delete or Backspace removes that point
     And the route distance and point count update
     And the newest-first point list still shows each point's route-order number
 

@@ -911,8 +911,10 @@ Editing behavior:
 - Use default MapLibre map controls.
 - In editing mode, normal mouse drag is for route point interaction.
 - In editing mode, Shift + drag moves/pans the map.
+- Holding Space temporarily enables map dragging in any mode.
 - Edit mode includes a Draw line control that restores freehand route drawing if the pointer state was left in map-pan mode.
-- Route points are edited with mouse interactions only.
+- Clicking a route point selects it, and Delete or Backspace removes the selected point.
+- Route points are edited with mouse interactions and keyboard delete shortcuts.
 - Pressing and releasing an existing route point without moving it is treated as a no-op and does not consume undo history.
 - Duplicate endpoint clicks, adjacent duplicate inserts, and adjacent duplicate point moves are ignored so no-op edits do not add points or consume undo history.
 - Freehand drawing can continue from the current endpoint without duplicating that endpoint.

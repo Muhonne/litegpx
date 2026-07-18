@@ -37,8 +37,10 @@ if (JSON.stringify(lineColor) !== JSON.stringify(["case", ["==", ["get", "mode"]
 }
 if (casingColor !== "#111827") throw new Error(`Route line casing should be dark, got ${JSON.stringify(casingColor)}`);
 if (pointColor !== "#A855F7") throw new Error(`Edit route point centers should match the route color, got ${JSON.stringify(pointColor)}`);
-if (pointHaloColor !== "#111827") throw new Error(`Route point halos should be dark, got ${JSON.stringify(pointHaloColor)}`);
-if (JSON.stringify(pointRadius) !== JSON.stringify(["case", ["boolean", ["feature-state", "hover"], false], 9.5, 5.6])) {
+if (JSON.stringify(pointHaloColor) !== JSON.stringify(["case", ["boolean", ["get", "selected"], false], "#F59E0B", "#111827"])) {
+  throw new Error(`Route point halos should highlight selected points, got ${JSON.stringify(pointHaloColor)}`);
+}
+if (JSON.stringify(pointRadius) !== JSON.stringify(["case", ["boolean", ["get", "selected"], false], 7.4, ["boolean", ["feature-state", "hover"], false], 9.5, 5.6])) {
   throw new Error(`Edit route points should be large enough to read on a moving map, got ${JSON.stringify(pointRadius)}`);
 }
 true;
@@ -184,6 +186,51 @@ agent-browser eval '
 (async () => {
 window.__trailLiteTest.setRoute([
   [24.930000, 60.170000],
+  [24.931000, 60.171000],
+], "Space pan test");
+window.__trailLiteTest.startEditing();
+window.__trailLiteMap.jumpTo({ center: [24.931000, 60.171000], zoom: 15, bearing: 0 });
+await new Promise((resolve) => window.__trailLiteMap.once("idle", resolve));
+window.__spacePanBefore = window.__trailLiteTest.getState();
+window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true }));
+const state = window.__trailLiteTest.getState();
+if (state.cursor !== "grab") throw new Error(`Space should temporarily switch edit mode to map pan, got ${state.cursor}`);
+if (document.querySelector("#drawRouteButton").classList.contains("active")) {
+  throw new Error("Draw line button should not show active while Space pan is held");
+}
+true;
+})()
+'
+
+agent-browser mouse move 740 420
+agent-browser mouse down
+agent-browser mouse move 900 520
+agent-browser wait 150
+agent-browser mouse up
+agent-browser wait 250
+
+agent-browser eval '
+window.dispatchEvent(new KeyboardEvent("keyup", { key: " ", code: "Space", bubbles: true }));
+const state = window.__trailLiteTest.getState();
+const before = window.__spacePanBefore;
+if (state.points.length !== before.points.length) {
+  throw new Error(`Space+drag should pan the map without adding route points: ${before.points.length} -> ${state.points.length}`);
+}
+const moved = Math.abs(state.mapCenter[0] - before.mapCenter[0]) + Math.abs(state.mapCenter[1] - before.mapCenter[1]);
+if (moved < 0.001) {
+  throw new Error(`Space+drag should move the map center, got delta ${moved}`);
+}
+if (state.cursor !== "crosshair") throw new Error(`Releasing Space in edit mode should restore draw cursor, got ${state.cursor}`);
+if (!document.querySelector("#drawRouteButton").classList.contains("active")) {
+  throw new Error("Draw line button should return to active after releasing Space");
+}
+true;
+'
+
+agent-browser eval '
+(async () => {
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
   [24.940000, 60.180000],
 ], "Line insert click");
 window.__trailLiteTest.setSnapToLines(false);
@@ -204,6 +251,67 @@ const state = window.__trailLiteTest.getState();
 if (state.points.length !== 3) throw new Error(`Clicking the visible route line should insert one point, got ${state.points.length}`);
 if (state.points[1][0].toFixed(6) !== "24.935000" || state.points[1][1].toFixed(6) !== "60.175000") {
   throw new Error(`Line click should insert into the segment, got ${JSON.stringify(state.points)}`);
+}
+true;
+'
+
+agent-browser eval '
+(async () => {
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
+  [24.931000, 60.171000],
+  [24.932000, 60.172000],
+], "Selected point delete");
+window.__trailLiteTest.startEditing();
+window.__trailLiteMap.jumpTo({ center: [24.931000, 60.171000], zoom: 15, bearing: 0 });
+await new Promise((resolve) => window.__trailLiteMap.once("idle", resolve));
+window.__selectedDeleteBefore = window.__trailLiteTest.getState();
+true;
+})()
+'
+
+agent-browser mouse move 780 400
+agent-browser mouse down
+agent-browser mouse up
+agent-browser wait 150
+
+agent-browser eval '
+const state = window.__trailLiteTest.getState();
+if (state.selectedPointIndex !== 1) throw new Error(`Clicking a point should select it, got ${state.selectedPointIndex}`);
+const selectedRow = document.querySelector("#pointsList li[data-point-index=\"1\"]");
+if (!selectedRow?.classList.contains("selected")) {
+  throw new Error("Selected point should be highlighted in the point list");
+}
+true;
+'
+
+agent-browser press Delete
+agent-browser wait 150
+
+agent-browser eval '
+const state = window.__trailLiteTest.getState();
+if (state.points.length !== 2) throw new Error(`Delete should remove the selected point, got ${state.points.length}`);
+if (state.selectedPointIndex !== null) throw new Error(`Deleted point should clear selection, got ${state.selectedPointIndex}`);
+if (state.points.some((point) => point[0].toFixed(6) === "24.931000" && point[1].toFixed(6) === "60.171000")) {
+  throw new Error(`Delete removed the wrong point: ${JSON.stringify(state.points)}`);
+}
+if (state.status !== "Point #2 deleted.") throw new Error(`Delete should report the deleted point number, got ${state.status}`);
+true;
+'
+
+agent-browser eval '
+window.__trailLiteTest.setRoute([
+  [24.930000, 60.170000],
+  [24.931000, 60.171000],
+  [24.932000, 60.172000],
+], "Selected point backspace delete");
+window.__trailLiteTest.startEditing();
+document.querySelector("#pointsList li[data-point-index=\"1\"]").click();
+window.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }));
+const state = window.__trailLiteTest.getState();
+if (state.points.length !== 2) throw new Error(`Backspace should remove the selected point, got ${state.points.length}`);
+if (state.points.some((point) => point[0].toFixed(6) === "24.931000" && point[1].toFixed(6) === "60.171000")) {
+  throw new Error(`Backspace removed the wrong point: ${JSON.stringify(state.points)}`);
 }
 true;
 '

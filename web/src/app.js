@@ -2,6 +2,7 @@ const FINLAND_CENTER = [24.94, 60.24];
 const VIEW_ROUTE_COLOR = "#FF5733";
 const EDIT_ROUTE_COLOR = "#A855F7";
 const ROUTE_HALO_COLOR = "#111827";
+const SELECTED_POINT_COLOR = "#F59E0B";
 const EARTH_RADIUS_METERS = 6371000;
 const SEARCH_ZOOM = 12;
 const FREEHAND_MIN_DISTANCE_METERS = 25;
@@ -138,6 +139,7 @@ const state = {
   drawingRoute: false,
   pendingRouteDraw: false,
   pendingDrawPoint: null,
+  selectedPointIndex: null,
   areaSelectMode: false,
   drawingArea: false,
   areaStartPoint: null,
@@ -164,6 +166,7 @@ const state = {
     baseLoading: true,
   },
   shiftKeyDown: false,
+  spaceKeyDown: false,
   routePointHover: false,
   layerSettings: {
     streetNames: true,
@@ -230,18 +233,20 @@ async function initMap() {
 
   map.on("mousedown", (event) => {
     if (state.areaSelectMode) {
+      if (isMapPanOverrideActive()) return;
       event.preventDefault();
       state.drawingArea = true;
       state.areaStartPoint = [event.lngLat.lng, event.lngLat.lat];
       state.selectedAreaBbox = null;
-      map.dragPan.disable();
+      syncMapDragPan();
       ensureAreaLayers();
       updateAreaOverlay();
       updateMapCursor();
       return;
     }
-    if (state.mode !== "edit" || state.shiftKeyDown) return;
+    if (state.mode !== "edit" || isMapPanOverrideActive()) return;
     if (shouldSuppressMapClick()) return;
+    if (eventHitsRoutePoint(event)) return;
     if (state.routePointHover || state.draggingPointIndex != null) return;
     event.preventDefault();
     state.pendingRouteDraw = true;
@@ -276,7 +281,7 @@ async function initMap() {
 
   map.on("click", "route-line-hit", (event) => {
     if (shouldSuppressMapClick()) return;
-    if (state.mode !== "edit" || state.points.length < 2 || !event.lngLat) return;
+    if (state.mode !== "edit" || isMapPanOverrideActive() || state.points.length < 2 || !event.lngLat) return;
     state.skipNextMapClick = true;
     const point = snapToVisibleLines([event.lngLat.lng, event.lngLat.lat]);
     const index = nearestSegmentIndex(point, state.points);
@@ -294,51 +299,75 @@ async function initMap() {
       return;
     }
     state.drawAddedPointCount = 0;
+    if (isMapPanOverrideActive()) return;
     if (state.mode !== "edit") return;
     addPoint([event.lngLat.lng, event.lngLat.lat]);
   });
 
-  map.on("mouseenter", "route-points", (event) => {
+  map.on("mouseenter", "route-point-hit", (event) => {
     state.routePointHover = true;
     updateMapCursor();
     const feature = event.features?.[0];
     if (feature?.id !== undefined) setHoveredPoint(feature.id);
   });
 
-  map.on("mouseleave", "route-points", () => {
+  map.on("mouseleave", "route-point-hit", () => {
     state.routePointHover = false;
     updateMapCursor();
     setHoveredPoint(null);
   });
 
-  map.on("mousedown", "route-points", (event) => {
+  map.on("mousedown", "route-point-hit", (event) => {
     if (state.mode !== "edit") return;
+    if (isMapPanOverrideActive()) return;
     const feature = event.features?.[0];
     if (!feature) return;
     event.preventDefault();
     state.draggingPointIndex = Number(feature.properties.index);
+    selectPoint(state.draggingPointIndex);
     state.dragStartPoints = clonePoints(state.points);
     updateMapCursor();
   });
 
   window.addEventListener("keydown", (event) => {
+    if (isSpaceKey(event) && !isTypingTarget(event.target)) {
+      event.preventDefault();
+      state.spaceKeyDown = true;
+      state.pendingRouteDraw = false;
+      state.pendingDrawPoint = null;
+      syncMapDragPan();
+      renderSidebar();
+      return;
+    }
     if (event.key === "Shift" && state.mode === "edit") {
       state.shiftKeyDown = true;
-      map.dragPan.enable();
-      updateMapCursor();
+      syncMapDragPan();
       renderSidebar();
     }
   });
   window.addEventListener("keyup", (event) => {
+    if (isSpaceKey(event)) {
+      event.preventDefault();
+      if (state.spaceKeyDown) suppressMapClicks();
+      state.spaceKeyDown = false;
+      syncMapDragPan();
+      renderSidebar();
+      return;
+    }
     if (event.key === "Shift" && state.mode === "edit") {
       state.shiftKeyDown = false;
-      map.dragPan.disable();
-      updateMapCursor();
+      syncMapDragPan();
       renderSidebar();
     }
   });
   window.addEventListener("mouseup", () => finishPointerEdit());
-  window.addEventListener("blur", () => finishPointerEdit());
+  window.addEventListener("blur", () => {
+    state.shiftKeyDown = false;
+    state.spaceKeyDown = false;
+    finishPointerEdit();
+    syncMapDragPan();
+    renderSidebar();
+  });
 }
 
 async function resolveBaseMapUrl() {
@@ -376,6 +405,7 @@ function bindUi() {
     if (!confirmDiscardUnsavedRoute()) return;
     state.routeName = "Untitled route";
     state.points = [];
+    state.selectedPointIndex = null;
     state.mobileRouteId = null;
     state.mobileSavedSignature = null;
     clearRouteHistory();
@@ -397,6 +427,7 @@ function bindUi() {
   elements.clearButton.addEventListener("click", () => {
     if (!confirmDiscardUnsavedRoute()) return;
     state.points = [];
+    state.selectedPointIndex = null;
     state.mobileRouteId = null;
     state.mobileSavedSignature = null;
     clearRouteHistory();
@@ -465,6 +496,7 @@ function bindUi() {
       if (parsed.points.length < 2) throw new Error("No usable GPX track");
       state.routeName = parsed.name || file.name.replace(/\.gpx$/i, "") || "Imported route";
       state.points = parsed.points;
+      state.selectedPointIndex = null;
       state.mobileRouteId = null;
       state.mobileSavedSignature = null;
       clearRouteHistory();
@@ -512,6 +544,12 @@ function bindKeyboardShortcuts() {
     }
 
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+    if ((key === "delete" || key === "backspace") && state.mode === "edit" && state.selectedPointIndex != null) {
+      event.preventDefault();
+      deleteSelectedPoint();
+      return;
+    }
 
     if (key === "escape") {
       if (state.mode === "edit") {
@@ -853,7 +891,7 @@ function classifyDetailMapKind(url, name = "") {
 }
 
 function firstOverlayLayerId() {
-  return ["route-line-casing", "route-line", "route-line-hit", "route-point-halo", "route-points"]
+  return ["route-line-casing", "route-line", "route-line-hit", "route-point-halo", "route-points", "route-point-hit"]
     .find((layerId) => map.getLayer(layerId));
 }
 
@@ -916,8 +954,15 @@ function ensureRouteLayers() {
       source: "route",
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
-        "circle-color": ROUTE_HALO_COLOR,
-        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 12, 8],
+        "circle-color": ["case", ["boolean", ["get", "selected"], false], SELECTED_POINT_COLOR, ROUTE_HALO_COLOR],
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "selected"], false],
+          13,
+          ["boolean", ["feature-state", "hover"], false],
+          12,
+          8,
+        ],
         "circle-opacity": ["case", ["==", ["get", "visible"], true], 0.72, 0],
       },
     });
@@ -930,10 +975,30 @@ function ensureRouteLayers() {
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
         "circle-color": EDIT_ROUTE_COLOR,
-        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 9.5, 5.6],
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "selected"], false],
+          7.4,
+          ["boolean", ["feature-state", "hover"], false],
+          9.5,
+          5.6,
+        ],
         "circle-stroke-color": "#FFFFFF",
         "circle-stroke-width": 2,
         "circle-opacity": ["case", ["==", ["get", "visible"], true], 1, 0],
+      },
+    });
+  }
+  if (!map.getLayer("route-point-hit")) {
+    map.addLayer({
+      id: "route-point-hit",
+      type: "circle",
+      source: "route",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: {
+        "circle-color": "#000000",
+        "circle-radius": ["case", ["==", ["get", "visible"], true], 18, 0],
+        "circle-opacity": 0,
       },
     });
   }
@@ -977,7 +1042,7 @@ function startEditing() {
     state.areaSelectMode = false;
     state.drawingArea = false;
     state.areaStartPoint = null;
-    map.dragPan.enable();
+    syncMapDragPan();
   }
   if (state.imported && !state.importedEditingCopy) {
     state.points = clonePoints(state.points);
@@ -995,13 +1060,11 @@ function activateRouteDrawing() {
     return;
   }
   state.shiftKeyDown = false;
+  state.spaceKeyDown = false;
   state.pendingRouteDraw = false;
   state.pendingDrawPoint = null;
   state.routePointHover = false;
-  if (map) {
-    map.dragPan.disable();
-    updateMapCursor();
-  }
+  syncMapDragPan();
   setStatus("Draw line active. Drag on the map to draw; click for a single point.");
   renderSidebar();
 }
@@ -1016,11 +1079,7 @@ function setMode(mode) {
   state.pendingRouteDraw = false;
   state.pendingDrawPoint = null;
   state.mode = mode;
-  if (map) {
-    if (mode === "edit") map.dragPan.disable();
-    else map.dragPan.enable();
-    updateMapCursor();
-  }
+  syncMapDragPan();
   render();
 }
 
@@ -1030,17 +1089,39 @@ function updateMapCursor() {
 }
 
 function currentMapCursor() {
+  if (isMapPanOverrideActive()) return "grab";
   if (state.areaSelectMode || state.drawingArea) return "crosshair";
   if (state.drawingRoute) return "crosshair";
   if (state.draggingPointIndex != null) return "grabbing";
   if (state.routePointHover && state.mode === "edit") return "grab";
-  if (state.mode === "edit" && state.shiftKeyDown) return "grab";
   if (state.mode === "edit") return "crosshair";
   return "grab";
 }
 
+function syncMapDragPan() {
+  if (!map) return;
+  const mapPanEnabled = isMapPanOverrideActive()
+    || (state.mode !== "edit" && !state.areaSelectMode && !state.drawingArea);
+  if (mapPanEnabled) map.dragPan.enable();
+  else map.dragPan.disable();
+  updateMapCursor();
+}
+
+function isMapPanOverrideActive() {
+  return state.spaceKeyDown || (state.mode === "edit" && state.shiftKeyDown);
+}
+
+function isSpaceKey(event) {
+  return event.code === "Space" || event.key === " ";
+}
+
 function hasActivePointerEdit() {
   return state.pendingRouteDraw || state.drawingRoute || state.drawingArea || state.draggingPointIndex != null;
+}
+
+function eventHitsRoutePoint(event) {
+  if (!map?.getLayer("route-point-hit") || !event.point) return false;
+  return map.queryRenderedFeatures(event.point, { layers: ["route-point-hit"] }).length > 0;
 }
 
 function finishPointerEdit() {
@@ -1106,6 +1187,7 @@ function addPoint(point) {
   }
   pushUndo();
   state.points = [...state.points, snappedPoint];
+  state.selectedPointIndex = state.points.length - 1;
   setStatus("Point added.");
   render();
 }
@@ -1118,6 +1200,24 @@ function sameRoutePoint(left, right) {
 function sameRoutePoints(leftPoints, rightPoints) {
   return leftPoints.length === rightPoints.length
     && leftPoints.every((point, index) => sameRoutePoint(point, rightPoints[index]));
+}
+
+function selectPoint(index) {
+  state.selectedPointIndex = Number.isInteger(index) && index >= 0 && index < state.points.length
+    ? index
+    : null;
+  if (state.selectedPointIndex != null) {
+    setStatus(`Point #${state.selectedPointIndex + 1} selected.`);
+  }
+  updateMapRoute();
+  renderSidebar();
+}
+
+function normalizeSelectedPoint() {
+  if (state.selectedPointIndex == null) return;
+  if (state.selectedPointIndex < 0 || state.selectedPointIndex >= state.points.length) {
+    state.selectedPointIndex = null;
+  }
 }
 
 function wouldDuplicateAdjacentPoint(index, point) {
@@ -1142,6 +1242,7 @@ function movePoint(index, point) {
   const points = clonePoints(state.points);
   points[index] = snappedPoint;
   state.points = points;
+  normalizeSelectedPoint();
   updateMapRoute();
   renderSidebar();
   return true;
@@ -1165,18 +1266,28 @@ function insertPoint(index, point) {
   const points = clonePoints(state.points);
   points.splice(index, 0, snappedPoint);
   state.points = points;
+  state.selectedPointIndex = index;
   setStatus("Point inserted.");
   render();
 }
 
 function deletePoint(index) {
   if (index < 0 || index >= state.points.length) return;
+  const deletedPointNumber = index + 1;
   pushUndo();
   const points = clonePoints(state.points);
   points.splice(index, 1);
   state.points = points;
-  setStatus("Point deleted.");
+  if (state.selectedPointIndex === index) state.selectedPointIndex = null;
+  else if (state.selectedPointIndex > index) state.selectedPointIndex -= 1;
+  state.hoveredPointId = null;
+  setStatus(`Point #${deletedPointNumber} deleted.`);
   render();
+}
+
+function deleteSelectedPoint() {
+  if (state.selectedPointIndex == null) return;
+  deletePoint(state.selectedPointIndex);
 }
 
 function simplifyRoute() {
@@ -1190,6 +1301,7 @@ function simplifyRoute() {
   pushUndo();
   const removed = state.points.length - simplified.length;
   state.points = simplified;
+  state.selectedPointIndex = null;
   setStatus(`Simplified route, removed ${removed} point${removed === 1 ? "" : "s"}.`);
   render();
 }
@@ -1237,7 +1349,7 @@ function beginRouteDraw(point) {
   state.pendingDrawPoint = null;
   state.drawStartPoints = clonePoints(state.points);
   state.drawAddedPointCount = 0;
-  map.dragPan.disable();
+  syncMapDragPan();
   appendDrawPoint(point, true);
   updateMapCursor();
 }
@@ -1248,6 +1360,7 @@ function appendDrawPoint(point, force = false) {
   if (previous && sameRoutePoint(previous, snappedPoint)) return;
   if (!force && previous && distanceBetween(previous, snappedPoint) < FREEHAND_MIN_DISTANCE_METERS) return;
   state.points = [...state.points, snappedPoint];
+  state.selectedPointIndex = state.points.length - 1;
   state.drawAddedPointCount += 1;
   updateMapRoute();
   renderSidebar();
@@ -1263,9 +1376,7 @@ function finishRouteDraw() {
   }
   state.drawStartPoints = null;
   state.drawAddedPointCount = 0;
-  if (state.mode === "edit" && !state.shiftKeyDown) map.dragPan.disable();
-  else map.dragPan.enable();
-  updateMapCursor();
+  syncMapDragPan();
   render();
 }
 
@@ -1275,15 +1386,14 @@ function toggleAreaSelectMode() {
   state.areaStartPoint = null;
   if (state.areaSelectMode) {
     if (state.mode === "edit") setMode("view");
-    map.dragPan.disable();
+    syncMapDragPan();
     ensureAreaLayers();
     updateAreaOverlay();
     setStatus("Drag a rectangle to choose map data area.");
   } else {
-    map.dragPan.enable();
+    syncMapDragPan();
     setStatus("Area drawing cancelled.");
   }
-  updateMapCursor();
   renderSidebar();
 }
 
@@ -1291,8 +1401,7 @@ function finishAreaDraw() {
   state.drawingArea = false;
   state.areaStartPoint = null;
   state.areaSelectMode = false;
-  map.dragPan.enable();
-  updateMapCursor();
+  syncMapDragPan();
   ensureAreaLayers();
   updateAreaOverlay();
   renderSidebar();
@@ -1310,6 +1419,7 @@ function undoPointEdit() {
   if (!previous) return;
   pushHistory(state.redoStack, state.points);
   state.points = previous;
+  normalizeSelectedPoint();
   setStatus("Point edit undone.");
   render();
 }
@@ -1319,6 +1429,7 @@ function redoPointEdit() {
   if (!next) return;
   pushHistory(state.undoStack, state.points);
   state.points = next;
+  normalizeSelectedPoint();
   setStatus("Point edit redone.");
   render();
 }
@@ -1407,7 +1518,7 @@ function renderSidebar() {
   applyLayerSettings();
   elements.snapToLinesToggle.checked = state.snapToLines;
   elements.snapToLinesOption.hidden = !editing;
-  elements.drawRouteButton.classList.toggle("active", editing && !state.shiftKeyDown);
+  elements.drawRouteButton.classList.toggle("active", editing && !isMapPanOverrideActive());
   elements.areaStatusText.textContent = areaStatusText();
   renderMobileSaveButton();
   renderMobileRoutes();
@@ -1425,6 +1536,9 @@ function renderSidebar() {
   elements.pointsList.replaceChildren(
     ...newestFirstPoints.map(({ point, index }) => {
       const item = document.createElement("li");
+      item.dataset.pointIndex = String(index);
+      item.classList.toggle("selected", index === state.selectedPointIndex);
+      item.setAttribute("aria-selected", index === state.selectedPointIndex ? "true" : "false");
       const pointText = document.createElement("span");
       pointText.className = "point-row-main";
       const pointIndex = document.createElement("span");
@@ -1435,12 +1549,16 @@ function renderSidebar() {
       pointText.append(pointIndex);
       pointText.append(code);
       item.append(pointText);
+      item.addEventListener("click", () => selectPoint(index));
       if (state.mode === "edit") {
         const deleteButton = document.createElement("button");
         deleteButton.className = "point-delete";
         deleteButton.type = "button";
         deleteButton.textContent = "Delete";
-        deleteButton.addEventListener("click", () => deletePoint(index));
+        deleteButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          deletePoint(index);
+        });
         item.append(deleteButton);
       }
       return item;
@@ -1869,6 +1987,7 @@ async function deleteSelectedMobileRoute(routeId = elements.mobileRouteSelect.va
 function clearLoadedRouteState() {
   state.routeName = "Untitled route";
   state.points = [];
+  state.selectedPointIndex = null;
   state.mobileRouteId = null;
   state.mobileSavedSignature = null;
   clearRouteHistory();
@@ -1894,6 +2013,7 @@ function applyMobileRoutePayload(payload) {
   state.routeName = route.title || parsed.name || route.id || "Mobile route";
   state.mobileRouteId = route.id || null;
   state.points = parsed.points;
+  state.selectedPointIndex = null;
   clearRouteHistory();
   state.imported = true;
   state.importedEditingCopy = false;
@@ -1966,7 +2086,9 @@ function routeFeatureCollection() {
       geometry: { type: "LineString", coordinates: state.points },
     });
   }
-  visibleRoutePointIndexes(state.points.length).forEach((index) => {
+  const visiblePointIndexes = new Set(visibleRoutePointIndexes(state.points.length));
+  if (state.selectedPointIndex != null) visiblePointIndexes.add(state.selectedPointIndex);
+  [...visiblePointIndexes].sort((left, right) => left - right).forEach((index) => {
     const point = state.points[index];
     features.push({
       type: "Feature",
@@ -1974,6 +2096,7 @@ function routeFeatureCollection() {
       properties: {
         index,
         visible: state.mode === "edit",
+        selected: index === state.selectedPointIndex,
       },
       geometry: { type: "Point", coordinates: point },
     });
@@ -2446,6 +2569,7 @@ function exposeTestApi() {
       importedEditingCopy: state.importedEditingCopy,
       status: elements.statusText.textContent,
       drawingRoute: state.drawingRoute,
+      selectedPointIndex: state.selectedPointIndex,
       snapToLines: state.snapToLines,
       layerSettings: { ...state.layerSettings },
       dataset: {
@@ -2470,6 +2594,7 @@ function exposeTestApi() {
     }),
     setRoute: (points, name = "Test route") => {
       state.points = clonePoints(points);
+      state.selectedPointIndex = null;
       state.routeName = name;
       state.mobileRouteId = null;
       state.mobileSavedSignature = null;
