@@ -160,6 +160,26 @@
     "trackPointCount": 912
   },
   {
+    "id": "juva-ja-back",
+    "title": "Juva ja back",
+    "lengthKm": 26.7,
+    "durationText": "--",
+    "source": "TrailLite GPX Builder",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Juva ja back",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/juva-ja-back.gpx",
+    "bounds": {
+      "minLon": 24.774128,
+      "minLat": 60.208929,
+      "maxLon": 24.873661,
+      "maxLat": 60.25733
+    },
+    "trackPointCount": 808
+  },
+  {
     "id": "kalvolan-kirkkopolku",
     "title": "Kalvolan Kirkkopolku",
     "lengthKm": 51,
@@ -258,6 +278,26 @@
       "maxLat": 62.938976
     },
     "trackPointCount": 371
+  },
+  {
+    "id": "lansakara",
+    "title": "Lansakara",
+    "lengthKm": 18.6,
+    "durationText": "--",
+    "source": "TrailLite GPX Builder",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Lansakara",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/lansakara.gpx",
+    "bounds": {
+      "minLon": 24.754933,
+      "minLat": 60.208879,
+      "maxLon": 24.853378,
+      "maxLat": 60.235748
+    },
+    "trackPointCount": 648
   },
   {
     "id": "lintusyrjanharjun-luontopolku-mtb",
