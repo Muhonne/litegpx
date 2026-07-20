@@ -54,6 +54,8 @@ Default local URL:
 http://localhost:5173/web/
 ```
 
+`http://localhost:5173/` redirects there so relative app assets load from the correct base path.
+
 The map data service is separate. Start it from the workspace root when testing area downloads, save-to-mobile, or loading routes already bundled in the Android workspace:
 
 ```sh

@@ -25,7 +25,11 @@ function createStaticServer() {
     try {
       const url = new URL(request.url || "/", `http://localhost:${port}`);
       let pathname = decodeURIComponent(url.pathname);
-      if (pathname === "/") pathname = "/web/";
+      if (pathname === "/") {
+        response.writeHead(302, { Location: "/web/" });
+        response.end();
+        return;
+      }
       if (pathname.endsWith("/")) pathname += "index.html";
 
       const file = normalize(join(root, pathname));
