@@ -141,7 +141,7 @@ Purpose: one MapLibre style contract used by web and mobile.
 
 Locations:
 
-- Source style: `shared/styles/style_template.json`
+- Source style/glyphs: `shared/styles/style_template.json`, `shared/glyphs/Open Sans Regular/*.pbf`
 - Android APK asset path: `assets/styles/style_template.json`
 - Android generated runtime style: app-specific `style-local.json`
 
@@ -155,7 +155,7 @@ Code references:
 Contract:
 
 - The style expects Protomaps-compatible source layers: `earth`, `landuse`, `landcover`, `water`, `boundaries`, `roads`, `buildings`, `pois`, and `places`.
-- Android rewrites `TRAILLITE_TILE_URL` to local `pmtiles://` or `mbtiles://` URLs.
+- Android rewrites `TRAILLITE_TILE_URL` to local `pmtiles://` or `mbtiles://` URLs, and bundled Open Sans glyph ranges include punctuation such as the en dash.
 - Android injects provider overlay source/layers when a provider PMTiles file exists.
 - Web clones only safe detail layers for provider overlays and avoids broad clipped fill overlays.
 
@@ -228,11 +228,13 @@ Committed data:
 - Android GPX route assets under `mobile/app/src/main/assets/routes/`
 - Android route catalog `mobile/app/src/main/assets/routes/routes.json`
 - Shared style template `shared/styles/style_template.json`
+- Shared Open Sans glyph PBF assets under `shared/glyphs/`
 - Source, tests, and documentation
 
 ## Risks
 
 - Stale `shared/maps/finland.pmtiles` or `shared/maps/finland.providers.pmtiles` can make a debug APK miss close-zoom route detail.
 - Missing provider overlay still allows base map rendering, but paths/buildings can be less detailed.
+- Missing glyph ranges cause MapLibre glyph 404s and local fallback rendering for affected label characters.
 - Rendering clipped base extracts as web overlays can create land/water artifacts.
 - Requesting NLS without credentials fails NLS enrichment; Digiroad can still run without a key.

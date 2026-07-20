@@ -33,6 +33,9 @@ try {
 
   const scriptResponse = await fetch(`${baseUrl}/web/src/app.js`);
   assert.equal(scriptResponse.status, 200, "web app script should be served under /web/");
+
+  const glyphResponse = await fetch(`${baseUrl}/shared/glyphs/Open%20Sans%20Regular/8192-8447.pbf`);
+  assert.equal(glyphResponse.status, 200, "Open Sans punctuation glyph range should be available");
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
