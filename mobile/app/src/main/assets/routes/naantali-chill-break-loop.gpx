@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="LiteGPX" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Naantali chill break loop</name>
+  </metadata>
+  <wpt lat="60.467320" lon="22.022280">
+    <name>Cafe Akseli</name>
+    <desc>Easy cafe stop by Naantali center before or after the loop.</desc>
+  </wpt>
+  <wpt lat="60.467020" lon="22.014700">
+    <name>Naantali old town waterfront</name>
+    <desc>Low-effort food and sea-view break area.</desc>
+  </wpt>
+  <wpt lat="60.470060" lon="21.999910">
+    <name>Kultaranta area</name>
+    <desc>Scenic pause near the official Porhonkallio cycling route.</desc>
+  </wpt>
+  <trk>
+    <name>Naantali chill break loop</name>
+    <trkseg>
+      <trkpt lat="60.467320" lon="22.022280" />
+      <trkpt lat="60.466900" lon="22.019900" />
+      <trkpt lat="60.466700" lon="22.016900" />
+      <trkpt lat="60.467020" lon="22.014700" />
+      <trkpt lat="60.466300" lon="22.011200" />
+      <trkpt lat="60.464800" lon="22.006800" />
+      <trkpt lat="60.463900" lon="22.002700" />
+      <trkpt lat="60.462700" lon="21.998200" />
+      <trkpt lat="60.461400" lon="21.993000" />
+      <trkpt lat="60.459900" lon="21.986900" />
+      <trkpt lat="60.458200" lon="21.979900" />
+      <trkpt lat="60.456300" lon="21.972200" />
+      <trkpt lat="60.453800" lon="21.965200" />
+      <trkpt lat="60.451200" lon="21.960200" />
+      <trkpt lat="60.448400" lon="21.958000" />
+      <trkpt lat="60.445900" lon="21.960700" />
+      <trkpt lat="60.444600" lon="21.967500" />
+      <trkpt lat="60.445000" lon="21.975400" />
+      <trkpt lat="60.446800" lon="21.983300" />
+      <trkpt lat="60.449600" lon="21.990800" />
+      <trkpt lat="60.452900" lon="21.996600" />
+      <trkpt lat="60.456500" lon="22.001200" />
+      <trkpt lat="60.460100" lon="22.005500" />
+      <trkpt lat="60.462400" lon="22.012700" />
+      <trkpt lat="60.464900" lon="22.017500" />
+      <trkpt lat="60.468400" lon="22.019400" />
+      <trkpt lat="60.470200" lon="22.017300" />
+      <trkpt lat="60.471300" lon="22.012000" />
+      <trkpt lat="60.471000" lon="22.006000" />
+      <trkpt lat="60.470060" lon="21.999910" />
+      <trkpt lat="60.469100" lon="21.994700" />
+      <trkpt lat="60.467600" lon="21.989000" />
+      <trkpt lat="60.465800" lon="21.984000" />
+      <trkpt lat="60.463900" lon="21.981100" />
+      <trkpt lat="60.461700" lon="21.982400" />
+      <trkpt lat="60.459900" lon="21.986900" />
+      <trkpt lat="60.459200" lon="21.993500" />
+      <trkpt lat="60.460100" lon="22.000000" />
+      <trkpt lat="60.461900" lon="22.006000" />
+      <trkpt lat="60.464300" lon="22.011500" />
+      <trkpt lat="60.467020" lon="22.014700" />
+      <trkpt lat="60.466900" lon="22.019900" />
+      <trkpt lat="60.467320" lon="22.022280" />
+    </trkseg>
+  </trk>
+</gpx>

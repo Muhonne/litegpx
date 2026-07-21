@@ -11,6 +11,7 @@ import {
   mobileProviderOverlayConfig,
   mobileRouteSaveTarget,
   mobileMapGpxInput,
+  parseGpxPoints,
   providerList,
   readMobileRouteCatalog,
   readMobileRouteGpx,
@@ -80,6 +81,17 @@ try {
       providers: "digiroad",
     },
     "mobile provider overlays should reuse the generated bundled base map and default to Digiroad",
+  );
+  assert.deepEqual(
+    parseGpxPoints(`<gpx>
+      <wpt lat="1" lon="2"><name>Cafe</name></wpt>
+      <trk><trkseg><trkpt lat="60.1" lon="24.1" /><trkpt lat="60.2" lon="24.2" /></trkseg></trk>
+    </gpx>`),
+    [
+      { lat: 60.1, lon: 24.1 },
+      { lat: 60.2, lon: 24.2 },
+    ],
+    "route geometry should ignore GPX waypoints used for break spots",
   );
 
   const routesDir = resolve(tempDir, "routes");

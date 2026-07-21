@@ -2,14 +2,14 @@
 
 ## Description
 
-The Android app lets a rider select a bundled GPX route, view it on the offline PMTiles map, and track current position against the route without network access.
+The Android app lets a rider select a bundled GPX route, view it on the offline PMTiles map, and track current position against the route without network access. GPX waypoints render as distinct route break spot markers, separate from the navigated track line.
 
 ## Code
 
 - `mobile/app/src/main/java/com/example/traillite/MainActivity.kt` owns top-level UI state, route selection, permissions, and settings entry points.
 - `mobile/app/src/main/java/com/example/traillite/BundledRoute.kt` loads bundled route metadata from the app assets.
-- `mobile/app/src/main/java/com/example/traillite/GpxParser.kt` parses GPX track points used by route rendering.
-- `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt` renders the map, route overlay, position dot, progress, and camera movement.
+- `mobile/app/src/main/java/com/example/traillite/GpxParser.kt` parses GPX track points and waypoint break spots.
+- `mobile/app/src/main/java/com/example/traillite/TrailMapController.kt` renders the map, route overlay, waypoint break spots, position dot, progress, and camera movement.
 - `mobile/app/src/main/java/com/example/traillite/BatteryLocationClient.kt` controls location update cadence.
 - `mobile/app/src/main/java/com/example/traillite/MapLayerSettings.kt` persists map and route display settings.
 
@@ -19,6 +19,7 @@ The Android app lets a rider select a bundled GPX route, view it on the offline 
 - Use `mobile/tests/manual/03-navigation-bearing-policy.sh` for tracking camera orientation behavior.
 - Use `mobile/tests/manual/06-tracking-camera-update-cadence.sh` for camera cadence behavior.
 - Use `mobile/tests/manual/07-route-card-readability.sh` for riding route-card readability.
+- Use `mobile/tests/manual/08-route-break-spots.sh` for GPX waypoint break spot support.
 
 ## Scenario
 
@@ -29,6 +30,7 @@ Feature: Mobile offline route navigation
     And location permission is granted
     When the user selects a route and starts GPS tracking
     Then the app draws the route on the offline map
+    And route break spot waypoints appear as distinct markers without changing the route line
     And the current position, route status, progress, and remaining distance update from GPS fixes
     And the tracking camera points reliable forward GPS movement toward the top of the screen
     And camera movement follows the configured map update cadence

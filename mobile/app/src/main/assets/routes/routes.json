@@ -200,6 +200,26 @@
     "trackPointCount": 233
   },
   {
+    "id": "karhuluodon-kierros-yyteri-mtb",
+    "title": "Karhuluodon kierros Yyterissä (MTB)",
+    "lengthKm": 10.5,
+    "durationText": "--",
+    "source": "LiteGPX",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Karhuluodon kierros Yyterissä (MTB)",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/karhuluodon-kierros-yyteri-mtb.gpx",
+    "bounds": {
+      "minLon": 21.494611,
+      "minLat": 61.559364,
+      "maxLon": 21.540412,
+      "maxLat": 61.585437
+    },
+    "trackPointCount": 214
+  },
+  {
     "id": "koivuvaaroittelu",
     "title": "Koivuvaaroittelu",
     "lengthKm": 11.6,
@@ -460,6 +480,46 @@
     "trackPointCount": 555
   },
   {
+    "id": "munakarin-kierros-yyteri-mtb",
+    "title": "Munakarin kierros Yyterissä (MTB)",
+    "lengthKm": 9.7,
+    "durationText": "--",
+    "source": "LiteGPX",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Munakarin kierros Yyterissä (MTB)",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/munakarin-kierros-yyteri-mtb.gpx",
+    "bounds": {
+      "minLon": 21.524165,
+      "minLat": 61.547794,
+      "maxLon": 21.567351,
+      "maxLat": 61.566915
+    },
+    "trackPointCount": 268
+  },
+  {
+    "id": "naantali-chill-break-loop",
+    "title": "Naantali chill break loop",
+    "lengthKm": 14.4,
+    "durationText": "--",
+    "source": "LiteGPX",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Naantali chill break loop",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/naantali-chill-break-loop.gpx",
+    "bounds": {
+      "minLon": 21.958,
+      "minLat": 60.4446,
+      "maxLon": 22.02228,
+      "maxLat": 60.4713
+    },
+    "trackPointCount": 43
+  },
+  {
     "id": "nuha-pokela-maastopyorareitti",
     "title": "Nuha - Pokela maastopyöräreitti",
     "lengthKm": 32,
@@ -498,6 +558,26 @@
       "maxLat": 60.24075
     },
     "trackPointCount": 264
+  },
+  {
+    "id": "pyha-maisemareitti",
+    "title": "Pyhä_Maisemareitti",
+    "lengthKm": 31.7,
+    "durationText": "--",
+    "source": "LiteGPX",
+    "matchScore": 1,
+    "bikelandId": null,
+    "matchedTitle": "Pyhä_Maisemareitti",
+    "detailUrl": null,
+    "gpxDownloadUrl": null,
+    "gpxAsset": "routes/pyha-maisemareitti.gpx",
+    "bounds": {
+      "minLon": 23.585627,
+      "minLat": 61.465227,
+      "maxLon": 23.768936,
+      "maxLat": 61.505907
+    },
+    "trackPointCount": 1016
   },
   {
     "id": "rapasgotti",

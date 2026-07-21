@@ -207,12 +207,13 @@ class MainActivity : ComponentActivity() {
             runCatching {
                 withContext(Dispatchers.IO) {
                     val route = storage.importRoute(uri)
-                    val points = route.openGpx().use { GpxParser.parseTrackPoints(it) }
-                    route to points
+                    val gpxRoute = route.openGpx().use { GpxParser.parseRoute(it) }
+                    route to gpxRoute
                 }
-            }.onSuccess { (route, points) ->
+            }.onSuccess { (route, gpxRoute) ->
+                val points = gpxRoute.trackPoints
                 activeTrackPoints = points
-                mapController?.setTrack(points)
+                mapController?.setRoute(gpxRoute)
                 uiState = uiState.copy(
                     busy = false,
                     bundledRoutes = routeCatalog(),
@@ -233,12 +234,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val points = route.openGpx().use { GpxParser.parseTrackPoints(it) }
-                    route to points
+                    val gpxRoute = route.openGpx().use { GpxParser.parseRoute(it) }
+                    route to gpxRoute
                 }
-            }.onSuccess { (loadedRoute, points) ->
+            }.onSuccess { (loadedRoute, gpxRoute) ->
+                val points = gpxRoute.trackPoints
                 activeTrackPoints = points
-                mapController?.setTrack(points)
+                mapController?.setRoute(gpxRoute)
                 uiState = uiState.copy(
                     busy = false,
                     trackName = loadedRoute.title,

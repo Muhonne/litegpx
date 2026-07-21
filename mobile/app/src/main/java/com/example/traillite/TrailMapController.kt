@@ -25,7 +25,16 @@ import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineJoin
 import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
+import org.maplibre.android.style.layers.PropertyFactory.textAllowOverlap
+import org.maplibre.android.style.layers.PropertyFactory.textAnchor
+import org.maplibre.android.style.layers.PropertyFactory.textColor
+import org.maplibre.android.style.layers.PropertyFactory.textField
+import org.maplibre.android.style.layers.PropertyFactory.textHaloColor
+import org.maplibre.android.style.layers.PropertyFactory.textHaloWidth
+import org.maplibre.android.style.layers.PropertyFactory.textOffset
+import org.maplibre.android.style.layers.PropertyFactory.textSize
 import org.maplibre.android.style.layers.PropertyFactory.visibility
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
@@ -50,6 +59,7 @@ class TrailMapController(
 ) {
     private var currentStyle: Style? = null
     private var trackPoints: List<GeoPoint> = emptyList()
+    private var breakSpots: List<RouteBreakSpot> = emptyList()
     private var latestLocation: LatLng? = null
     private var latestLocationFix: Location? = null
     private var lastRenderedLocation: LatLng? = null
@@ -90,6 +100,7 @@ class TrailMapController(
             applyLayerSettings(layerSettings)
             ensureOverlaySources(style)
             renderTrack()
+            renderBreakSpots()
             lastRenderedLocation = null
             onZoomChanged(map.cameraPosition.zoom)
             latestLocation?.let { updateLocationDot(it) }
@@ -126,10 +137,17 @@ class TrailMapController(
     }
 
     fun setTrack(points: List<GeoPoint>) {
+        setRoute(GpxRoute(trackPoints = points))
+    }
+
+    fun setRoute(route: GpxRoute) {
+        val points = route.trackPoints
         trackPoints = points
+        breakSpots = route.breakSpots
         lastNavigationBearing = null
         locationUpdateCount = 0
         renderTrack()
+        renderBreakSpots()
         fitTrackIfUseful(points)
     }
 
@@ -173,6 +191,29 @@ class TrailMapController(
             trackPoints.map { point -> Point.fromLngLat(point.longitude, point.latitude) },
         )
         source.setGeoJson(FeatureCollection.fromFeatures(listOf(Feature.fromGeometry(line))))
+    }
+
+    private fun renderBreakSpots() {
+        val style = currentStyle ?: return
+        ensureOverlaySources(style)
+        val source = style.getSource(BREAK_SPOTS_SOURCE_ID) as? GeoJsonSource ?: return
+        if (breakSpots.isEmpty()) {
+            source.setGeoJson(emptyFeatures())
+            return
+        }
+
+        source.setGeoJson(
+            FeatureCollection.fromFeatures(
+                breakSpots.map { spot ->
+                    Feature.fromGeometry(
+                        Point.fromLngLat(spot.point.longitude, spot.point.latitude),
+                    ).also { feature ->
+                        feature.addStringProperty("name", spot.name)
+                        spot.description?.let { feature.addStringProperty("description", it) }
+                    }
+                },
+            ),
+        )
     }
 
     private fun updateLocationDot(latLng: LatLng) {
@@ -409,6 +450,34 @@ class TrailMapController(
         if (style.getSource(LOCATION_SOURCE_ID) == null) {
             style.addSource(GeoJsonSource(LOCATION_SOURCE_ID, emptyFeatures()))
         }
+        if (style.getSource(BREAK_SPOTS_SOURCE_ID) == null) {
+            style.addSource(GeoJsonSource(BREAK_SPOTS_SOURCE_ID, emptyFeatures()))
+        }
+        if (style.getLayer(BREAK_SPOT_DOTS_LAYER_ID) == null) {
+            style.addLayer(
+                CircleLayer(BREAK_SPOT_DOTS_LAYER_ID, BREAK_SPOTS_SOURCE_ID).withProperties(
+                    circleRadius(6f),
+                    circleColor(Color.parseColor("#2E7D32")),
+                    circleOpacity(0.95f),
+                    circleStrokeColor(Color.WHITE),
+                    circleStrokeWidth(2f),
+                ),
+            )
+        }
+        if (style.getLayer(BREAK_SPOT_LABELS_LAYER_ID) == null) {
+            style.addLayer(
+                SymbolLayer(BREAK_SPOT_LABELS_LAYER_ID, BREAK_SPOTS_SOURCE_ID).withProperties(
+                    textField("{name}"),
+                    textSize(13f),
+                    textColor(Color.parseColor("#1B5E20")),
+                    textHaloColor(Color.WHITE),
+                    textHaloWidth(1.6f),
+                    textAnchor(Property.TEXT_ANCHOR_TOP),
+                    textOffset(arrayOf(0f, 0.9f)),
+                    textAllowOverlap(false),
+                ),
+            )
+        }
         if (style.getLayer(LOCATION_LAYER_ID) == null) {
             style.addLayer(
                 CircleLayer(LOCATION_LAYER_ID, LOCATION_SOURCE_ID).withProperties(
@@ -447,6 +516,9 @@ class TrailMapController(
         const val TRACK_LAYER_ID = "trail-gpx-line"
         const val LOCATION_SOURCE_ID = "trail-location-source"
         const val LOCATION_LAYER_ID = "trail-location-dot"
+        const val BREAK_SPOTS_SOURCE_ID = "trail-break-spots-source"
+        const val BREAK_SPOT_DOTS_LAYER_ID = "trail-break-spots-dots"
+        const val BREAK_SPOT_LABELS_LAYER_ID = "trail-break-spots-labels"
         const val TRACK_BOUNDS_PADDING_PX = 90
         const val TRACK_CAMERA_ANIMATION_MS = 650
         const val DEFAULT_TRAIL_ZOOM = 14.0

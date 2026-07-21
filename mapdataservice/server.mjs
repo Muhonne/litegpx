@@ -493,7 +493,7 @@ function cleanName(value) {
 
 function parseGpxPoints(xml) {
   const points = [];
-  const pointTagPattern = /<(?:trkpt|rtept|wpt)\b([^>]*)>/gi;
+  const pointTagPattern = /<(?:trkpt|rtept)\b([^>]*)>/gi;
   let tagMatch;
   while ((tagMatch = pointTagPattern.exec(xml))) {
     const attrs = parseAttributes(tagMatch[1]);
@@ -676,6 +676,7 @@ export {
   mobileProviderOverlayConfig,
   mobileRouteSaveTarget,
   mobileMapGpxInput,
+  parseGpxPoints,
   providerList,
   readMobileRouteCatalog,
   readMobileRouteGpx,

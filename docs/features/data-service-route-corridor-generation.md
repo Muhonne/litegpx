@@ -4,6 +4,8 @@
 
 The data service builds route corridor data for offline mobile use. Saving a web route writes GPX/catalog data, extracts a buffered corridor base map, builds a matching Finnish provider overlay, and refreshes the shared map manifest for the next Android build.
 
+GPX waypoints are allowed as break spot markers. Corridor generation uses track/route points only, so waypoint markers do not change route distance, bounds, or map extraction geometry.
+
 The default `mapScope` is all bundled routes so one saved route does not shrink existing offline coverage. `mapScope: "route"` intentionally builds only the saved route corridor.
 
 ## Code
@@ -11,7 +13,7 @@ The default `mapScope` is all bundled routes so one saved route does not shrink 
 - `mapdataservice/server.mjs` handles `POST /api/save-mobile-route`, selects `mapScope`, copies generated map files, and writes the bundled manifest.
 - `mapdataservice/extract-route-map.mjs` builds base PMTiles route corridors from GPX files or a route directory.
 - `mapdataservice/build-finnish-map.mjs` builds provider overlay PMTiles for the same route corridor.
-- `mapdataservice/tests/bundled-map-manifest.test.mjs` covers bundled map manifest metadata.
+- `mapdataservice/tests/bundled-map-manifest.test.mjs` covers bundled map manifest metadata and waypoint exclusion from route geometry.
 - `web/src/app.js` sends save-to-mobile requests with corridor coverage.
 - `mobile/app/src/main/java/com/example/traillite/TrailStorage.kt` copies bundled map files according to the manifest.
 
@@ -33,5 +35,6 @@ Feature: Data service route corridor generation
     When the user saves the route to the mobile workspace
     Then the service writes the GPX and route catalog entry
     And it generates route corridor base and provider PMTiles
+    And waypoint break spots are ignored as corridor geometry
     And it updates the shared map manifest consumed by Android
 ```
