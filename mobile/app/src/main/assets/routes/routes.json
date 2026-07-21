@@ -502,7 +502,7 @@
   {
     "id": "naantali-chill-break-loop",
     "title": "Naantali chill break loop",
-    "lengthKm": 14.4,
+    "lengthKm": 14.3,
     "durationText": "--",
     "source": "LiteGPX",
     "matchScore": 1,
@@ -512,12 +512,12 @@
     "gpxDownloadUrl": null,
     "gpxAsset": "routes/naantali-chill-break-loop.gpx",
     "bounds": {
-      "minLon": 21.958,
-      "minLat": 60.4446,
-      "maxLon": 22.02228,
-      "maxLat": 60.4713
+      "minLon": 21.955995,
+      "minLat": 60.450451,
+      "maxLon": 22.022271,
+      "maxLat": 60.468488
     },
-    "trackPointCount": 43
+    "trackPointCount": 745
   },
   {
     "id": "nuha-pokela-maastopyorareitti",

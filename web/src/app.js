@@ -113,6 +113,7 @@ const state = {
   mode: "view",
   routeName: "Untitled route",
   points: [],
+  breakSpots: [],
   mobileRouteId: null,
   mobileSavedSignature: null,
   undoStack: [],
@@ -382,6 +383,7 @@ function bindUi() {
     if (!confirmDiscardUnsavedRoute()) return;
     state.routeName = "Untitled route";
     state.points = [];
+    state.breakSpots = [];
     state.selectedPointIndex = null;
     state.mobileRouteId = null;
     state.mobileSavedSignature = null;
@@ -404,6 +406,7 @@ function bindUi() {
   elements.clearButton.addEventListener("click", () => {
     if (!confirmDiscardUnsavedRoute()) return;
     state.points = [];
+    state.breakSpots = [];
     state.selectedPointIndex = null;
     state.mobileRouteId = null;
     state.mobileSavedSignature = null;
@@ -473,6 +476,7 @@ function bindUi() {
       if (parsed.points.length < 2) throw new Error("No usable GPX track");
       state.routeName = parsed.name || file.name.replace(/\.gpx$/i, "") || "Imported route";
       state.points = parsed.points;
+      state.breakSpots = parsed.breakSpots || [];
       state.selectedPointIndex = null;
       state.mobileRouteId = null;
       state.mobileSavedSignature = null;
@@ -1191,6 +1195,11 @@ function routeSignature() {
   return JSON.stringify({
     name: state.routeName.trim(),
     points: state.points.map(([lon, lat]) => [Number(lon.toFixed(6)), Number(lat.toFixed(6))]),
+    breakSpots: state.breakSpots.map((spot) => ({
+      name: spot.name,
+      description: spot.description || "",
+      point: spot.point.map((value) => Number(value.toFixed(6))),
+    })),
   });
 }
 
@@ -1646,6 +1655,7 @@ function clearLoadedRouteState() {
   state.imported = false;
   state.importedEditingCopy = false;
   state.mode = "view";
+  state.breakSpots = [];
   elements.routeName.value = state.routeName;
 }
 
@@ -1665,6 +1675,7 @@ function applyMobileRoutePayload(payload) {
   state.routeName = route.title || parsed.name || route.id || "Mobile route";
   state.mobileRouteId = route.id || null;
   state.points = parsed.points;
+  state.breakSpots = parsed.breakSpots || [];
   state.selectedPointIndex = null;
   clearRouteHistory();
   state.imported = true;
@@ -1772,7 +1783,7 @@ function setHoveredPoint(id) {
 
 function downloadGpx() {
   if (!canExport()) return;
-  const gpx = exportGpx(state.routeName, state.points);
+  const gpx = exportGpx(state.routeName, state.points, state.breakSpots);
   state.lastExportedGpx = gpx;
   const blob = new Blob([gpx], { type: "application/gpx+xml" });
   const link = document.createElement("a");
@@ -1787,7 +1798,7 @@ function downloadGpx() {
 
 async function saveRouteToMobileApp() {
   if (!canExport() || state.mobileSaveBusy) return;
-  const gpx = exportGpx(state.routeName, state.points);
+  const gpx = exportGpx(state.routeName, state.points, state.breakSpots);
   state.mobileSaveBusy = true;
   renderSidebar();
   setStatus("Saving route and corridor map to mobile app.");
@@ -2038,6 +2049,7 @@ function exposeTestApi() {
     }),
     setRoute: (points, name = "Test route") => {
       state.points = clonePoints(points);
+      state.breakSpots = [];
       state.selectedPointIndex = null;
       state.routeName = name;
       state.mobileRouteId = null;
@@ -2102,7 +2114,7 @@ function exposeTestApi() {
     },
     formatBytes,
     findPlace,
-    exportGpx: () => exportGpx(state.routeName, state.points),
+    exportGpx: () => exportGpx(state.routeName, state.points, state.breakSpots),
     saveRouteToMobileApp,
     parseGpx,
     getLastExportedGpx: () => state.lastExportedGpx,

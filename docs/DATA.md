@@ -40,11 +40,8 @@ Code references:
 
 Contract:
 
-- Web exports GPX 1.1 using `<trk><trkseg><trkpt lat="..." lon="..." />`.
-- GPX `<wpt>` entries are optional route break spots. They are markers, not route geometry.
-- Android parses GPX track points for the active route line and GPX waypoints for route break spot markers.
-- `POST /api/save-mobile-route` writes a web-created GPX into Android route assets and upserts `routes.json`.
-- Data-service corridor extraction ignores GPX waypoints so cafes and other break spots do not affect route length, bounds, or offline map corridor geometry.
+- Web exports GPX 1.1 using track points for route geometry and optional `<wpt>` entries for non-route break spot markers.
+- `POST /api/save-mobile-route` writes a web-created GPX into Android route assets, upserts `routes.json`, and ignores GPX waypoints for route length, bounds, and corridor geometry.
 - `DELETE /api/mobile-routes/:id` removes a bundled route entry and deletes its GPX asset only when no remaining route references the same file.
 - When the web app edits a route loaded from the Android catalog, it sends `routeId` back on save so the existing route is updated instead of duplicated.
 
