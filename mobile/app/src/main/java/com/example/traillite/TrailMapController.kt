@@ -227,11 +227,13 @@ class TrailMapController(
             lastNavigationBearing = NORTH_UP_BEARING
             return NORTH_UP_BEARING
         }
-        return smoothedBearing(routeLookaheadBearing(location) ?: gpsBearing(location) ?: map.cameraPosition.bearing)
+        return smoothedBearing(movingGpsBearing(location) ?: routeLookaheadBearing(location) ?: map.cameraPosition.bearing)
     }
 
-    private fun gpsBearing(location: Location): Double? {
-        return if (location.hasBearing()) location.bearing.toDouble() else null
+    private fun movingGpsBearing(location: Location): Double? {
+        if (!location.hasBearing()) return null
+        if (location.hasSpeed() && location.speed < MIN_GPS_BEARING_SPEED_METERS_PER_SECOND) return null
+        return location.bearing.toDouble()
     }
 
     private fun smoothedBearing(nextBearing: Double): Double {
@@ -452,6 +454,7 @@ class TrailMapController(
         const val NORTH_UP_BEARING = 0.0
         const val ROUTE_LOOKAHEAD_METERS = 50.0
         const val MIN_BEARING_DISTANCE_METERS = 1.0
+        const val MIN_GPS_BEARING_SPEED_METERS_PER_SECOND = 1.0f
         const val FOLLOW_PAUSE_AFTER_GESTURE_MS = 10_000L
         const val MIN_BEARING_CHANGE_DEGREES = 5.0
         const val BEARING_SMOOTHING_FACTOR = 0.45
