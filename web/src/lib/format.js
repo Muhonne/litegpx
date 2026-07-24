@@ -3,6 +3,18 @@ export function formatDistance(meters) {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
+export function estimatedCyclingCalories(meters) {
+  if (!Number.isFinite(meters) || meters <= 0) return 0;
+  return Math.round((meters / 1000) * 32);
+}
+
+export function formatEstimatedCyclingCalories(meters) {
+  const calories = estimatedCyclingCalories(meters);
+  if (calories === 0) return "0";
+  const rounded = calories < 100 ? Math.round(calories / 5) * 5 : Math.round(calories / 10) * 10;
+  return `~ ${rounded.toLocaleString("en-US")}`;
+}
+
 export function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return "Unknown";
   if (bytes < 1024) return `${bytes} B`;

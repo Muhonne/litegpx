@@ -28,7 +28,14 @@ import {
   firstOverlayLayerId,
   routeFeatureCollection,
 } from "./features/route-layers.js";
-import { capitalize, formatBytes, formatDistance, slugify } from "./lib/format.js";
+import {
+  capitalize,
+  estimatedCyclingCalories,
+  formatBytes,
+  formatDistance,
+  formatEstimatedCyclingCalories,
+  slugify,
+} from "./lib/format.js";
 import {
   bboxAreaIsUsable,
   bboxFromPoints,
@@ -97,6 +104,7 @@ const elements = {
   snapToLinesOption: document.getElementById("snapToLinesOption"),
   snapToLinesToggle: document.getElementById("snapToLinesToggle"),
   distanceValue: document.getElementById("distanceValue"),
+  calorieValue: document.getElementById("calorieValue"),
   pointCountValue: document.getElementById("pointCountValue"),
   routeSaveState: document.getElementById("routeSaveState"),
   statusText: document.getElementById("statusText"),
@@ -1282,7 +1290,9 @@ function renderSidebar() {
   renderMobileRoutes();
   renderDatasetStats();
   renderShortcutContext();
-  elements.distanceValue.textContent = formatDistance(totalDistance(state.points));
+  const distanceMeters = totalDistance(state.points);
+  elements.distanceValue.textContent = formatDistance(distanceMeters);
+  elements.calorieValue.textContent = formatEstimatedCyclingCalories(distanceMeters);
   elements.pointCountValue.textContent = String(state.points.length);
   const routeSaveState = routeSaveStateText();
   elements.routeSaveState.textContent = routeSaveState;
@@ -2017,6 +2027,7 @@ function exposeTestApi() {
       mobileRouteDeleteBusy: state.mobileRouteDeleteBusy,
       points: clonePoints(state.points),
       distanceMeters: totalDistance(state.points),
+      estimatedCyclingCalories: estimatedCyclingCalories(totalDistance(state.points)),
       canExport: canExport(),
       undoDepth: state.undoStack.length,
       redoDepth: state.redoStack.length,
